@@ -1,0 +1,1 @@
+import{Module}from'@nestjs/common';import{JwtAuthGuard}from'../common/guards/jwt-auth.guard';import{RolesGuard}from'../common/guards/roles.guard';import{TechniciansController}from'./technicians.controller';@Module({controllers:[TechniciansController],providers:[JwtAuthGuard,RolesGuard]})export class TechniciansModule{}

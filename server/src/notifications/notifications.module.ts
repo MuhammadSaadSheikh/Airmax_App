@@ -1,0 +1,1 @@
+import{Module}from'@nestjs/common';import{JwtAuthGuard}from'../common/guards/jwt-auth.guard';import{NotificationsController}from'./notifications.controller';import{NotificationsGateway}from'./notifications.gateway';@Module({controllers:[NotificationsController],providers:[JwtAuthGuard,NotificationsGateway],exports:[NotificationsGateway]})export class NotificationsModule{}

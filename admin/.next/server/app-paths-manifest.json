@@ -1,0 +1,13 @@
+{
+  "/(dashboard)/complaints/page": "app/(dashboard)/complaints/page.js",
+  "/(dashboard)/customers/page": "app/(dashboard)/customers/page.js",
+  "/(dashboard)/packages/page": "app/(dashboard)/packages/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/payments/page": "app/(dashboard)/payments/page.js",
+  "/(dashboard)/reports/page": "app/(dashboard)/reports/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/session/route": "app/api/session/route.js",
+  "/login/page": "app/login/page.js"
+}

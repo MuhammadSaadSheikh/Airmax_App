@@ -1,0 +1,1 @@
+export function StatCard({label,value,change}:{label:string;value:string;change?:string}){return <section className="panel p-5"><p className="muted text-xs font-bold uppercase tracking-wider">{label}</p><p className="mt-3 text-3xl font-black">{value}</p>{change&&<p className="mt-2 text-xs font-semibold text-emerald-400">{change}</p>}</section>}

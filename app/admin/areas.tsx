@@ -1,0 +1,4 @@
+import { Text } from '@/components/AppText';
+import { Alert, View } from 'react-native'; import { Badge, Button, Card, Header, Row, Screen, ui } from '@/components/ui';
+const areas: [string, string][] = [['DHA','812 connections'],['Clifton','564 connections'],['Gulshan','721 connections'],['PECHS','438 connections'],['North Nazimabad','312 connections']];
+export default function Areas(){return <Screen><Header title="Service areas" subtitle="Coverage zones in Karachi"/><Button title="Add service area" icon="add-circle-outline" variant="secondary" onPress={()=>Alert.alert('Add area','Area configuration is ready for backend integration.')}/><Text style={ui.sectionTitle}>Available coverage</Text><Card>{areas.map(([name,count],i)=><View key={name}><Row icon="location-outline" title={name} subtitle={count} right={<Badge label="Available" tone="success"/>}/>{i<areas.length-1?<View style={ui.divider}/>:null}</View>)}</Card></Screen>}

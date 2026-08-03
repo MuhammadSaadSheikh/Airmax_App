@@ -1,97 +1,62 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# AIRMAX ISP ecosystem
 
-# Getting Started
+Production-oriented ISP system composed of a React Native CLI mobile client, NestJS REST API, Next.js operations dashboard, PostgreSQL, Redis, and a server-only MikroTik integration boundary.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Run locally
 
-## Step 1: Start Metro
+Requirements: Node 22+, npm, Android Studio or Xcode, and Docker.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
+```bash
+npm install
+docker compose up -d
+cp server/.env.example server/.env
+npm --prefix server install
+npm --prefix server run prisma:generate
+npm --prefix server run prisma:migrate
+npm --prefix admin install
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+Run `npm run android` or `npm run ios` for the native mobile app, `npm --prefix server run dev` for the API, and `npm --prefix admin run dev` for the web dashboard. The Android development command builds only the connected device architecture to keep native builds fast and disk-efficient; use `npm run android:all-architectures` only when an all-ABI debug artifact is specifically required.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+See [docs/architecture.md](docs/architecture.md) for service boundaries and [server/README.md](server/README.md) for the REST route map.
 
-### Android
+Demo login values are prefilled while the mobile app is running in development mode. Select **Customer** or **Admin**, then sign in. Any six digits work in the demo OTP flow.
 
-```sh
-# Using npm
-npm run android
+## Architecture
 
-# OR using Yarn
-yarn android
+- `App.tsx` and `src/navigation/` — React Navigation root, guarded native stacks, and role-specific tabs
+- `app/` — customer, admin, authentication, and shared screen components
+- `src/components/` — reusable card, input, button, badge and state components
+- `src/features/` — feature validation and domain logic
+- `src/services/` — typed REST transport, development fixtures, notifications, and network adapter boundary
+- `src/store/` — persisted auth and local workflow state with Zustand
+- `server/` — NestJS API, Prisma domain model, Redis integration, Socket.io, and server-only MikroTik adapter
+- `admin/` — Next.js operations dashboard
+- `assets/images/splash.png` — original AIRMAX telecom splash artwork
+
+TanStack Query owns server state; Zustand owns session and local UI workflow state. React Hook Form + Zod validate authentication. Secrets and direct router/OLT credentials must stay on a secure backend—never in the mobile bundle.
+
+The UI uses bundled Manrope typography with Space Grotesk display headings, responsive 320px-to-tablet content metrics, safe-area-aware scrolling, keyboard avoidance, and tab bars that include the Android gesture/three-button navigation inset.
+
+## Backend setup
+
+1. Start PostgreSQL and Redis with `docker compose up -d`.
+2. Copy `server/.env.example` to `server/.env`, then replace development secrets.
+3. Run `npm --prefix server run prisma:migrate` and `npm --prefix server run dev`.
+4. Point `src/config/environment.ts` at the deployed HTTPS API for release builds.
+5. Configure provider webhooks, push credentials, object storage, and MikroTik credentials on the server only.
+
+Passwords are hashed by the API, refresh-token hashes live in PostgreSQL, and transient OTP challenges live in Redis. The mobile and web clients never receive infrastructure credentials.
+
+## Quality checks
+
+```bash
+npm run typecheck
+npm run lint
+npm test -- --runInBand
+npm --prefix server run build
+npm --prefix admin run build
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+For production builds, configure native signing, APNs/FCM credentials, payment providers, error reporting, deep links, privacy copy, HTTPS API origins, and secret management.
