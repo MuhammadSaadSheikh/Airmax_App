@@ -1,227 +1,293 @@
-import { AppText as Text } from '@/components/foundation/AppText';
-import Ionicons from '@react-native-vector-icons/ionicons';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import {
+  AppHeader,
+  AppIcon,
+  AppScreen,
+  AppText,
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+} from '@/components';
+import {
+  CurrentPlanCard,
+  InternetHealthCard,
+  NetworkStatusCard,
+  QuickActionGrid,
+  ServiceAlertCard,
+  SpeedMetricCard,
+  UsageSummaryCard,
+  type QuickAction,
+} from '@/features/customer/components';
 import { useCustomerNavigation } from '@/navigation';
-import LinearGradient from 'react-native-linear-gradient';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Badge, Card, Header, IconTile, Screen, ui } from '@/components';
-import { colors, money } from '@/theme';
+import { mockNetworkService } from '@/services/network';
+import { queryKeys } from '@/services/query/queryKeys';
 import { useAppStore } from '@/store/app.store';
 import { useAuthStore } from '@/store/auth.store';
-export default function CustomerHome() {
+import { animation, colors, radius, spacing, typography } from '@/theme';
+
+export default function CustomerHomeScreen() {
   const navigation = useCustomerNavigation();
-  const user = useAuthStore(s => s.user)!;
-  const unread = useAppStore(s => s.notifications.filter(n => !n.read).length);
-  const actions = [
-    ['card-outline', 'Pay bill', () => navigation.navigate('Payment')],
-    [
-      'chatbox-ellipses-outline',
-      'Complaint',
-      () => navigation.navigate('NewComplaint'),
+  const user = useAuthStore(state => state.user);
+  const unread = useAppStore(
+    state =>
+      state.notifications.filter(notification => !notification.read).length,
+  );
+  const [speedTestRunning, setSpeedTestRunning] = useState(false);
+  const connectionId = user?.connectionId ?? 'unknown';
+
+  const dashboardQuery = useQuery({
+    queryKey: queryKeys.customerDashboard(connectionId),
+    queryFn: () => mockNetworkService.getCustomerDashboard(connectionId),
+    staleTime: 30_000,
+  });
+
+  const runSpeedTest = useCallback(() => {
+    if (speedTestRunning) return;
+    setSpeedTestRunning(true);
+    setTimeout(() => {
+      setSpeedTestRunning(false);
+      Alert.alert(
+        'Speed test complete',
+        'Download 94.8 Mbps · Upload 48.6 Mbps · Ping 12 ms',
+      );
+    }, 900);
+  }, [speedTestRunning]);
+
+  const goToPackages = useCallback(
+    () => navigation.navigate('CustomerTabs', { screen: 'Packages' }),
+    [navigation],
+  );
+  const goToPayment = useCallback(
+    () => navigation.navigate('Payment'),
+    [navigation],
+  );
+
+  const quickActions = useMemo<QuickAction[]>(
+    () => [
+      {
+        id: 'speed-test',
+        label: speedTestRunning ? 'Testing…' : 'Speed test',
+        icon: 'speedometer-outline',
+        onPress: runSpeedTest,
+      },
+      {
+        id: 'pay-bill',
+        label: 'Pay bill',
+        icon: 'card-outline',
+        onPress: goToPayment,
+      },
+      {
+        id: 'complaint',
+        label: 'Complaint',
+        icon: 'chatbox-ellipses-outline',
+        onPress: () => navigation.navigate('NewComplaint'),
+      },
+      {
+        id: 'packages',
+        label: 'Packages',
+        icon: 'cube-outline',
+        onPress: goToPackages,
+      },
+      {
+        id: 'support',
+        label: 'Support',
+        icon: 'headset-outline',
+        onPress: () =>
+          navigation.navigate('CustomerTabs', { screen: 'Support' }),
+      },
     ],
-    [
-      'speedometer-outline',
-      'My package',
-      () => navigation.navigate('ActivePackage'),
-    ],
-    [
-      'arrow-up-circle-outline',
-      'Upgrade',
-      () => navigation.navigate('CustomerTabs', { screen: 'Packages' }),
-    ],
-  ] as const;
+    [goToPackages, goToPayment, navigation, runSpeedTest, speedTestRunning],
+  );
+
   return (
-    <Screen>
-      <Header
-        title={`Hello, ${user.name.split(' ')[0]}`}
-        subtitle={`Connection ${user.connectionId}`}
+    <AppScreen contentContainerStyle={styles.screenContent}>
+      <AppHeader
+        title={`Hello, ${user?.name.split(' ')[0] ?? 'Customer'}`}
+        subtitle={`Connection ${connectionId}`}
         action={
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Notifications${unread ? `, ${unread} unread` : ''}`}
             onPress={() => navigation.navigate('Notifications')}
-            style={styles.bell}
+            style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
           >
-            <Ionicons
+            <AppIcon
               name="notifications-outline"
               color={colors.text}
               size={23}
             />
-            {unread ? (
+            {unread > 0 ? (
               <View style={styles.count}>
-                <Text style={styles.countText}>{unread}</Text>
+                <AppText style={styles.countText}>{unread}</AppText>
               </View>
             ) : null}
           </Pressable>
         }
       />
-      <LinearGradient
-        colors={[colors.primaryDark, colors.primaryMid]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <View style={styles.heroTop}>
-          <View>
-            <Text style={styles.overline}>INTERNET STATUS</Text>
-            <Text style={styles.heroTitle}>Premium 100 Mbps</Text>
-          </View>
-          <Badge label="Active" tone="success" />
-        </View>
-        <View style={styles.signal}>
-          <Ionicons name="wifi" color={colors.white} size={48} />
-          <View>
-            <Text style={styles.speed}>100</Text>
-            <Text style={styles.mbps}>Mbps unlimited</Text>
-          </View>
-        </View>
-        <View style={styles.heroBottom}>
-          <View>
-            <Text style={styles.overline}>EXPIRES</Text>
-            <Text style={styles.heroMeta}>15 August 2026</Text>
-          </View>
-          <View>
-            <Text style={styles.overline}>MONTHLY FEE</Text>
-            <Text style={styles.heroMeta}>{money(3500)}</Text>
-          </View>
-        </View>
-      </LinearGradient>
-      <Text style={ui.sectionTitle}>Quick actions</Text>
-      <View style={styles.actions}>
-        {actions.map(([icon, label, onPress]) => (
-          <Pressable
-            key={label}
-            onPress={onPress}
-            style={({ pressed }) => [
-              styles.action,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <IconTile icon={icon} />
-            <Text style={styles.actionText}>{label}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.sectionRow}>
-        <Text style={ui.sectionTitle}>This month</Text>
-        <Pressable
-          onPress={() =>
-            navigation.navigate('CustomerTabs', { screen: 'Billing' })
-          }
+
+      {dashboardQuery.isPending ? (
+        <View
+          accessibilityLabel="Loading internet dashboard"
+          style={styles.loading}
         >
-          <Text style={styles.link}>View bills</Text>
-        </Pressable>
-      </View>
-      <Card>
-        <View style={styles.billRow}>
-          <IconTile icon="receipt-outline" color={colors.warning} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.billTitle}>August bill</Text>
-            <Text style={ui.small}>Due 10 Aug 2026</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.billTitle}>{money(3500)}</Text>
-            <Badge label="Unpaid" tone="warning" />
-          </View>
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={3} />
         </View>
-      </Card>
-      <Text style={ui.sectionTitle}>Service update</Text>
-      <Card>
-        <View style={styles.billRow}>
-          <IconTile icon="construct-outline" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.billTitle}>Complaint in progress</Text>
-            <Text style={ui.small}>CMP-2048 · Ali Raza assigned</Text>
+      ) : dashboardQuery.isError ? (
+        <ErrorState
+          title="Internet health unavailable"
+          message="We couldn’t load your live connection snapshot."
+          retry={() => void dashboardQuery.refetch()}
+        />
+      ) : (
+        <Animated.View
+          entering={FadeIn.duration(animation.duration.normal)}
+          style={styles.dashboard}
+        >
+          <InternetHealthCard network={dashboardQuery.data.network} />
+
+          <SectionTitle
+            title="Network insights"
+            subtitle="Your connected equipment"
+          />
+          <NetworkStatusCard network={dashboardQuery.data.network} />
+
+          <SectionTitle
+            title="Speed information"
+            subtitle="Latest network snapshot"
+          />
+          <View style={styles.speedGrid}>
+            <SpeedMetricCard
+              label="Download"
+              value={dashboardQuery.data.speed.download}
+              unit="Mbps"
+              icon="arrow-down-outline"
+            />
+            <SpeedMetricCard
+              label="Upload"
+              value={dashboardQuery.data.speed.upload}
+              unit="Mbps"
+              icon="arrow-up-outline"
+              delay={animation.duration.instant}
+            />
+            <SpeedMetricCard
+              label="Ping"
+              value={dashboardQuery.data.speed.ping}
+              unit="ms"
+              icon="pulse-outline"
+              delay={animation.duration.fast}
+            />
+            <SpeedMetricCard
+              label="Jitter"
+              value={dashboardQuery.data.speed.jitter}
+              unit="ms"
+              icon="analytics-outline"
+              delay={animation.duration.normal}
+            />
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-        </View>
-      </Card>
-    </Screen>
+
+          <UsageSummaryCard usage={dashboardQuery.data.usage} />
+
+          <SectionTitle
+            title="Quick actions"
+            subtitle="Everything you need, one tap away"
+          />
+          <QuickActionGrid actions={quickActions} />
+
+          <SectionTitle
+            title="Current package"
+            subtitle="Your active internet plan"
+          />
+          <CurrentPlanCard
+            plan={dashboardQuery.data.plan}
+            onUpgrade={goToPackages}
+            onRenew={goToPayment}
+          />
+
+          <SectionTitle
+            title="Service alerts"
+            subtitle="Updates for your connection"
+          />
+          {dashboardQuery.data.alerts.length > 0 ? (
+            <View style={styles.alerts}>
+              {dashboardQuery.data.alerts.map(serviceAlert => (
+                <ServiceAlertCard key={serviceAlert.id} alert={serviceAlert} />
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              title="All clear"
+              message="There are no service alerts for your connection."
+              icon="shield-checkmark-outline"
+            />
+          )}
+        </Animated.View>
+      )}
+    </AppScreen>
   );
 }
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <AppText accessibilityRole="header" style={styles.sectionTitle}>
+        {title}
+      </AppText>
+      <AppText style={styles.sectionSubtitle}>{subtitle}</AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  screenContent: { paddingBottom: spacing.huge },
+  dashboard: { gap: spacing.lg },
+  loading: { gap: spacing.lg },
   bell: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: spacing.huge + spacing.md,
+    height: spacing.huge + spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
+  pressed: { opacity: animation.opacity.pressed },
   count: {
     position: 'absolute',
-    right: 7,
-    top: 6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    right: spacing.sm - 1,
+    top: spacing.sm - 2,
+    minWidth: spacing.lg,
+    height: spacing.lg,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.pill,
     backgroundColor: colors.danger,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  countText: { color: colors.white, fontSize: 10, fontWeight: '800' },
-  hero: { borderRadius: 24, padding: 20, overflow: 'hidden' },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  overline: {
-    color: colors.textHero,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.3,
-  },
-  heroTitle: {
+  countText: {
     color: colors.white,
-    fontWeight: '800',
-    fontSize: 21,
-    marginTop: 5,
+    fontFamily: typography.sectionTitle.fontFamily,
+    fontSize: typography.small.fontSize - 2,
   },
-  signal: {
+  sectionHeader: { marginTop: spacing.sm, gap: spacing.xs },
+  sectionTitle: { ...typography.sectionTitle, color: colors.text },
+  sectionSubtitle: { ...typography.small, color: colors.muted },
+  speedGrid: {
     flexDirection: 'row',
-    gap: 15,
-    alignItems: 'center',
-    marginVertical: 26,
-  },
-  speed: {
-    color: colors.white,
-    fontSize: 40,
-    fontWeight: '900',
-    lineHeight: 42,
-  },
-  mbps: { color: colors.textHeroSecondary, fontSize: 12 },
-  heroBottom: {
-    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: colors.borderOnAccent,
-    paddingTop: 15,
+    rowGap: spacing.md,
   },
-  heroMeta: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-  actions: { flexDirection: 'row', justifyContent: 'space-between' },
-  action: { alignItems: 'center', gap: 7, width: '23%' },
-  actionText: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  link: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 14,
-  },
-  billRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  billTitle: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 14,
-    marginBottom: 5,
-  },
+  alerts: { gap: spacing.md },
 });
