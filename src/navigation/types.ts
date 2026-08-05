@@ -26,6 +26,9 @@ export type CustomerStackParamList = {
   CustomerTabs: NavigatorScreenParams<CustomerTabParamList> | undefined;
   ActivePackage: undefined;
   PackageDetail: { id: string };
+  PackagesHome: undefined;
+  PackageComparison: undefined;
+  UpgradePackage: { id: string; action?: 'upgrade' | 'renew' };
   Payment: undefined;
   NewComplaint: undefined;
   Notifications: undefined;

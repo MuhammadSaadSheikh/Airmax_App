@@ -6,4 +6,11 @@ export const queryKeys = {
     ['customer-dashboard', connectionId] as const,
   networkHealth: (connectionId: string) =>
     ['network-health', connectionId] as const,
+  packageMarketplace: ['package-marketplace'] as const,
+  currentPackage: (connectionId: string) =>
+    ['current-package', connectionId] as const,
+  packageRecommendation: (connectionId: string) =>
+    ['package-recommendation', connectionId] as const,
+  packageDetail: (id: string) => ['package-detail', id] as const,
+  packageComparison: ['package-comparison'] as const,
 };

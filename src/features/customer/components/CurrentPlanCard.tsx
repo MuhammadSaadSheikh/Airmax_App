@@ -14,12 +14,14 @@ interface CurrentPlanCardProps {
   plan: CurrentPlan;
   onUpgrade: () => void;
   onRenew: () => void;
+  onViewDetails?: () => void;
 }
 
 function CurrentPlanCardComponent({
   plan,
   onUpgrade,
   onRenew,
+  onViewDetails,
 }: CurrentPlanCardProps) {
   return (
     <Surface
@@ -53,7 +55,9 @@ function CurrentPlanCardComponent({
           accessible
           accessibilityLabel={`${money(plan.monthlyPrice)} monthly`}
         >
-          <AppText style={styles.metricLabel}>MONTHLY</AppText>
+          <AppText style={styles.metricLabel}>
+            {(plan.billingCycle ?? 'monthly').toUpperCase()}
+          </AppText>
           <AppText style={styles.metricValue}>
             {money(plan.monthlyPrice)}
           </AppText>
@@ -80,6 +84,13 @@ function CurrentPlanCardComponent({
           />
         </View>
       </View>
+      {onViewDetails ? (
+        <SecondaryButton
+          title="View details"
+          icon="information-circle-outline"
+          onPress={onViewDetails}
+        />
+      ) : null}
     </Surface>
   );
 }

@@ -32,6 +32,7 @@ export interface CurrentPlan {
   monthlyPrice: number;
   expiryDate: string;
   remainingDays: number;
+  billingCycle?: string;
 }
 
 export type ServiceAlertTone = 'info' | 'warning' | 'danger';
