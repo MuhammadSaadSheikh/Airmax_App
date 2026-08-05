@@ -1,4 +1,4 @@
-import { layout } from '@/constants/theme';
+import { layout } from '@/theme';
 
 export function getScreenMetrics(width: number, bottomInset: number) {
   return {
@@ -10,8 +10,7 @@ export function getScreenMetrics(width: number, bottomInset: number) {
           : 20,
     maxWidth:
       width >= 1100 ? layout.maxWideContentWidth : layout.maxContentWidth,
-    bottomPadding: 20,
-    // bottomPadding: Math.max(bottomInset + 12, 24),
+    bottomPadding: Math.max(bottomInset, 20),
   };
 }
 

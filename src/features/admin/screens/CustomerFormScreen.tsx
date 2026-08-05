@@ -1,0 +1,48 @@
+import { useAdminNavigation } from '@/navigation';
+import { Alert } from 'react-native';
+import { Button, Header, Input, Screen } from '@/components';
+import { useState } from 'react';
+export default function CustomerForm() {
+  const navigation = useAdminNavigation();
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  return (
+    <Screen>
+      <Header title="Add customer" subtitle="Create a connection account" />
+      <Input
+        label="Full name"
+        icon="person-outline"
+        value={name}
+        onChangeText={setName}
+      />
+      <Input
+        label="Phone"
+        icon="call-outline"
+        value={phone}
+        onChangeText={setPhone}
+      />
+      <Input label="Email" icon="mail-outline" autoCapitalize="none" />
+      <Input label="CNIC / ID" icon="card-outline" />
+      <Input label="Service address" icon="location-outline" multiline />
+      <Input
+        label="Package"
+        icon="speedometer-outline"
+        value="Premium · 100 Mbps"
+      />
+      <Input
+        label="Installation date"
+        icon="calendar-outline"
+        value="15 August 2026"
+      />
+      <Button
+        title="Create customer"
+        disabled={!name || !phone}
+        onPress={() =>
+          Alert.alert('Customer created', 'The connection account is ready.', [
+            { text: 'Done', onPress: () => navigation.goBack() },
+          ])
+        }
+      />
+    </Screen>
+  );
+}

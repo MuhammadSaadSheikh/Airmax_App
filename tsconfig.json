@@ -3,9 +3,18 @@
   "compilerOptions": {
     "strict": true,
     "types": ["jest"],
-    "paths": {"@/*": ["./src/*"]},
-    "noUncheckedIndexedAccess": true
+    "paths": { "@/*": ["./src/*"] },
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["App.tsx", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", "__tests__/**/*.ts", "nativewind-env.d.ts"],
-  "exclude": ["node_modules", "ios", "android", "server", "admin", "app/**/_layout.tsx", "app/_layout.tsx"]
+  "include": [
+    "App.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": ["node_modules", "ios", "android", "server", "admin"]
 }

@@ -1,0 +1,220 @@
+import { AppText as Text } from '@/components/foundation/AppText';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import { useAdminNavigation } from '@/navigation';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Card, Header, Screen, StatCard, ui } from '@/components';
+import { colors, money } from '@/theme';
+const revenue = [38, 48, 42, 64, 58, 76, 89];
+export default function AdminHome() {
+  const navigation = useAdminNavigation();
+  return (
+    <Screen>
+      <Header
+        title="Network overview"
+        subtitle="Saturday, 1 August 2026"
+        action={
+          <Pressable style={styles.bell}>
+            <Ionicons
+              name="notifications-outline"
+              size={23}
+              color={colors.text}
+            />
+            <View style={styles.dot} />
+          </Pressable>
+        }
+      />
+      <View style={styles.grid}>
+        <StatCard
+          icon="people-outline"
+          label="Total customers"
+          value="2,847"
+          change="↑ 8.4% this month"
+        />
+        <StatCard
+          icon="wifi-outline"
+          label="Active connections"
+          value="2,691"
+          color={colors.success}
+          change="94.5% online"
+        />
+        <StatCard
+          icon="cash-outline"
+          label="Pending payments"
+          value="156"
+          color={colors.warning}
+        />
+        <StatCard
+          icon="chatbox-ellipses-outline"
+          label="Open complaints"
+          value="38"
+          color={colors.danger}
+        />
+      </View>
+      <Text style={ui.sectionTitle}>Monthly revenue</Text>
+      <Card>
+        <View style={styles.revenueTop}>
+          <View>
+            <Text style={styles.revenue}>{money(8_420_000)}</Text>
+            <Text style={ui.small}>+12.8% from last month</Text>
+          </View>
+          <View style={styles.period}>
+            <Text style={styles.periodText}>7 months</Text>
+          </View>
+        </View>
+        <View style={styles.chart}>
+          {revenue.map((v, i) => (
+            <View key={i} style={styles.barCol}>
+              <View style={[styles.bar, { height: v }]} />
+              <Text style={styles.month}>
+                {['F', 'M', 'A', 'M', 'J', 'J', 'A'][i]}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </Card>
+      <Text style={ui.sectionTitle}>Operations</Text>
+      <Card>
+        <Metric label="Network uptime" value="99.92%" color={colors.success} />
+        <Metric
+          label="Payment collection"
+          value="86.4%"
+          color={colors.primary}
+        />
+        <Metric
+          label="Complaint resolution"
+          value="78.2%"
+          color={colors.purple}
+        />
+      </Card>
+      <Text style={ui.sectionTitle}>Quick management</Text>
+      <View style={styles.quick}>
+        <Quick
+          icon="receipt-outline"
+          label="Payments"
+          onPress={() => navigation.navigate('AdminPayments')}
+        />
+        <Quick
+          icon="construct-outline"
+          label="Technicians"
+          onPress={() => navigation.navigate('Technicians')}
+        />
+        <Quick
+          icon="location-outline"
+          label="Areas"
+          onPress={() => navigation.navigate('ServiceAreas')}
+        />
+        <Quick
+          icon="analytics-outline"
+          label="Reports"
+          onPress={() => navigation.navigate('Reports')}
+        />
+      </View>
+    </Screen>
+  );
+}
+function Metric({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <View style={styles.metric}>
+      <View style={styles.metricTop}>
+        <Text style={ui.body}>{label}</Text>
+        <Text style={[styles.metricValue, { color }]}>{value}</Text>
+      </View>
+      <View style={styles.track}>
+        <View
+          style={[styles.fill, { backgroundColor: color, width: value as any }]}
+        />
+      </View>
+    </View>
+  );
+}
+function Quick({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.quickItem}>
+      <Ionicons name={icon} size={23} color={colors.primary} />
+      <Text style={styles.quickText}>{label}</Text>
+    </Pressable>
+  );
+}
+const styles = StyleSheet.create({
+  bell: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dot: {
+    position: 'absolute',
+    right: 9,
+    top: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  revenueTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  revenue: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  period: { backgroundColor: colors.surface2, padding: 9, borderRadius: 10 },
+  periodText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  chart: {
+    height: 120,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  barCol: { alignItems: 'center', gap: 6 },
+  bar: { width: 20, backgroundColor: colors.primary, borderRadius: 7 },
+  month: { color: colors.muted, fontSize: 10 },
+  metric: { marginBottom: 15 },
+  metricTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metricValue: { fontWeight: '800' },
+  track: {
+    height: 7,
+    borderRadius: 5,
+    backgroundColor: colors.background,
+    overflow: 'hidden',
+  },
+  fill: { height: 7, borderRadius: 5 },
+  quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  quickItem: {
+    width: '48%',
+    height: 70,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    gap: 10,
+  },
+  quickText: { color: colors.text, fontWeight: '700', fontSize: 13 },
+});
