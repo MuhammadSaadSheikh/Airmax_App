@@ -4,6 +4,12 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BillingScreen from '@/features/billing/screens/BillingScreen';
 import PaymentScreen from '@/features/billing/screens/PaymentScreen';
+import BillingCenterScreen from '@/features/billing/screens/BillingCenterScreen';
+import InvoiceDetailScreen from '@/features/billing/screens/InvoiceDetailScreen';
+import InvoiceScreen from '@/features/billing/screens/InvoiceScreen';
+import PaymentHistoryScreen from '@/features/billing/screens/PaymentHistoryScreen';
+import PaymentMethodsScreen from '@/features/billing/screens/PaymentMethodsScreen';
+import PaymentSuccessScreen from '@/features/billing/screens/PaymentSuccessScreen';
 import CustomerHomeScreen from '@/features/customer/screens/CustomerHomeScreen';
 import EditProfileScreen from '@/features/customer/screens/EditProfileScreen';
 import NotificationsScreen from '@/features/customer/screens/NotificationsScreen';
@@ -66,6 +72,12 @@ export function CustomerNavigator() {
       />
       <Stack.Screen name="UpgradePackage" component={UpgradePackageScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen name="BillingCenter" component={BillingCenterScreen} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+      <Stack.Screen name="Invoices" component={InvoiceScreen} />
+      <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
+      <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
       <Stack.Screen name="NewComplaint" component={NewComplaintScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

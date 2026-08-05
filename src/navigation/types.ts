@@ -1,4 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { PaymentReceipt } from '@/services/billing';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -30,6 +31,12 @@ export type CustomerStackParamList = {
   PackageComparison: undefined;
   UpgradePackage: { id: string; action?: 'upgrade' | 'renew' };
   Payment: undefined;
+  BillingCenter: undefined;
+  PaymentMethods: undefined;
+  PaymentHistory: undefined;
+  Invoices: undefined;
+  InvoiceDetail: { id: string };
+  PaymentSuccess: { receipt: PaymentReceipt };
   NewComplaint: undefined;
   Notifications: undefined;
   EditProfile: undefined;
