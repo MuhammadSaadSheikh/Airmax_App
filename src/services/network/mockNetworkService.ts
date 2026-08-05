@@ -1,5 +1,5 @@
 export type ConnectionStatus = 'online' | 'offline';
-export type EquipmentStatus = 'connected' | 'disconnected';
+export type EquipmentConnectionStatus = 'connected' | 'disconnected';
 export type FiberStatus = 'active' | 'degraded' | 'inactive';
 
 export interface NetworkStatus {
@@ -7,12 +7,12 @@ export interface NetworkStatus {
   qualityScore: number;
   latency: number;
   uptime: number;
-  routerStatus: EquipmentStatus;
+  routerStatus: EquipmentConnectionStatus;
   fiberStatus: FiberStatus;
   wifiHealthy: boolean;
 }
 
-export interface SpeedMetrics {
+export interface DashboardSpeedMetrics {
   download: number;
   upload: number;
   ping: number;
@@ -46,7 +46,7 @@ export interface ServiceAlert {
 
 export interface CustomerDashboardSnapshot {
   network: NetworkStatus;
-  speed: SpeedMetrics;
+  speed: DashboardSpeedMetrics;
   usage: UsageStats;
   plan: CurrentPlan;
   alerts: ServiceAlert[];

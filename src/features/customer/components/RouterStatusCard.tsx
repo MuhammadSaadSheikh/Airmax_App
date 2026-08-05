@@ -1,10 +1,14 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppIcon, AppText } from '@/components';
-import type { EquipmentStatus } from '@/services/network';
+import type { EquipmentConnectionStatus } from '@/services/network';
 import { colors, radius, spacing, typography } from '@/theme';
 
-function RouterStatusCardComponent({ status }: { status: EquipmentStatus }) {
+function RouterStatusCardComponent({
+  status,
+}: {
+  status: EquipmentConnectionStatus;
+}) {
   const connected = status === 'connected';
   return (
     <View

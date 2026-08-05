@@ -4,4 +4,6 @@ export const queryKeys = {
   customers: ['customers'] as const,
   customerDashboard: (connectionId: string) =>
     ['customer-dashboard', connectionId] as const,
+  networkHealth: (connectionId: string) =>
+    ['network-health', connectionId] as const,
 };

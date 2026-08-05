@@ -8,6 +8,9 @@ import CustomerHomeScreen from '@/features/customer/screens/CustomerHomeScreen';
 import EditProfileScreen from '@/features/customer/screens/EditProfileScreen';
 import NotificationsScreen from '@/features/customer/screens/NotificationsScreen';
 import ProfileScreen from '@/features/customer/screens/ProfileScreen';
+import InternetHealthScreen from '@/features/customer/screens/InternetHealthScreen';
+import SpeedTestScreen from '@/features/customer/screens/SpeedTestScreen';
+import DiagnosticsScreen from '@/features/customer/screens/DiagnosticsScreen';
 import ActivePackageScreen from '@/features/packages/screens/ActivePackageScreen';
 import PackageDetailScreen from '@/features/packages/screens/PackageDetailScreen';
 import PackagesScreen from '@/features/packages/screens/PackagesScreen';
@@ -58,6 +61,9 @@ export function CustomerNavigator() {
       <Stack.Screen name="NewComplaint" component={NewComplaintScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="InternetHealth" component={InternetHealthScreen} />
+      <Stack.Screen name="SpeedTest" component={SpeedTestScreen} />
+      <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} />
     </Stack.Navigator>
   );
 }

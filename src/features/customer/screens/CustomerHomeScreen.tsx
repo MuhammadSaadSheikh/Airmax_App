@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import {
   AppHeader,
@@ -35,7 +35,6 @@ export default function CustomerHomeScreen() {
     state =>
       state.notifications.filter(notification => !notification.read).length,
   );
-  const [speedTestRunning, setSpeedTestRunning] = useState(false);
   const connectionId = user?.connectionId ?? 'unknown';
 
   const dashboardQuery = useQuery({
@@ -44,17 +43,10 @@ export default function CustomerHomeScreen() {
     staleTime: 30_000,
   });
 
-  const runSpeedTest = useCallback(() => {
-    if (speedTestRunning) return;
-    setSpeedTestRunning(true);
-    setTimeout(() => {
-      setSpeedTestRunning(false);
-      Alert.alert(
-        'Speed test complete',
-        'Download 94.8 Mbps · Upload 48.6 Mbps · Ping 12 ms',
-      );
-    }, 900);
-  }, [speedTestRunning]);
+  const runSpeedTest = useCallback(
+    () => navigation.navigate('SpeedTest'),
+    [navigation],
+  );
 
   const goToPackages = useCallback(
     () => navigation.navigate('CustomerTabs', { screen: 'Packages' }),
@@ -69,7 +61,7 @@ export default function CustomerHomeScreen() {
     () => [
       {
         id: 'speed-test',
-        label: speedTestRunning ? 'Testing…' : 'Speed test',
+        label: 'Speed test',
         icon: 'speedometer-outline',
         onPress: runSpeedTest,
       },
@@ -99,7 +91,7 @@ export default function CustomerHomeScreen() {
           navigation.navigate('CustomerTabs', { screen: 'Support' }),
       },
     ],
-    [goToPackages, goToPayment, navigation, runSpeedTest, speedTestRunning],
+    [goToPackages, goToPayment, navigation, runSpeedTest],
   );
 
   return (
@@ -148,7 +140,14 @@ export default function CustomerHomeScreen() {
           entering={FadeIn.duration(animation.duration.normal)}
           style={styles.dashboard}
         >
-          <InternetHealthCard network={dashboardQuery.data.network} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Internet Health Center"
+            onPress={() => navigation.navigate('InternetHealth')}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <InternetHealthCard network={dashboardQuery.data.network} />
+          </Pressable>
 
           <SectionTitle
             title="Network insights"

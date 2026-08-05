@@ -30,6 +30,9 @@ export type CustomerStackParamList = {
   NewComplaint: undefined;
   Notifications: undefined;
   EditProfile: undefined;
+  InternetHealth: undefined;
+  SpeedTest: undefined;
+  Diagnostics: undefined;
 };
 
 export type AdminTabParamList = {

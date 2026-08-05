@@ -8,3 +8,4 @@ export * from './RouterStatusCard';
 export * from './ServiceAlertCard';
 export * from './SpeedMetricCard';
 export * from './UsageSummaryCard';
+export * from './network';
