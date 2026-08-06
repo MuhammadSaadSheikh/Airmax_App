@@ -13,9 +13,17 @@ export const queryKeys = {
     ['package-recommendation', connectionId] as const,
   packageDetail: (id: string) => ['package-detail', id] as const,
   packageComparison: ['package-comparison'] as const,
-  currentBill: (connectionId: string) => ['current-bill', connectionId] as const,
-  invoices: (connectionId: string) => ['billing-invoices', connectionId] as const,
+  currentBill: (connectionId: string) =>
+    ['current-bill', connectionId] as const,
+  invoices: (connectionId: string) =>
+    ['billing-invoices', connectionId] as const,
   invoiceDetail: (id: string) => ['invoice-detail', id] as const,
-  paymentHistory: (connectionId: string) => ['payment-history', connectionId] as const,
-  paymentMethods: (connectionId: string) => ['payment-methods', connectionId] as const,
+  paymentHistory: (connectionId: string) =>
+    ['payment-history', connectionId] as const,
+  paymentMethods: (connectionId: string) =>
+    ['payment-methods', connectionId] as const,
+  supportComplaints: (connectionId: string) =>
+    ['support-complaints', connectionId] as const,
+  supportComplaintDetail: (connectionId: string, id: string) =>
+    ['support-complaint-detail', connectionId, id] as const,
 };

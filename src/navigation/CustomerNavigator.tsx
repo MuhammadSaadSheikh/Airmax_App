@@ -24,6 +24,10 @@ import PackageComparisonScreen from '@/features/packages/screens/PackageComparis
 import UpgradePackageScreen from '@/features/packages/screens/UpgradePackageScreen';
 import NewComplaintScreen from '@/features/support/screens/NewComplaintScreen';
 import SupportScreen from '@/features/support/screens/SupportScreen';
+import SupportHomeScreen from '@/features/support/screens/SupportHomeScreen';
+import CreateComplaintScreen from '@/features/support/screens/CreateComplaintScreen';
+import ComplaintDetailScreen from '@/features/support/screens/ComplaintDetailScreen';
+import ComplaintHistoryScreen from '@/features/support/screens/ComplaintHistoryScreen';
 import { colors } from '@/theme';
 import { createTabOptions } from './options';
 import type { CustomerStackParamList, CustomerTabParamList } from './types';
@@ -78,6 +82,13 @@ export function CustomerNavigator() {
       <Stack.Screen name="Invoices" component={InvoiceScreen} />
       <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+      <Stack.Screen name="SupportHome" component={SupportHomeScreen} />
+      <Stack.Screen name="CreateComplaint" component={CreateComplaintScreen} />
+      <Stack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
+      <Stack.Screen
+        name="ComplaintHistory"
+        component={ComplaintHistoryScreen}
+      />
       <Stack.Screen name="NewComplaint" component={NewComplaintScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

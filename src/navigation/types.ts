@@ -37,12 +37,17 @@ export type CustomerStackParamList = {
   Invoices: undefined;
   InvoiceDetail: { id: string };
   PaymentSuccess: { receipt: PaymentReceipt };
+  SupportHome: undefined;
+  CreateComplaint: undefined;
+  ComplaintDetail: { id: string };
+  ComplaintHistory: undefined;
+  // Compatibility alias for the original complaint route.
   NewComplaint: undefined;
   Notifications: undefined;
   EditProfile: undefined;
   InternetHealth: undefined;
   SpeedTest: undefined;
-  Diagnostics: undefined;
+  Diagnostics: { issueType?: string } | undefined;
 };
 
 export type AdminTabParamList = {
