@@ -26,4 +26,12 @@ export const queryKeys = {
     ['support-complaints', connectionId] as const,
   supportComplaintDetail: (connectionId: string, id: string) =>
     ['support-complaint-detail', connectionId, id] as const,
+  notifications: (connectionId: string) =>
+    ['notifications', connectionId] as const,
+  notificationDetail: (id: string) => ['notification-detail', id] as const,
+  notificationPreferences: (connectionId: string) =>
+    ['notification-preferences', connectionId] as const,
+  recommendations: (connectionId: string) =>
+    ['notification-recommendations', connectionId] as const,
+  recommendationDetail: (id: string) => ['recommendation-detail', id] as const,
 };

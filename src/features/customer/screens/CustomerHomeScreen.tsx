@@ -23,18 +23,14 @@ import {
 } from '@/features/customer/components';
 import { useCustomerNavigation } from '@/navigation';
 import { mockNetworkService } from '@/services/network';
+import { notificationService } from '@/services/notifications/notificationService';
 import { queryKeys } from '@/services/query/queryKeys';
-import { useAppStore } from '@/store/app.store';
 import { useAuthStore } from '@/store/auth.store';
 import { animation, colors, radius, spacing, typography } from '@/theme';
 
 export default function CustomerHomeScreen() {
   const navigation = useCustomerNavigation();
   const user = useAuthStore(state => state.user);
-  const unread = useAppStore(
-    state =>
-      state.notifications.filter(notification => !notification.read).length,
-  );
   const connectionId = user?.connectionId ?? 'unknown';
 
   const dashboardQuery = useQuery({
@@ -42,6 +38,14 @@ export default function CustomerHomeScreen() {
     queryFn: () => mockNetworkService.getCustomerDashboard(connectionId),
     staleTime: 30_000,
   });
+  const notificationsQuery = useQuery({
+    queryKey: queryKeys.notifications(connectionId),
+    queryFn: () => notificationService.getNotifications(connectionId),
+    staleTime: 30_000,
+  });
+  const unread =
+    notificationsQuery.data?.filter(notification => !notification.isRead)
+      .length ?? 0;
 
   const runSpeedTest = useCallback(
     () => navigation.navigate('SpeedTest'),

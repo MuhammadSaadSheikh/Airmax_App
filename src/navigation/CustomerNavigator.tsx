@@ -13,6 +13,9 @@ import PaymentSuccessScreen from '@/features/billing/screens/PaymentSuccessScree
 import CustomerHomeScreen from '@/features/customer/screens/CustomerHomeScreen';
 import EditProfileScreen from '@/features/customer/screens/EditProfileScreen';
 import NotificationsScreen from '@/features/customer/screens/NotificationsScreen';
+import NotificationDetailScreen from '@/features/notifications/screens/NotificationDetailScreen';
+import NotificationSettingsScreen from '@/features/notifications/screens/NotificationSettingsScreen';
+import RecommendationDetailScreen from '@/features/notifications/screens/RecommendationDetailScreen';
 import ProfileScreen from '@/features/customer/screens/ProfileScreen';
 import InternetHealthScreen from '@/features/customer/screens/InternetHealthScreen';
 import SpeedTestScreen from '@/features/customer/screens/SpeedTestScreen';
@@ -91,6 +94,18 @@ export function CustomerNavigator() {
       />
       <Stack.Screen name="NewComplaint" component={NewComplaintScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen
+        name="NotificationDetail"
+        component={NotificationDetailScreen}
+      />
+      <Stack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+      />
+      <Stack.Screen
+        name="RecommendationDetail"
+        component={RecommendationDetailScreen}
+      />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="InternetHealth" component={InternetHealthScreen} />
       <Stack.Screen name="SpeedTest" component={SpeedTestScreen} />

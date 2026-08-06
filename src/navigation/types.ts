@@ -44,6 +44,9 @@ export type CustomerStackParamList = {
   // Compatibility alias for the original complaint route.
   NewComplaint: undefined;
   Notifications: undefined;
+  NotificationDetail: { id: string };
+  NotificationSettings: undefined;
+  RecommendationDetail: { id: string };
   EditProfile: undefined;
   InternetHealth: undefined;
   SpeedTest: undefined;
