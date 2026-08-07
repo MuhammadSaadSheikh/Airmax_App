@@ -2,15 +2,20 @@ import { StyleSheet, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { AppIcon, type AppIconName } from '@/components/foundation/AppIcon';
 import { AppText } from '@/components/foundation/AppText';
+import { SecondaryButton } from '@/components/controls/SecondaryButton';
 
 export function EmptyState({
   title,
   message,
   icon = 'file-tray-outline',
+  actionLabel,
+  onAction,
 }: {
   title: string;
   message: string;
   icon?: AppIconName;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <View style={styles.state}>
@@ -19,6 +24,9 @@ export function EmptyState({
       </View>
       <AppText style={styles.title}>{title}</AppText>
       <AppText style={styles.message}>{message}</AppText>
+      {actionLabel && onAction ? (
+        <SecondaryButton title={actionLabel} onPress={onAction} />
+      ) : null}
     </View>
   );
 }

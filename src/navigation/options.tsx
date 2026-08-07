@@ -1,7 +1,9 @@
 import { StyleSheet } from 'react-native';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { AppIcon, type AppIconName } from '@/components';
 import { colors, fonts } from '@/theme';
+import { animation } from '@/theme';
 import { getTabMetrics } from '@/utils/responsive';
 
 export function createTabOptions(
@@ -36,6 +38,22 @@ export function createTabOptions(
     ),
   });
 }
+
+export const stackScreenOptions: NativeStackNavigationOptions = {
+  headerShown: false,
+  contentStyle: { backgroundColor: colors.background },
+  animation: 'slide_from_right',
+  animationDuration: animation.duration.normal,
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true,
+};
+
+export const modalScreenOptions: NativeStackNavigationOptions = {
+  animation: 'slide_from_bottom',
+  animationDuration: animation.duration.normal,
+  presentation: 'modal',
+  gestureEnabled: true,
+};
 
 const styles = StyleSheet.create({
   scene: { backgroundColor: colors.background },

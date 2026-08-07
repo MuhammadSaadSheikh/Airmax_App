@@ -31,8 +31,11 @@ import SupportHomeScreen from '@/features/support/screens/SupportHomeScreen';
 import CreateComplaintScreen from '@/features/support/screens/CreateComplaintScreen';
 import ComplaintDetailScreen from '@/features/support/screens/ComplaintDetailScreen';
 import ComplaintHistoryScreen from '@/features/support/screens/ComplaintHistoryScreen';
-import { colors } from '@/theme';
-import { createTabOptions } from './options';
+import {
+  createTabOptions,
+  modalScreenOptions,
+  stackScreenOptions,
+} from './options';
 import type { CustomerStackParamList, CustomerTabParamList } from './types';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
@@ -63,12 +66,7 @@ function CustomerTabs() {
 
 export function CustomerNavigator() {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
       <Stack.Screen name="ActivePackage" component={ActivePackageScreen} />
       <Stack.Screen name="PackageDetail" component={PackageDetailScreen} />
@@ -78,21 +76,37 @@ export function CustomerNavigator() {
         component={PackageComparisonScreen}
       />
       <Stack.Screen name="UpgradePackage" component={UpgradePackageScreen} />
-      <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="BillingCenter" component={BillingCenterScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
       <Stack.Screen name="Invoices" component={InvoiceScreen} />
       <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
-      <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+      <Stack.Screen
+        name="PaymentSuccess"
+        component={PaymentSuccessScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="SupportHome" component={SupportHomeScreen} />
-      <Stack.Screen name="CreateComplaint" component={CreateComplaintScreen} />
+      <Stack.Screen
+        name="CreateComplaint"
+        component={CreateComplaintScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
       <Stack.Screen
         name="ComplaintHistory"
         component={ComplaintHistoryScreen}
       />
-      <Stack.Screen name="NewComplaint" component={NewComplaintScreen} />
+      <Stack.Screen
+        name="NewComplaint"
+        component={NewComplaintScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen
         name="NotificationDetail"

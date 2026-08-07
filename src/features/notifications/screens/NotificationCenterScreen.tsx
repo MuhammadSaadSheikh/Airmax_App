@@ -13,7 +13,7 @@ import {
   AppScreen,
   AppText,
   ErrorState,
-  SkeletonCard,
+  NotificationSkeleton,
 } from '@/components';
 import {
   NotificationBadge,
@@ -135,11 +135,7 @@ export default function NotificationCenterScreen() {
           subtitle="Personalized AIRMAX updates"
           showBack
         />
-        <View style={styles.loading}>
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-        </View>
+        <NotificationSkeleton />
       </AppScreen>
     );
   }
@@ -253,7 +249,6 @@ function NotificationSeparator() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingBottom: spacing.none },
-  loading: { gap: spacing.lg },
   settings: {
     minWidth: 46,
     minHeight: 46,

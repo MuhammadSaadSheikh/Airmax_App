@@ -7,9 +7,9 @@ import {
   AppIcon,
   AppScreen,
   AppText,
+  DashboardSkeleton,
   EmptyState,
   ErrorState,
-  SkeletonCard,
 } from '@/components';
 import {
   CurrentPlanCard,
@@ -125,14 +125,7 @@ export default function CustomerHomeScreen() {
       />
 
       {dashboardQuery.isPending ? (
-        <View
-          accessibilityLabel="Loading internet dashboard"
-          style={styles.loading}
-        >
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={2} />
-          <SkeletonCard lines={3} />
-        </View>
+        <DashboardSkeleton />
       ) : dashboardQuery.isError ? (
         <ErrorState
           title="Internet health unavailable"
@@ -254,7 +247,6 @@ function SectionTitle({
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: spacing.huge },
   dashboard: { gap: spacing.lg },
-  loading: { gap: spacing.lg },
   bell: {
     width: spacing.huge + spacing.md,
     height: spacing.huge + spacing.md,

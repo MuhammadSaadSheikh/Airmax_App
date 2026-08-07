@@ -10,6 +10,7 @@ import Animated, {
 import { AppIcon, AppText } from '@/components';
 import type { Notification } from '@/services/notifications/models';
 import { animation, colors, radius, spacing, typography } from '@/theme';
+import { shadows } from '@/theme';
 import { notificationPresentation, priorityColor } from './presentation';
 
 type Props = {
@@ -132,6 +133,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     borderWidth: 1,
     overflow: 'hidden',
+    ...shadows.subtle,
   },
   content: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
   priority: { width: 3, alignSelf: 'stretch', borderRadius: radius.pill },

@@ -15,8 +15,11 @@ import PackageFormScreen from '@/features/admin/screens/PackageFormScreen';
 import ReportsScreen from '@/features/admin/screens/ReportsScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
 import TechniciansScreen from '@/features/admin/screens/TechniciansScreen';
-import { colors } from '@/theme';
-import { createTabOptions } from './options';
+import {
+  createTabOptions,
+  modalScreenOptions,
+  stackScreenOptions,
+} from './options';
 import type { AdminStackParamList, AdminTabParamList } from './types';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -47,20 +50,23 @@ function AdminTabs() {
 
 export function AdminNavigator() {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="AdminTabs" component={AdminTabs} />
       <Stack.Screen name="AdminPayments" component={AdminPaymentsScreen} />
       <Stack.Screen name="Technicians" component={TechniciansScreen} />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
       <Stack.Screen name="Reports" component={ReportsScreen} />
-      <Stack.Screen name="CustomerForm" component={CustomerFormScreen} />
+      <Stack.Screen
+        name="CustomerForm"
+        component={CustomerFormScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
-      <Stack.Screen name="PackageForm" component={PackageFormScreen} />
+      <Stack.Screen
+        name="PackageForm"
+        component={PackageFormScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
     </Stack.Navigator>
   );

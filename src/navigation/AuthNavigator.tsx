@@ -4,12 +4,13 @@ import InstallationRequestScreen from '@/features/auth/screens/InstallationReque
 import LoginScreen from '@/features/auth/screens/LoginScreen';
 import OtpScreen from '@/features/auth/screens/OtpScreen';
 import type { AuthStackParamList } from './types';
+import { stackScreenOptions } from './options';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export function AuthNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Otp" component={OtpScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />

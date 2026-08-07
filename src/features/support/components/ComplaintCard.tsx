@@ -1,14 +1,13 @@
 import { memo, useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withTiming,
 } from 'react-native-reanimated';
 import { AppIcon, AppText, StatusBadge, Surface } from '@/components';
 import type { Complaint, ComplaintStatus } from '@/services/support';
-import { animation, colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
+import { AnimatedPressable, pulse as pulseAnimation } from '@/utils/animations';
 
 const statusTone = (status: ComplaintStatus) =>
   status === 'resolved'
@@ -38,21 +37,16 @@ function ComplaintCardView({
   const pulse = useSharedValue(1);
   useEffect(() => {
     if (complaint.status !== 'resolved') {
-      pulse.value = withRepeat(
-        withTiming(0.35, { duration: animation.duration.slow }),
-        -1,
-        true,
-      );
+      pulse.value = pulseAnimation(0.35);
     }
   }, [complaint.status, pulse]);
   const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`${complaint.id}, ${complaint.title}, ${complaint.status.replaceAll('_', ' ')}`}
       onPress={onPress}
-      style={({ pressed }) => pressed && styles.pressed}
     >
       <Surface style={styles.card}>
         <View style={styles.topRow}>
@@ -83,7 +77,7 @@ function ComplaintCardView({
           </AppText>
         </View>
       </Surface>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -118,5 +112,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  pressed: { opacity: animation.opacity.pressed },
 });

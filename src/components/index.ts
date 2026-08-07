@@ -17,6 +17,7 @@ export * from './states/ErrorState';
 export * from './states/LoadingState';
 export * from './states/OfflineBanner';
 export * from './states/SkeletonCard';
+export * from './states/FeatureSkeletons';
 export * from './composites/DataDisplay';
 export * from './styles';
 

@@ -7,7 +7,7 @@ import {
   AppScreen,
   EmptyState,
   ErrorState,
-  SkeletonCard,
+  SupportSkeleton,
 } from '@/components';
 import { ComplaintCard } from '@/features/support/components';
 import { useCustomerNavigation } from '@/navigation';
@@ -48,10 +48,7 @@ export default function ComplaintHistoryScreen() {
         showBack
       />
       {query.isPending ? (
-        <View style={styles.loading}>
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-        </View>
+        <SupportSkeleton />
       ) : query.isError ? (
         <ErrorState
           title="Tickets unavailable"
@@ -91,7 +88,6 @@ function TicketSeparator() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingBottom: spacing.none },
-  loading: { gap: spacing.lg },
   list: { flexGrow: 1 },
   separator: { height: spacing.md },
 });

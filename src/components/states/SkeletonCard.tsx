@@ -1,32 +1,26 @@
-import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
-import { animation, colors, radius, spacing } from '@/theme';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { colors, radius, spacing } from '@/theme';
+import { pulse } from '@/utils/animations';
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
-  const [opacity] = useState(() => new Animated.Value(0.35));
+  const opacity = useSharedValue(0.35);
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.8,
-          duration: animation.duration.slow,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.35,
-          duration: animation.duration.slow,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
+    opacity.value = pulse(0.35);
+    return () => {
+      opacity.value = 0.35;
+    };
   }, [opacity]);
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
     <Animated.View
       accessibilityElementsHidden
-      style={[styles.card, { opacity }]}
+      style={[styles.card, animatedStyle]}
     >
       <View style={styles.title} />
       {Array.from({ length: lines }, (_, index) => (

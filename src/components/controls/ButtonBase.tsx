@@ -1,18 +1,13 @@
 import type { PropsWithChildren } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import {
-  animation,
-  colors,
-  gradients,
-  radius,
-  spacing,
-  typography,
-} from '@/theme';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { colors, gradients, radius, spacing, typography } from '@/theme';
 import { AppIcon, type AppIconName } from '@/components/foundation/AppIcon';
 import { AppText } from '@/components/foundation/AppText';
 import { GradientBackground } from '@/components/foundation/GradientBackground';
+import { AnimatedPressable } from '@/utils/animations';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+export type ButtonFeedbackState = 'idle' | 'success' | 'error';
 export type ButtonBaseProps = PropsWithChildren<{
   title: string;
   onPress?: () => void;
@@ -20,6 +15,7 @@ export type ButtonBaseProps = PropsWithChildren<{
   loading?: boolean;
   disabled?: boolean;
   variant?: ButtonVariant;
+  feedbackState?: ButtonFeedbackState;
 }>;
 
 export function ButtonBase({
@@ -29,6 +25,7 @@ export function ButtonBase({
   loading = false,
   disabled = false,
   variant = 'primary',
+  feedbackState = 'idle',
 }: ButtonBaseProps) {
   const isDisabled = disabled || loading;
   const foreground = variant === 'secondary' ? colors.primary : colors.text;
@@ -38,7 +35,19 @@ export function ButtonBase({
         <ActivityIndicator color={foreground} />
       ) : (
         <>
-          {icon ? <AppIcon name={icon} size={18} color={foreground} /> : null}
+          {feedbackState !== 'idle' ? (
+            <AppIcon
+              name={
+                feedbackState === 'success'
+                  ? 'checkmark-circle'
+                  : 'alert-circle'
+              }
+              size={18}
+              color={foreground}
+            />
+          ) : icon ? (
+            <AppIcon name={icon} size={18} color={foreground} />
+          ) : null}
           <AppText style={[styles.label, { color: foreground }]}>
             {title}
           </AppText>
@@ -48,21 +57,19 @@ export function ButtonBase({
   );
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
+      accessibilityLabel={title}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={[
         styles.button,
         variant === 'secondary' && styles.secondary,
         variant === 'danger' && styles.danger,
         variant === 'ghost' && styles.ghost,
-        (pressed || isDisabled) && {
-          opacity: isDisabled
-            ? animation.opacity.disabled
-            : animation.opacity.pressed,
-        },
+        feedbackState === 'success' && styles.success,
+        feedbackState === 'error' && styles.error,
       ]}
     >
       {variant === 'primary' ? (
@@ -75,7 +82,7 @@ export function ButtonBase({
       ) : (
         body
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -102,5 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceInteractive,
   },
   danger: { backgroundColor: colors.dangerSurface },
+  success: { backgroundColor: colors.success },
+  error: { backgroundColor: colors.dangerSurface },
   ghost: { backgroundColor: colors.transparent },
 });
