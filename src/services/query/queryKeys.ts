@@ -2,10 +2,12 @@ export const queryKeys = {
   packages: ['packages'] as const,
   bills: ['bills'] as const,
   adminCustomers: ['admin-customers'] as const,
+  adminCustomerLists: ['admin-customers', 'list'] as const,
   adminCustomerList: (search: string) =>
     ['admin-customers', 'list', { search }] as const,
   adminCustomerDetail: (id: string) =>
     ['admin-customers', 'detail', id] as const,
+  adminCustomerPackageOptions: ['admin-customers', 'package-options'] as const,
   adminDashboard: ['admin-dashboard'] as const,
   customerDashboard: (connectionId: string) =>
     ['customer-dashboard', connectionId] as const,

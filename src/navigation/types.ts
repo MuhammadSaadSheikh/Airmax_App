@@ -67,8 +67,9 @@ export type AdminStackParamList = {
   Technicians: undefined;
   ServiceAreas: undefined;
   Reports: undefined;
-  CustomerForm: undefined;
   CustomerDetail: { id: string };
+  CustomerEdit: { id: string };
+  CustomerPackageChange: { id: string };
   PackageForm: { id?: string } | undefined;
   ComplaintDetail: { id: string };
 };

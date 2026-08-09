@@ -69,7 +69,7 @@ export function mapCustomerListItem(
   };
 }
 
-function mapCustomerPackage(
+export function mapCustomerPackage(
   customerPackage: CustomerPackageDto,
 ): AdminCustomerPackage {
   return {

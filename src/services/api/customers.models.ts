@@ -97,3 +97,27 @@ export type CustomerListFilters = {
 };
 
 export type CustomerStatusFilter = AdminCustomerStatus | 'all';
+
+export type SuspensionReason =
+  'non-payment' | 'policy-violation' | 'customer-request' | 'technical-review';
+
+export type UpdateCustomerInformationInput = {
+  customerId: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  cnic: string | null;
+};
+
+export type SuspendCustomerInput = {
+  customerId: string;
+  reason: SuspensionReason;
+};
+
+export type ChangeCustomerPackageInput = {
+  customerId: string;
+  packageId: string;
+};
+
+export type CustomerPackageOption = AdminCustomerPackage;

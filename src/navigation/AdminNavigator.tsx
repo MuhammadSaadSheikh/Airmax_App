@@ -9,7 +9,8 @@ import AdminPackagesScreen from '@/features/admin/screens/AdminPackagesScreen';
 import AdminPaymentsScreen from '@/features/admin/screens/AdminPaymentsScreen';
 import ComplaintDetailScreen from '@/features/admin/screens/ComplaintDetailScreen';
 import CustomerDetailScreen from '@/features/admin/screens/CustomerDetailScreen';
-import CustomerFormScreen from '@/features/admin/screens/CustomerFormScreen';
+import CustomerEditScreen from '@/features/admin/screens/CustomerEditScreen';
+import CustomerPackageChangeScreen from '@/features/admin/screens/CustomerPackageChangeScreen';
 import CustomersScreen from '@/features/admin/screens/CustomersScreen';
 import PackageFormScreen from '@/features/admin/screens/PackageFormScreen';
 import ReportsScreen from '@/features/admin/screens/ReportsScreen';
@@ -56,12 +57,17 @@ export function AdminNavigator() {
       <Stack.Screen name="Technicians" component={TechniciansScreen} />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
       <Stack.Screen name="Reports" component={ReportsScreen} />
+      <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen
-        name="CustomerForm"
-        component={CustomerFormScreen}
+        name="CustomerEdit"
+        component={CustomerEditScreen}
         options={modalScreenOptions}
       />
-      <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
+      <Stack.Screen
+        name="CustomerPackageChange"
+        component={CustomerPackageChangeScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen
         name="PackageForm"
         component={PackageFormScreen}

@@ -1,4 +1,47 @@
-import type { CustomerDetailDto } from './customers.models';
+import type { CustomerDetailDto, CustomerPackageDto } from './customers.models';
+
+export const mockCustomerPackages: CustomerPackageDto[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    speedMbps: 20,
+    price: 1500,
+    durationDays: 30,
+    description: 'Essential home internet.',
+    features: ['Unlimited browsing', 'HD streaming'],
+    status: 'ACTIVE',
+  },
+  {
+    id: 'plus',
+    name: 'Air Plus',
+    speedMbps: 50,
+    price: 2500,
+    durationDays: 30,
+    description: 'Reliable internet for connected homes.',
+    features: ['Full HD streaming', 'Low-latency gaming'],
+    status: 'ACTIVE',
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    speedMbps: 100,
+    price: 3500,
+    durationDays: 30,
+    description: 'High-speed unlimited internet.',
+    features: ['4K streaming', 'Gaming priority', 'Priority support'],
+    status: 'ACTIVE',
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra Fiber',
+    speedMbps: 200,
+    price: 5500,
+    durationDays: 30,
+    description: 'Premium capacity for demanding connected homes.',
+    features: ['Symmetric fiber', '4K multi-stream', 'Premium support'],
+    status: 'ACTIVE',
+  },
+];
 
 export const mockCustomers: CustomerDetailDto[] = [
   {
