@@ -94,13 +94,17 @@ export default function AdminHomeScreen() {
           <RevenueTrendCard
             currentRevenue={dashboardQuery.data.summary.currentMonthRevenue}
             trend={dashboardQuery.data.revenueTrend}
+            source={dashboardQuery.data.advancedAnalyticsSource}
           />
 
           <SectionTitle
             title="User growth"
             subtitle="Monthly acquisition preview"
           />
-          <UserGrowthCard growth={dashboardQuery.data.userGrowth} />
+          <UserGrowthCard
+            growth={dashboardQuery.data.userGrowth}
+            source={dashboardQuery.data.advancedAnalyticsSource}
+          />
 
           <SectionTitle
             title="Complaint status"
@@ -109,6 +113,7 @@ export default function AdminHomeScreen() {
           <DashboardBreakdownCard
             title="Complaint distribution"
             items={dashboardQuery.data.complaintStatus}
+            source={dashboardQuery.data.advancedAnalyticsSource}
           />
 
           <SectionTitle
@@ -118,13 +123,17 @@ export default function AdminHomeScreen() {
           <DashboardBreakdownCard
             title="Active subscriptions"
             items={dashboardQuery.data.packageDistribution}
+            source={dashboardQuery.data.advancedAnalyticsSource}
           />
 
           <SectionTitle
             title="Network health"
             subtitle="Availability derived from active users"
           />
-          <NetworkHealthCard health={dashboardQuery.data.networkHealth} />
+          <NetworkHealthCard
+            health={dashboardQuery.data.networkHealth}
+            source={dashboardQuery.data.networkHealthSource}
+          />
 
           <SectionTitle
             title="Quick management"

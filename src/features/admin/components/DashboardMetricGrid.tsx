@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { StatCard, type AppIconName } from '@/components';
-import type { DashboardSummary } from '@/services/api/reports.service';
+import type { DashboardSummary } from '@/services/api/reports.models';
 import { colors, money, spacing } from '@/theme';
 
 type Metric = {

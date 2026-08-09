@@ -1,14 +1,20 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText, Surface } from '@/components';
-import type { DashboardTrendPoint } from '@/services/api/reports.service';
+import type {
+  AnalyticsDataSource,
+  DashboardTrendPoint,
+} from '@/services/api/reports.models';
 import { colors, money, radius, spacing, typography } from '@/theme';
+import { AnalyticsSourceBadge } from './AnalyticsSourceBadge';
 
 export function RevenueTrendCard({
   currentRevenue,
   trend,
+  source,
 }: {
   currentRevenue: number;
   trend: DashboardTrendPoint[];
+  source: AnalyticsDataSource;
 }) {
   const maximum = Math.max(...trend.map(point => point.value), 1);
 
@@ -19,23 +25,35 @@ export function RevenueTrendCard({
           <AppText style={styles.label}>CURRENT MONTH</AppText>
           <AppText style={styles.value}>{money(currentRevenue)}</AppText>
         </View>
-        <AppText style={styles.mockLabel}>TREND PREVIEW</AppText>
+        <AnalyticsSourceBadge source={source} />
       </View>
       <View style={styles.chart}>
         {trend.map(point => (
-          <View key={point.label} style={styles.column}>
+          <View key={point.period} style={styles.column}>
             <View
               style={[
                 styles.bar,
                 { height: Math.max(12, (point.value / maximum) * 88) },
               ]}
             />
-            <AppText style={styles.axisLabel}>{point.label}</AppText>
+            <AppText style={styles.axisLabel}>
+              {formatPeriod(point.period)}
+            </AppText>
           </View>
         ))}
       </View>
     </Surface>
   );
+}
+
+function formatPeriod(period: string): string {
+  const [, month] = period.split('-');
+  const monthIndex = Number(month) - 1;
+  return Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < 12
+    ? new Intl.DateTimeFormat('en', { month: 'short' }).format(
+        new Date(Date.UTC(2020, monthIndex, 1)),
+      )
+    : period;
 }
 
 const styles = StyleSheet.create({
@@ -50,11 +68,6 @@ const styles = StyleSheet.create({
     ...typography.screenTitle,
     color: colors.text,
     marginTop: spacing.xs,
-  },
-  mockLabel: {
-    ...typography.small,
-    color: colors.primary,
-    fontFamily: typography.label.fontFamily,
   },
   chart: {
     height: 124,

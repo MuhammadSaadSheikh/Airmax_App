@@ -1,41 +1,58 @@
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { AppText, Surface } from '@/components';
-import type { DashboardBreakdownItem } from '@/services/api/reports.service';
+import type {
+  AnalyticsDataSource,
+  DashboardBreakdownItem,
+} from '@/services/api/reports.models';
 import { colors, radius, spacing, typography } from '@/theme';
+import { AnalyticsSourceBadge } from './AnalyticsSourceBadge';
 
-const itemColors: Record<string, string> = {
-  pending: colors.warning,
-  'in-progress': colors.primary,
-  resolved: colors.success,
-  basic: colors.primary,
-  plus: colors.purple,
-  premium: colors.success,
-  ultra: colors.warning,
+const itemPresentation: Record<string, { label: string; color: string }> = {
+  pending: { label: 'Pending', color: colors.warning },
+  'in-progress': { label: 'In progress', color: colors.primary },
+  resolved: { label: 'Resolved', color: colors.success },
+  basic: { label: 'Basic', color: colors.primary },
+  plus: { label: 'Air Plus', color: colors.purple },
+  premium: { label: 'Premium', color: colors.success },
+  ultra: { label: 'Ultra Fiber', color: colors.warning },
 };
 
 export function DashboardBreakdownCard({
   title,
   items,
+  source,
 }: {
   title: string;
   items: DashboardBreakdownItem[];
+  source: AnalyticsDataSource;
 }) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <Surface>
-      <AppText style={styles.title}>{title}</AppText>
+      <View style={styles.titleRow}>
+        <AppText style={styles.title}>{title}</AppText>
+        <AnalyticsSourceBadge source={source} />
+      </View>
       <View style={styles.items}>
         {items.map(item => {
           const percentage = total === 0 ? 0 : (item.value / total) * 100;
           const width = `${percentage}%` as ViewStyle['width'];
-          const color = itemColors[item.id] ?? colors.primary;
+          const presentation = itemPresentation[item.id] ?? {
+            label: item.id,
+            color: colors.primary,
+          };
           return (
             <View key={item.id} style={styles.item}>
               <View style={styles.itemHeader}>
                 <View style={styles.labelRow}>
-                  <View style={[styles.dot, { backgroundColor: color }]} />
-                  <AppText style={styles.label}>{item.label}</AppText>
+                  <View
+                    style={[
+                      styles.dot,
+                      { backgroundColor: presentation.color },
+                    ]}
+                  />
+                  <AppText style={styles.label}>{presentation.label}</AppText>
                 </View>
                 <AppText style={styles.count}>
                   {item.value.toLocaleString('en-PK')}
@@ -43,7 +60,10 @@ export function DashboardBreakdownCard({
               </View>
               <View style={styles.track}>
                 <View
-                  style={[styles.fill, { backgroundColor: color, width }]}
+                  style={[
+                    styles.fill,
+                    { backgroundColor: presentation.color, width },
+                  ]}
                 />
               </View>
             </View>
@@ -55,6 +75,12 @@ export function DashboardBreakdownCard({
 }
 
 const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   title: { ...typography.sectionTitle, color: colors.text },
   items: { gap: spacing.lg, marginTop: spacing.lg },
   item: { gap: spacing.sm },

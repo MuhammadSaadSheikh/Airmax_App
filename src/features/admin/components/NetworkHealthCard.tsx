@@ -1,11 +1,21 @@
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { AppIcon, AppText, Surface } from '@/components';
-import type { DashboardAnalytics } from '@/services/api/reports.service';
+import type {
+  AnalyticsDataSource,
+  DashboardAnalytics,
+} from '@/services/api/reports.models';
 import { colors, radius, spacing, typography } from '@/theme';
+import { AnalyticsSourceBadge } from './AnalyticsSourceBadge';
 
 type NetworkHealth = DashboardAnalytics['networkHealth'];
 
-export function NetworkHealthCard({ health }: { health: NetworkHealth }) {
+export function NetworkHealthCard({
+  health,
+  source,
+}: {
+  health: NetworkHealth;
+  source: AnalyticsDataSource;
+}) {
   const percentage = Math.min(100, Math.max(0, health.availabilityPercentage));
   const width = `${percentage}%` as ViewStyle['width'];
 
@@ -21,7 +31,10 @@ export function NetworkHealthCard({ health }: { health: NetworkHealth }) {
             <AppText style={styles.subtitle}>Current user availability</AppText>
           </View>
         </View>
-        <AppText style={styles.percentage}>{percentage.toFixed(1)}%</AppText>
+        <View style={styles.headerMeta}>
+          <AnalyticsSourceBadge source={source} />
+          <AppText style={styles.percentage}>{percentage.toFixed(1)}%</AppText>
+        </View>
       </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width }]} />
@@ -89,6 +102,7 @@ const styles = StyleSheet.create({
     ...typography.sectionTitle,
     color: colors.success,
   },
+  headerMeta: { alignItems: 'flex-end', gap: spacing.sm },
   track: {
     height: spacing.sm + spacing.xxs,
     overflow: 'hidden',
