@@ -39,17 +39,19 @@ export function Row({
       disabled={!onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <IconTile icon={icon} />
-      <View style={styles.copy}>
-        <AppText style={styles.rowTitle}>{title}</AppText>
-        {subtitle ? (
-          <AppText style={styles.rowSubtitle}>{subtitle}</AppText>
-        ) : null}
+      <View style={styles.row}>
+        <IconTile icon={icon} />
+        <View style={styles.copy}>
+          <AppText style={styles.rowTitle}>{title}</AppText>
+          {subtitle ? (
+            <AppText style={styles.rowSubtitle}>{subtitle}</AppText>
+          ) : null}
+        </View>
+        {right ??
+          (onPress ? (
+            <AppIcon name="chevron-forward" size={19} color={colors.muted} />
+          ) : null)}
       </View>
-      {right ??
-        (onPress ? (
-          <AppIcon name="chevron-forward" size={19} color={colors.muted} />
-        ) : null)}
     </Pressable>
   );
 }

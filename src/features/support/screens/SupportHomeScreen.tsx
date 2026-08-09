@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { AppScreen, AppText, ErrorState, SkeletonCard } from '@/components';
 import {
   ComplaintCard,
@@ -32,31 +32,64 @@ export default function SupportHomeScreen() {
     [navigation],
   );
 
+  const list = [
+    {
+      icon: 'sparkles-outline',
+      title: 'AI help',
+      subtitle: 'Identify an issue',
+      onPress: () =>
+        navigation.navigate('Diagnostics', { issueType: 'general' }),
+    },
+    {
+      icon: 'ticket-outline',
+      title: 'My tickets',
+      subtitle: 'Track every update',
+      onPress: () => navigation.navigate('ComplaintHistory'),
+    },
+    {
+      icon: 'add-circle-outline',
+      title: 'Complaint',
+      subtitle: 'Create a new ticket',
+      onPress: () => navigation.navigate('CreateComplaint'),
+    },
+  ];
+
   return (
     <AppScreen contentContainerStyle={styles.content}>
       <SupportHeader />
       <AppText style={styles.sectionTitle}>Quick help</AppText>
       <View style={styles.actions}>
-        <QuickHelpCard
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {list.map(item => (
+            <QuickHelpCard
+              key={item.title}
+              icon={item.icon}
+              title={item.title}
+              subtitle={item.subtitle}
+              onPress={item.onPress}
+            />
+          ))}
+        </ScrollView>
+        {/* <QuickHelpCard
           icon="sparkles-outline"
           title="AI help"
           subtitle="Identify an issue"
           onPress={() =>
             navigation.navigate('Diagnostics', { issueType: 'general' })
           }
-        />
-        <QuickHelpCard
+        /> */}
+        {/* <QuickHelpCard
           icon="ticket-outline"
           title="My tickets"
           subtitle="Track every update"
           onPress={() => navigation.navigate('ComplaintHistory')}
-        />
-        <QuickHelpCard
+        /> */}
+        {/* <QuickHelpCard
           icon="add-circle-outline"
           title="Complaint"
           subtitle="Create a new ticket"
           onPress={() => navigation.navigate('CreateComplaint')}
-        />
+        /> */}
       </View>
       <DiagnosticCard onPress={() => navigation.navigate('Diagnostics')} />
       <View style={styles.sectionRow}>
