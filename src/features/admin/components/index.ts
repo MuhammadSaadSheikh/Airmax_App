@@ -5,4 +5,5 @@ export * from './DashboardMetricGrid';
 export * from './NetworkHealthCard';
 export * from './RevenueTrendCard';
 export * from './UserGrowthCard';
+export * from './complaints';
 export * from './customers';

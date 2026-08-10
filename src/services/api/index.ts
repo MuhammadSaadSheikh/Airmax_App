@@ -2,6 +2,8 @@ export * from './billing.service';
 export * from './client';
 export * from './customers.service';
 export type * from './customers.models';
+export * from './complaints.service';
+export type * from './complaints.models';
 export * from './installations.service';
 export * from './packages.service';
 export * from './reports.service';

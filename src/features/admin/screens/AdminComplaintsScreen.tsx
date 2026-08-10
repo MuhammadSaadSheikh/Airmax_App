@@ -1,101 +1,127 @@
-import { AppText as Text } from '@/components/foundation/AppText';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
+import { environment } from '@/config/environment';
+import {
+  ComplaintFilterBar,
+  ComplaintListItem,
+  ComplaintListSkeleton,
+  ComplaintMockNotice,
+  ComplaintSummaryGrid,
+} from '@/features/admin/components';
 import { useAdminNavigation } from '@/navigation';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Badge, Card, Header, Screen, StatCard, ui } from '@/components';
-import { colors } from '@/theme';
-import { useAppStore } from '@/store/app.store';
-export default function AdminComplaints() {
+import { complaintsService } from '@/services/api';
+import type {
+  AdminComplaint,
+  ComplaintStatusFilter,
+} from '@/services/api/complaints.models';
+import { queryKeys } from '@/services/query';
+import { spacing } from '@/theme';
+
+const emptyComplaints: AdminComplaint[] = [];
+
+export default function AdminComplaintsScreen() {
   const navigation = useAdminNavigation();
-  const complaints = useAppStore(s => s.complaints);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<ComplaintStatusFilter>('all');
+  const complaintsQuery = useQuery({
+    queryKey: queryKeys.adminComplaintList,
+    queryFn: complaintsService.list,
+  });
+
+  const complaints = complaintsQuery.data ?? emptyComplaints;
+  const filteredComplaints = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return complaints.filter(complaint => {
+      const matchesStatus = status === 'all' || complaint.status === status;
+      const searchable = [
+        complaint.ticketNumber.toString(),
+        complaint.customer.name,
+        complaint.customer.connectionId ?? '',
+        complaint.category,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return matchesStatus && searchable.includes(term);
+    });
+  }, [complaints, search, status]);
+
+  const renderComplaint = ({ item }: { item: AdminComplaint }) => (
+    <ComplaintListItem
+      complaint={item}
+      onPress={() => navigation.navigate('ComplaintDetail', { id: item.id })}
+    />
+  );
+
   return (
-    <Screen>
-      <Header title="Complaints" subtitle="Track support operations" />
-      <View style={styles.stats}>
-        <StatCard
-          icon="alert-circle-outline"
-          label="Open"
-          value="38"
-          color={colors.danger}
+    <AppScreen scroll={false} contentContainerStyle={styles.screen}>
+      <AppHeader
+        title="Complaint operations"
+        subtitle="Assign, progress and close customer tickets"
+      />
+      {environment.useMockApi ? (
+        <View style={styles.notice}>
+          <ComplaintMockNotice />
+        </View>
+      ) : null}
+
+      {complaintsQuery.isPending ? (
+        <ComplaintListSkeleton />
+      ) : complaintsQuery.isError ? (
+        <ErrorState
+          title="Complaints unavailable"
+          message="We couldn’t load complaint operations data."
+          retry={() => void complaintsQuery.refetch()}
         />
-        <StatCard
-          icon="checkmark-done-outline"
-          label="Resolved today"
-          value="24"
-          color={colors.success}
-        />
-      </View>
-      <View style={styles.filters}>
-        {['All', 'Pending', 'In progress', 'Resolved'].map((f, i) => (
-          <Pressable key={f} style={[styles.filter, i === 0 && styles.active]}>
-            <Text
-              style={[
-                styles.filterText,
-                i === 0 && { color: colors.background },
-              ]}
-            >
-              {f}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      {complaints.map(c => (
-        <Pressable
-          key={c.id}
-          onPress={() => navigation.navigate('ComplaintDetail', { id: c.id })}
-        >
-          <Card style={styles.item}>
-            <View style={styles.row}>
-              <Text style={styles.id}>{c.id}</Text>
-              <Badge
-                label={c.status}
-                tone={
-                  c.status === 'resolved'
-                    ? 'success'
-                    : c.status === 'pending'
-                      ? 'warning'
-                      : 'info'
-                }
+      ) : (
+        <>
+          <ComplaintSummaryGrid complaints={complaints} />
+          <ComplaintFilterBar
+            search={search}
+            status={status}
+            onSearchChange={setSearch}
+            onStatusChange={setStatus}
+          />
+          <FlatList
+            style={styles.list}
+            data={filteredComplaints}
+            keyExtractor={item => item.id}
+            renderItem={renderComplaint}
+            ItemSeparatorComponent={ListSeparator}
+            ListEmptyComponent={
+              <EmptyState
+                title="No complaints found"
+                message="Try a different search or status filter."
+                icon="chatbox-ellipses-outline"
               />
-            </View>
-            <Text style={styles.issue}>{c.category}</Text>
-            <Text style={ui.body} numberOfLines={2}>
-              {c.description}
-            </Text>
-            <View style={ui.divider} />
-            <View style={styles.row}>
-              <Text style={ui.small}>Ahmed Khan · {c.createdAt}</Text>
-              <Text style={styles.link}>Manage →</Text>
-            </View>
-          </Card>
-        </Pressable>
-      ))}
-    </Screen>
+            }
+            contentContainerStyle={[
+              styles.content,
+              filteredComplaints.length === 0 && styles.empty,
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            refreshing={complaintsQuery.isRefetching}
+            onRefresh={() => void complaintsQuery.refetch()}
+            initialNumToRender={10}
+            windowSize={7}
+          />
+        </>
+      )}
+    </AppScreen>
   );
 }
+
+function ListSeparator() {
+  return <View style={styles.separator} />;
+}
+
 const styles = StyleSheet.create({
-  stats: { flexDirection: 'row', gap: 12 },
-  filters: { flexDirection: 'row', gap: 7, marginVertical: 18 },
-  filter: {
-    backgroundColor: colors.surface,
-    borderRadius: 30,
-    paddingVertical: 8,
-    paddingHorizontal: 11,
-  },
-  active: { backgroundColor: colors.primary },
-  filterText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
-  item: { marginBottom: 11 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  id: { color: colors.primary, fontWeight: '800', fontSize: 12 },
-  issue: {
-    color: colors.text,
-    fontWeight: '800',
-    fontSize: 16,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  link: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  screen: { flex: 1 },
+  notice: { marginBottom: spacing.lg },
+  list: { flex: 1 },
+  content: { paddingBottom: spacing.huge },
+  empty: { flexGrow: 1 },
+  separator: { height: spacing.md },
 });
