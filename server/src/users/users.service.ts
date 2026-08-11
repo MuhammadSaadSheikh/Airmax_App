@@ -1,2 +1,46 @@
-import { Injectable } from '@nestjs/common'; import { PrismaService } from '../prisma/prisma.service';
-@Injectable() export class UsersService { constructor(private prisma:PrismaService){} list(search?:string){return this.prisma.user.findMany({where:search?{OR:[{name:{contains:search,mode:'insensitive'}},{phone:{contains:search}},{connectionId:{contains:search}}]}:undefined,select:{id:true,name:true,phone:true,email:true,role:true,status:true,address:true,connectionId:true,createdAt:true},take:100,orderBy:{createdAt:'desc'}})} profile(id:string){return this.prisma.user.findUniqueOrThrow({where:{id},include:{subscriptions:{include:{package:true},orderBy:{createdAt:'desc'},take:1}}})} }
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import {
+  UserDetailResponseDto,
+  userDetailSelect,
+} from './dto/user-response.dto';
+
+@Injectable()
+export class UsersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  list(search?: string) {
+    return this.prisma.user.findMany({
+      where: search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search } },
+              { connectionId: { contains: search } },
+            ],
+          }
+        : undefined,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        role: true,
+        status: true,
+        address: true,
+        connectionId: true,
+        createdAt: true,
+      },
+      take: 100,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async profile(id: string): Promise<UserDetailResponseDto> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id },
+      select: userDetailSelect,
+    });
+    return new UserDetailResponseDto(user);
+  }
+}
