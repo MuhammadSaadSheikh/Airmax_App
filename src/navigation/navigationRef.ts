@@ -1,5 +1,4 @@
 import { createNavigationContainerRef } from '@react-navigation/native';
-import type { Role } from '@/types';
 import type { RootStackParamList } from './types';
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -11,5 +10,4 @@ function reset(name: 'Auth' | 'Customer' | 'Admin') {
 
 export const navigationActions = {
   showAuth: () => reset('Auth'),
-  showPortal: (role: Role) => reset(role === 'admin' ? 'Admin' : 'Customer'),
 };

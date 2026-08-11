@@ -1,12 +1,16 @@
 import { AppText as Text } from '@/components/foundation/AppText';
-import { navigationActions, useCustomerNavigation } from '@/navigation';
+import { useCustomerNavigation } from '@/navigation';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Button, Card, Header, Row, Screen, ui } from '@/components';
 import { colors } from '@/theme';
 import { useAuthStore } from '@/store/auth.store';
+import { useCurrentUser } from '@/services/auth/useCurrentUser';
 export default function Profile() {
   const navigation = useCustomerNavigation();
-  const { user, signOut } = useAuthStore();
+  const sessionUser = useAuthStore(state => state.user);
+  const logout = useAuthStore(state => state.logout);
+  const profileQuery = useCurrentUser();
+  const user = profileQuery.data ?? sessionUser;
   if (!user) return null;
   return (
     <Screen>
@@ -21,27 +25,33 @@ export default function Profile() {
         </Text>
       </View>
       <Text style={styles.name}>{user.name}</Text>
-      <Text style={styles.connection}>{user.connectionId}</Text>
+      <Text style={styles.connection}>
+        {user.connectionId ?? 'No connection ID'}
+      </Text>
       <Card style={{ marginTop: 22 }}>
         <Row
           icon="person-outline"
           title="Personal details"
-          subtitle={`${user.phone} · ${user.email}`}
+          subtitle={`${user.phone} · ${user.email ?? 'No email'}`}
           onPress={() => navigation.navigate('EditProfile')}
         />
         <View style={ui.divider} />
         <Row
           icon="location-outline"
           title="Service address"
-          subtitle={user.address}
+          subtitle={user.address ?? 'Not available'}
         />
         <View style={ui.divider} />
-        <Row icon="wifi-outline" title="Router" subtitle={user.router} />
+        <Row
+          icon="wifi-outline"
+          title="Router"
+          subtitle={profileQuery.data?.router ?? 'Not available'}
+        />
         <View style={ui.divider} />
         <Row
           icon="calendar-outline"
           title="Installed"
-          subtitle={user.installationDate}
+          subtitle={profileQuery.data?.installationDate ?? 'Not available'}
         />
       </Card>
       <Text style={ui.sectionTitle}>Settings</Text>
@@ -74,10 +84,7 @@ export default function Profile() {
             {
               text: 'Sign out',
               style: 'destructive',
-              onPress: () => {
-                signOut();
-                navigationActions.showAuth();
-              },
+              onPress: () => void logout(),
             },
           ])
         }

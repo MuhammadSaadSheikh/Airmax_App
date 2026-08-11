@@ -1,65 +1,113 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import type { Role, User } from '@/types';
+import { authService } from '@/services/api/auth.service';
+import type {
+  LoginInput,
+  OtpChallenge,
+  SessionUser,
+} from '@/services/api/auth.models';
+import {
+  clearSession,
+  establishSession,
+  restoreSession,
+} from '@/services/auth/sessionManager';
+import {
+  getRefreshToken,
+  removeLegacyAuthStorage,
+} from '@/services/auth/tokenStorage';
+import { queryClient } from '@/services/query';
+
+export type AuthStatus =
+  'bootstrapping' | 'anonymous' | 'authenticating' | 'authenticated';
 
 type AuthState = {
-  user: User | null;
-  hydrated: boolean;
-  signIn: (role: Role, identifier?: string) => void;
-  signOut: () => void;
-  setHydrated: (value: boolean) => void;
-  updateProfile: (values: Partial<User>) => void;
+  status: AuthStatus;
+  user: SessionUser | null;
+  error: string | null;
+  bootstrap: () => Promise<void>;
+  login: (input: LoginInput) => Promise<void>;
+  requestOtp: (phone: string) => Promise<OtpChallenge>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
+  logout: () => Promise<void>;
+  acceptSession: (user: SessionUser) => void;
+  expireSession: () => void;
+  clearError: () => void;
 };
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    set => ({
-      user: null,
-      hydrated: false,
-      signIn: (role, identifier) =>
-        set({
-          user:
-            role === 'admin'
-              ? {
-                  id: 'admin-1',
-                  name: 'Danish Admin',
-                  phone: '+92 300 0000000',
-                  email: identifier?.includes('@')
-                    ? identifier
-                    : 'admin@airmax.pk',
-                  role,
-                  address: 'AIRMAX HQ, Karachi',
-                }
-              : {
-                  id: 'u1',
-                  name: 'Ahmed Khan',
-                  phone: identifier?.includes('@')
-                    ? '+92 300 1234567'
-                    : identifier || '+92 300 1234567',
-                  email: identifier?.includes('@')
-                    ? identifier
-                    : 'ahmed@example.com',
-                  role,
-                  address: 'DHA Phase 6, Karachi',
-                  connectionId: 'AMX-1042',
-                  cnic: '42101-1234567-1',
-                  installationDate: '15 Jan 2025',
-                  router: 'Huawei HG8145V5',
-                },
-        }),
-      signOut: () => set({ user: null }),
-      setHydrated: hydrated => set({ hydrated }),
-      updateProfile: values =>
-        set(state => ({
-          user: state.user ? { ...state.user, ...values } : null,
-        })),
-    }),
-    {
-      name: 'airmax-auth',
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: s => ({ user: s.user }),
-      onRehydrateStorage: () => state => state?.setHydrated(true),
-    },
-  ),
-);
+function messageFrom(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'Authentication failed. Please try again.';
+}
+
+async function clearQueries(): Promise<void> {
+  await queryClient.cancelQueries().catch(() => undefined);
+  queryClient.clear();
+}
+
+export const useAuthStore = create<AuthState>(set => ({
+  status: 'bootstrapping',
+  user: null,
+  error: null,
+
+  bootstrap: async () => {
+    set({ status: 'bootstrapping', user: null, error: null });
+    await removeLegacyAuthStorage().catch(() => undefined);
+    try {
+      const session = await restoreSession();
+      set(
+        session
+          ? { status: 'authenticated', user: session.user, error: null }
+          : { status: 'anonymous', user: null, error: null },
+      );
+    } catch {
+      set({ status: 'anonymous', user: null, error: null });
+    }
+  },
+
+  login: async input => {
+    set({ status: 'authenticating', user: null, error: null });
+    try {
+      const session = await authService.login(input);
+      await establishSession(session);
+      set({ status: 'authenticated', user: session.user, error: null });
+    } catch (error) {
+      await clearSession().catch(() => undefined);
+      set({ status: 'anonymous', user: null, error: messageFrom(error) });
+      throw error;
+    }
+  },
+
+  requestOtp: phone => authService.requestOtp(phone),
+
+  verifyOtp: async (phone, code) => {
+    set({ status: 'authenticating', user: null, error: null });
+    try {
+      const session = await authService.verifyOtp(phone, code);
+      await establishSession(session);
+      set({ status: 'authenticated', user: session.user, error: null });
+    } catch (error) {
+      await clearSession().catch(() => undefined);
+      set({ status: 'anonymous', user: null, error: messageFrom(error) });
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    const refreshToken = await getRefreshToken().catch(() => null);
+    if (refreshToken) {
+      await authService.logout(refreshToken).catch(() => undefined);
+    }
+    await clearSession().catch(() => undefined);
+    await clearQueries();
+    set({ status: 'anonymous', user: null, error: null });
+  },
+
+  acceptSession: user => set({ status: 'authenticated', user, error: null }),
+  expireSession: () => set({ status: 'anonymous', user: null, error: null }),
+  clearError: () => set({ error: null }),
+}));
+
+export async function clearAuthAfterSessionExpiry(): Promise<void> {
+  await clearQueries();
+  useAuthStore.getState().expireSession();
+}

@@ -7,6 +7,8 @@ import { AuthNavigator } from './AuthNavigator';
 import { CustomerNavigator } from './CustomerNavigator';
 import { navigationRef } from './navigationRef';
 import type { RootStackParamList } from './types';
+import { useAuthStore } from '@/store/auth.store';
+import { resolveAuthRoot } from './authRoot';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationTheme = {
@@ -23,18 +25,27 @@ const navigationTheme = {
 };
 
 export function AppNavigator() {
+  const status = useAuthStore(state => state.status);
+  const user = useAuthStore(state => state.user);
+  const root = resolveAuthRoot(status, user);
+
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme} key={root}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-        <Stack.Screen name="Customer" component={CustomerNavigator} />
-        <Stack.Screen name="Admin" component={AdminNavigator} />
+        {root === 'Splash' ? (
+          <Stack.Screen name="Splash" component={SplashScreen} />
+        ) : root === 'Auth' ? (
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : root === 'Admin' ? (
+          <Stack.Screen name="Admin" component={AdminNavigator} />
+        ) : (
+          <Stack.Screen name="Customer" component={CustomerNavigator} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

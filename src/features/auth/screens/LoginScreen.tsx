@@ -1,17 +1,20 @@
 import { AppText as Text } from '@/components/foundation/AppText';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { navigationActions, useAuthNavigation } from '@/navigation';
+import { useAuthNavigation } from '@/navigation';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Card, Input, Screen, ui } from '@/components';
 import { colors } from '@/theme';
 import { loginSchema, type LoginValues } from '@/features/auth/schema';
 import { useAuthStore } from '@/store/auth.store';
+import { environment } from '@/config/environment';
 
 export default function Login() {
   const navigation = useAuthNavigation();
-  const signIn = useAuthStore(s => s.signIn);
+  const login = useAuthStore(s => s.login);
+  const authStatus = useAuthStore(s => s.status);
+  const authError = useAuthStore(s => s.error);
   const {
     control,
     handleSubmit,
@@ -27,9 +30,15 @@ export default function Login() {
   });
   const role = useWatch({ control, name: 'role' });
   const submit = async (v: LoginValues) => {
-    await new Promise<void>(r => setTimeout(r, 450));
-    signIn(v.role, v.identifier);
-    navigationActions.showPortal(v.role);
+    try {
+      await login({
+        identifier: v.identifier,
+        password: v.password,
+        mockRole: environment.useMockApi ? v.role : undefined,
+      });
+    } catch {
+      // The store owns the user-facing authentication error.
+    }
   };
   return (
     <Screen>
@@ -45,31 +54,36 @@ export default function Login() {
         <Text style={[ui.body, { marginTop: 5, marginBottom: 20 }]}>
           Sign in to manage your connection.
         </Text>
-        <View style={styles.switch}>
-          <Pressable
-            onPress={() => setValue('role', 'customer')}
-            style={[styles.switchItem, role === 'customer' && styles.active]}
-          >
-            <Text
-              style={[
-                styles.switchText,
-                role === 'customer' && styles.activeText,
-              ]}
+        {environment.useMockApi ? (
+          <View style={styles.switch}>
+            <Pressable
+              onPress={() => setValue('role', 'customer')}
+              style={[styles.switchItem, role === 'customer' && styles.active]}
             >
-              Customer
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setValue('role', 'admin')}
-            style={[styles.switchItem, role === 'admin' && styles.active]}
-          >
-            <Text
-              style={[styles.switchText, role === 'admin' && styles.activeText]}
+              <Text
+                style={[
+                  styles.switchText,
+                  role === 'customer' && styles.activeText,
+                ]}
+              >
+                Customer
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setValue('role', 'admin')}
+              style={[styles.switchItem, role === 'admin' && styles.active]}
             >
-              Admin
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.switchText,
+                  role === 'admin' && styles.activeText,
+                ]}
+              >
+                Admin
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
         <Controller
           control={control}
           name="identifier"
@@ -103,10 +117,11 @@ export default function Login() {
         <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgot}>Forgot password?</Text>
         </Pressable>
+        {authError ? <Text style={styles.error}>{authError}</Text> : null}
         <Button
           title="Sign in"
           icon="arrow-forward"
-          loading={isSubmitting}
+          loading={isSubmitting || authStatus === 'authenticating'}
           onPress={handleSubmit(submit)}
         />
         <Button
@@ -165,6 +180,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: -4,
     marginBottom: 4,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: 13,
+    marginBottom: 10,
   },
   install: {
     color: colors.muted,

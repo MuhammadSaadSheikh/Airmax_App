@@ -1,4 +1,5 @@
 export const queryKeys = {
+  currentUser: ['current-user'] as const,
   packages: ['packages'] as const,
   bills: ['bills'] as const,
   adminCustomers: ['admin-customers'] as const,

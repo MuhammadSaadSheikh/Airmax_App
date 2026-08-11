@@ -3,9 +3,15 @@ import { Alert } from 'react-native';
 import { Button, Header, Input, Screen } from '@/components';
 import { useAuthStore } from '@/store/auth.store';
 import { useState } from 'react';
+import { useCurrentUser } from '@/services/auth/useCurrentUser';
+import { environment } from '@/config/environment';
+import { queryClient, queryKeys } from '@/services/query';
+import type { CurrentUser } from '@/services/api/auth.models';
 export default function EditProfile() {
   const navigation = useCustomerNavigation();
-  const { user, updateProfile } = useAuthStore();
+  const sessionUser = useAuthStore(state => state.user);
+  const profileQuery = useCurrentUser();
+  const user = profileQuery.data ?? sessionUser;
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -50,7 +56,18 @@ export default function EditProfile() {
       <Button
         title="Save changes"
         onPress={() => {
-          updateProfile({ name, phone, email, address });
+          if (!environment.useMockApi) {
+            Alert.alert(
+              'Profile updates unavailable',
+              'The current backend does not expose a secure profile update endpoint.',
+            );
+            return;
+          }
+          queryClient.setQueryData<CurrentUser>(
+            queryKeys.currentUser,
+            current =>
+              current ? { ...current, name, phone, email, address } : undefined,
+          );
           Alert.alert('Profile updated');
           navigation.goBack();
         }}

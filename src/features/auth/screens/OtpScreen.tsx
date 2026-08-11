@@ -1,15 +1,41 @@
 import { AppText as Text } from '@/components/foundation/AppText';
-import { navigationActions } from '@/navigation';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Header, Input, Screen, ui } from '@/components';
 import { colors } from '@/theme';
 import { useAuthStore } from '@/store/auth.store';
+import { environment } from '@/config/environment';
 export default function OTP() {
   const [phone, setPhone] = useState('+92 300 1234567');
   const [sent, setSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const signIn = useAuthStore(s => s.signIn);
+  const [developmentCode, setDevelopmentCode] = useState<string>();
+  const [requestError, setRequestError] = useState<string>();
+  const requestOtp = useAuthStore(s => s.requestOtp);
+  const verifyOtp = useAuthStore(s => s.verifyOtp);
+  const authError = useAuthStore(s => s.error);
+  const authStatus = useAuthStore(s => s.status);
+
+  const sendCode = async () => {
+    setRequestError(undefined);
+    try {
+      const challenge = await requestOtp(phone);
+      setDevelopmentCode(challenge.developmentCode);
+      setSent(true);
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : 'Unable to send code',
+      );
+    }
+  };
+
+  const verify = async () => {
+    try {
+      await verifyOtp(phone, otp);
+    } catch {
+      // The store owns the user-facing authentication error.
+    }
+  };
   return (
     <Screen>
       <Header
@@ -29,8 +55,11 @@ export default function OTP() {
           />
           <Button
             title="Send verification code"
-            onPress={() => setSent(true)}
+            onPress={() => void sendCode()}
           />
+          {requestError ? (
+            <Text style={styles.error}>{requestError}</Text>
+          ) : null}
         </>
       ) : (
         <>
@@ -44,14 +73,17 @@ export default function OTP() {
               placeholder="000000"
             />
           </View>
-          <Text style={ui.small}>Demo code: enter any 6 digits</Text>
+          {environment.useMockApi ? (
+            <Text style={ui.small}>
+              Demo code: {developmentCode ?? '123456'}
+            </Text>
+          ) : null}
+          {authError ? <Text style={styles.error}>{authError}</Text> : null}
           <Button
             title="Verify & continue"
             disabled={otp.length !== 6}
-            onPress={() => {
-              signIn('customer', phone);
-              navigationActions.showPortal('customer');
-            }}
+            loading={authStatus === 'authenticating'}
+            onPress={() => void verify()}
           />
           <Button
             title="Resend code"
@@ -65,5 +97,5 @@ export default function OTP() {
 }
 const styles = StyleSheet.create({
   code: { marginTop: 8 },
-  hint: { color: colors.muted },
+  error: { color: colors.danger, fontSize: 13, marginVertical: 8 },
 });

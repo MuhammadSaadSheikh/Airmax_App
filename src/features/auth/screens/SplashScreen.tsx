@@ -1,26 +1,11 @@
 import { AppText as Text } from '@/components/foundation/AppText';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { ImageBackground, StyleSheet, View } from 'react-native';
-import { useEffect } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
-import { useAuthStore } from '@/store/auth.store';
-import { animation, colors, fonts, gradients } from '@/theme';
-import { navigationActions } from '@/navigation';
+import { colors, fonts, gradients } from '@/theme';
 import splashBackground from '../../../../assets/images/splash.png';
 
 export default function Splash() {
-  const { user, hydrated } = useAuthStore();
-  useEffect(() => {
-    if (!hydrated) return;
-    const timer = setTimeout(
-      () =>
-        user
-          ? navigationActions.showPortal(user.role)
-          : navigationActions.showAuth(),
-      animation.duration.splash,
-    );
-    return () => clearTimeout(timer);
-  }, [hydrated, user]);
   return (
     <ImageBackground
       source={splashBackground}

@@ -1,12 +1,13 @@
 import { AppText as Text } from '@/components/foundation/AppText';
-import { navigationActions, useAdminNavigation } from '@/navigation';
+import { useAdminNavigation } from '@/navigation';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Button, Card, Header, Row, Screen, ui } from '@/components';
 import { colors } from '@/theme';
 import { useAuthStore } from '@/store/auth.store';
 export default function More() {
   const navigation = useAdminNavigation();
-  const { user, signOut } = useAuthStore();
+  const user = useAuthStore(state => state.user);
+  const logout = useAuthStore(state => state.logout);
   return (
     <Screen>
       <Header title="Administration" subtitle="Operations and configuration" />
@@ -78,10 +79,7 @@ export default function More() {
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Sign out',
-              onPress: () => {
-                signOut();
-                navigationActions.showAuth();
-              },
+              onPress: () => void logout(),
             },
           ])
         }

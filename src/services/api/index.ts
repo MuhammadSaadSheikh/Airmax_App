@@ -1,4 +1,7 @@
 export * from './billing.service';
+export * from './auth.mapper';
+export type * from './auth.models';
+export * from './auth.service';
 export * from './client';
 export * from './customers.service';
 export type * from './customers.models';

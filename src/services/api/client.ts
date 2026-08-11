@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { environment } from '@/config/environment';
+import { getAccessToken, refreshSession } from '@/services/auth/sessionManager';
 
 export type ApiErrorBody = {
   code?: string;
@@ -19,22 +19,53 @@ export class ApiError extends Error {
   }
 }
 
+export type ApiRequestOptions = {
+  authenticate?: boolean;
+  refreshOnUnauthorized?: boolean;
+};
+
 export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const accessToken = await AsyncStorage.getItem('airmax-access-token');
+  return executeRequest(path, init, options, false);
+}
+
+async function executeRequest<T>(
+  path: string,
+  init: RequestInit,
+  options: ApiRequestOptions,
+  retried: boolean,
+): Promise<T> {
+  const shouldAuthenticate = options.authenticate !== false;
+  const requestAccessToken = shouldAuthenticate ? getAccessToken() : null;
   const response = await fetch(`${environment.apiUrl}${path}`, {
     ...init,
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(requestAccessToken
+        ? { Authorization: `Bearer ${requestAccessToken}` }
+        : {}),
       ...init.headers,
     },
   });
   const body: unknown =
     response.status === 204 ? undefined : await response.json();
+
+  if (
+    response.status === 401 &&
+    shouldAuthenticate &&
+    options.refreshOnUnauthorized !== false &&
+    !retried
+  ) {
+    if (!requestAccessToken || getAccessToken() === requestAccessToken) {
+      await refreshSession();
+    }
+    return executeRequest(path, init, options, true);
+  }
+
   if (!response.ok) {
     const error = body as ApiErrorBody | undefined;
     throw new ApiError(
