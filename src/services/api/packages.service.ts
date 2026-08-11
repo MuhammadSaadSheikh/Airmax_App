@@ -1,12 +1,65 @@
 import { environment } from '@/config/environment';
-import { packages } from '@/services/mockData';
-import type { Package } from '@/types';
-import { apiRequest, mockDelay } from './client';
+import { mockDelay } from './client';
+import { mapPackage } from './packages.mapper';
+import { mockPackageRepository } from './packages.mock.repository';
+import type {
+  AdminPackage,
+  CreatePackageInput,
+  PackageDto,
+  UpdatePackageInput,
+} from './packages.models';
+
+function assertMockMode() {
+  if (!environment.useMockApi) {
+    throw new Error(
+      'Admin package management is unavailable outside mock mode',
+    );
+  }
+}
+
+function mapRepositoryPackage(packageDto: PackageDto): AdminPackage {
+  return mapPackage(
+    packageDto,
+    mockPackageRepository.subscriberSummary(packageDto.id),
+  );
+}
 
 export const packagesService = {
-  async list(): Promise<Package[]> {
-    if (!environment.useMockApi) return apiRequest<Package[]>('/packages');
+  async list(): Promise<AdminPackage[]> {
+    assertMockMode();
     await mockDelay();
-    return packages;
+    return mockPackageRepository.list().map(mapRepositoryPackage);
+  },
+
+  async getById(id: string): Promise<AdminPackage> {
+    assertMockMode();
+    await mockDelay();
+    const packageDto = mockPackageRepository.getById(id);
+    if (!packageDto) throw new Error('Package not found');
+    return mapRepositoryPackage(packageDto);
+  },
+
+  async create(input: CreatePackageInput): Promise<AdminPackage> {
+    assertMockMode();
+    await mockDelay(500);
+    return mapRepositoryPackage(mockPackageRepository.create(input));
+  },
+
+  async update(input: UpdatePackageInput): Promise<AdminPackage> {
+    assertMockMode();
+    await mockDelay(500);
+    return mapRepositoryPackage(mockPackageRepository.update(input));
+  },
+
+  async activate(packageId: string): Promise<AdminPackage> {
+    assertMockMode();
+    await mockDelay(500);
+    return mapRepositoryPackage(mockPackageRepository.activate(packageId));
+  },
+
+  async deactivate(packageId: string): Promise<AdminPackage> {
+    assertMockMode();
+    await mockDelay(500);
+    return mapRepositoryPackage(mockPackageRepository.deactivate(packageId));
   },
 };

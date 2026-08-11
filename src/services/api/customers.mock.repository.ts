@@ -1,4 +1,5 @@
-import { mockCustomerPackages, mockCustomers } from './customers.mock';
+import { mockCustomers } from './customers.mock';
+import { mockPackageRepository } from './packages.mock.repository';
 import type {
   ApiCustomerStatus,
   ApiSubscriptionStatus,
@@ -101,7 +102,10 @@ export const mockCustomerRepository = {
   },
 
   packages(): CustomerPackageDto[] {
-    return mockCustomerPackages.map(clonePackage);
+    return mockPackageRepository
+      .list()
+      .filter(packageItem => packageItem.status === 'ACTIVE')
+      .map(clonePackage);
   },
 
   activate(customerId: string): CustomerDetailDto {
@@ -136,10 +140,13 @@ export const mockCustomerRepository = {
   changePackage(input: ChangeCustomerPackageInput): CustomerDetailDto {
     const index = customerIndex(input.customerId);
     const customer = customersState[index]!;
-    const selectedPackage = mockCustomerPackages.find(
-      item => item.id === input.packageId,
-    );
+    const selectedPackage = mockPackageRepository
+      .list()
+      .find(item => item.id === input.packageId);
     if (!selectedPackage) throw new Error('Package not found');
+    if (selectedPackage.status !== 'ACTIVE') {
+      throw new Error('Inactive packages cannot be assigned');
+    }
 
     const updatedAt = new Date().toISOString();
     const currentSubscription = customer.subscriptions[0];

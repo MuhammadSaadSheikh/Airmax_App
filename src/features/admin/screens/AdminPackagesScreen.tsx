@@ -1,101 +1,150 @@
-import { AppText as Text } from '@/components/foundation/AppText';
-import Ionicons from '@react-native-vector-icons/ionicons';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import {
+  AppHeader,
+  AppIcon,
+  AppScreen,
+  EmptyState,
+  ErrorState,
+} from '@/components';
+import {
+  PackageFilterBar,
+  PackageListItem,
+  PackageListSkeleton,
+  PackageMockNotice,
+  PackageSummaryGrid,
+} from '@/features/admin/components';
 import { useAdminNavigation } from '@/navigation';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
-import { Badge, Button, Card, Header, Screen, ui } from '@/components';
-import { colors, money } from '@/theme';
-import { packages } from '@/services/mockData';
-export default function AdminPackages() {
+import { packagesService } from '@/services/api';
+import type {
+  AdminPackage,
+  PackageStatusFilter,
+} from '@/services/api/packages.models';
+import { queryKeys } from '@/services/query';
+import { animation, colors, radius, spacing } from '@/theme';
+
+const emptyPackages: AdminPackage[] = [];
+
+export default function AdminPackagesScreen() {
   const navigation = useAdminNavigation();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<PackageStatusFilter>('all');
+  const packagesQuery = useQuery({
+    queryKey: queryKeys.adminPackageList,
+    queryFn: packagesService.list,
+  });
+  const packages = packagesQuery.data ?? emptyPackages;
+  const filteredPackages = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return packages.filter(item => {
+      const matchesStatus = status === 'all' || item.status === status;
+      const searchable = [
+        item.name,
+        item.speedMbps.toString(),
+        ...item.features,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return matchesStatus && searchable.includes(term);
+    });
+  }, [packages, search, status]);
+
+  const renderPackage = useCallback(
+    ({ item }: { item: AdminPackage }) => (
+      <PackageListItem
+        packageItem={item}
+        onPress={() => navigation.navigate('PackageDetail', { id: item.id })}
+      />
+    ),
+    [navigation],
+  );
+
   return (
-    <Screen>
-      <Header
-        title="Packages"
-        subtitle={`${packages.length} active plans`}
+    <AppScreen scroll={false} contentContainerStyle={styles.screen}>
+      <AppHeader
+        title="Package management"
+        subtitle="Manage the admin service catalogue"
         action={
           <Pressable
-            onPress={() => navigation.navigate('PackageForm')}
-            style={styles.add}
+            accessibilityRole="button"
+            accessibilityLabel="Create package"
+            onPress={() => navigation.navigate('PackageCreate')}
+            style={({ pressed }) => [styles.add, pressed && styles.pressed]}
           >
-            <Ionicons name="add" color={colors.background} size={25} />
+            <AppIcon name="add" color={colors.textOnAccent} size={25} />
           </Pressable>
         }
       />
-      {packages.map(p => (
-        <Card key={p.id} style={styles.card}>
-          <View style={styles.top}>
-            <View>
-              <Text style={styles.name}>{p.name}</Text>
-              <Text style={ui.small}>
-                {p.features.length} features · {p.duration}
-              </Text>
-            </View>
-            <Badge label={p.status} tone="success" />
-          </View>
-          <View style={styles.details}>
-            <View>
-              <Text style={styles.value}>{p.speed} Mbps</Text>
-              <Text style={ui.small}>SPEED</Text>
-            </View>
-            <View>
-              <Text style={styles.value}>{money(p.price)}</Text>
-              <Text style={ui.small}>MONTHLY</Text>
-            </View>
-          </View>
-          <View style={styles.actions}>
-            <Button
-              title="Edit"
-              variant="secondary"
-              icon="create-outline"
-              onPress={() => navigation.navigate('PackageForm', { id: p.id })}
-            />
-            <Button
-              title="Delete"
-              variant="ghost"
-              icon="trash-outline"
-              onPress={() =>
-                Alert.alert(
-                  'Delete package',
-                  `Delete ${p.name}? Existing subscribers will not be affected.`,
-                )
-              }
-            />
-          </View>
-        </Card>
-      ))}
-    </Screen>
+      <View style={styles.notice}>
+        <PackageMockNotice />
+      </View>
+
+      {packagesQuery.isPending ? (
+        <PackageListSkeleton />
+      ) : packagesQuery.isError ? (
+        <ErrorState
+          title="Packages unavailable"
+          message="The admin package catalogue could not be loaded."
+          retry={() => void packagesQuery.refetch()}
+        />
+      ) : (
+        <>
+          <PackageSummaryGrid packages={packages} />
+          <PackageFilterBar
+            search={search}
+            status={status}
+            onSearchChange={setSearch}
+            onStatusChange={setStatus}
+          />
+          <FlatList
+            style={styles.list}
+            data={filteredPackages}
+            keyExtractor={item => item.id}
+            renderItem={renderPackage}
+            ItemSeparatorComponent={ListSeparator}
+            ListEmptyComponent={
+              <EmptyState
+                title="No packages found"
+                message="Try a different search or status filter."
+                icon="cube-outline"
+              />
+            }
+            contentContainerStyle={[
+              styles.content,
+              filteredPackages.length === 0 && styles.empty,
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            refreshing={packagesQuery.isRefetching}
+            onRefresh={() => void packagesQuery.refetch()}
+            initialNumToRender={8}
+            windowSize={7}
+          />
+        </>
+      )}
+    </AppScreen>
   );
 }
+
+function ListSeparator() {
+  return <View style={styles.separator} />;
+}
+
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  notice: { marginBottom: spacing.lg },
+  list: { flex: 1 },
+  content: { paddingBottom: spacing.huge },
+  empty: { flexGrow: 1 },
+  separator: { height: spacing.md },
   add: {
     width: 42,
     height: 42,
-    borderRadius: 13,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: { marginBottom: 12 },
-  top: { flexDirection: 'row', justifyContent: 'space-between' },
-  name: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 5,
-  },
-  details: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderRadius: 13,
-    padding: 13,
-    marginTop: 14,
-  },
-  value: {
-    color: colors.text,
-    fontWeight: '800',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  actions: { flexDirection: 'row', gap: 8 },
+  pressed: { opacity: animation.opacity.pressed },
 });

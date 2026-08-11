@@ -6,5 +6,6 @@ export * from './complaints.service';
 export type * from './complaints.models';
 export * from './installations.service';
 export * from './packages.service';
+export type * from './packages.models';
 export * from './reports.service';
 export type * from './reports.models';

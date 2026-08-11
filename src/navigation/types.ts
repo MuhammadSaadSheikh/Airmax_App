@@ -70,6 +70,8 @@ export type AdminStackParamList = {
   CustomerDetail: { id: string };
   CustomerEdit: { id: string };
   CustomerPackageChange: { id: string };
-  PackageForm: { id?: string } | undefined;
+  PackageDetail: { id: string };
+  PackageCreate: undefined;
+  PackageEdit: { id: string };
   ComplaintDetail: { id: string };
 };

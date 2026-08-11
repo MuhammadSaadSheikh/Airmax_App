@@ -8,6 +8,11 @@ export const queryKeys = {
   adminCustomerDetail: (id: string) =>
     ['admin-customers', 'detail', id] as const,
   adminCustomerPackageOptions: ['admin-customers', 'package-options'] as const,
+  adminPackages: ['admin-packages'] as const,
+  adminPackageList: ['admin-packages', 'list'] as const,
+  adminPackageDetail: (id: string) => ['admin-packages', 'detail', id] as const,
+  adminPackageSubscribers: (id: string) =>
+    ['admin-packages', 'subscribers', id] as const,
   adminComplaints: ['admin-complaints'] as const,
   adminComplaintList: ['admin-complaints', 'list'] as const,
   adminComplaintDetail: (id: string) =>

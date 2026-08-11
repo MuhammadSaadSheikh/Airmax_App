@@ -12,7 +12,9 @@ import CustomerDetailScreen from '@/features/admin/screens/CustomerDetailScreen'
 import CustomerEditScreen from '@/features/admin/screens/CustomerEditScreen';
 import CustomerPackageChangeScreen from '@/features/admin/screens/CustomerPackageChangeScreen';
 import CustomersScreen from '@/features/admin/screens/CustomersScreen';
-import PackageFormScreen from '@/features/admin/screens/PackageFormScreen';
+import PackageCreateScreen from '@/features/admin/screens/PackageCreateScreen';
+import PackageDetailScreen from '@/features/admin/screens/PackageDetailScreen';
+import PackageEditScreen from '@/features/admin/screens/PackageEditScreen';
 import ReportsScreen from '@/features/admin/screens/ReportsScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
 import TechniciansScreen from '@/features/admin/screens/TechniciansScreen';
@@ -68,9 +70,15 @@ export function AdminNavigator() {
         component={CustomerPackageChangeScreen}
         options={modalScreenOptions}
       />
+      <Stack.Screen name="PackageDetail" component={PackageDetailScreen} />
       <Stack.Screen
-        name="PackageForm"
-        component={PackageFormScreen}
+        name="PackageCreate"
+        component={PackageCreateScreen}
+        options={modalScreenOptions}
+      />
+      <Stack.Screen
+        name="PackageEdit"
+        component={PackageEditScreen}
         options={modalScreenOptions}
       />
       <Stack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />

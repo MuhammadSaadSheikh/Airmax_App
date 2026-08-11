@@ -1,0 +1,72 @@
+import type {
+  PackageDto,
+  PackageSubscriberSummaryDto,
+} from './packages.models';
+
+export const mockAdminPackages: PackageDto[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    speedMbps: 20,
+    price: 1500,
+    durationDays: 30,
+    description: 'Essential home internet for everyday browsing.',
+    features: ['Unlimited browsing', 'HD streaming', '2–3 devices'],
+    status: 'ACTIVE',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+  },
+  {
+    id: 'plus',
+    name: 'Air Plus',
+    speedMbps: 50,
+    price: 2500,
+    durationDays: 30,
+    description: 'Reliable internet for connected homes.',
+    features: ['Full HD streaming', 'Low-latency gaming', 'Up to 6 devices'],
+    status: 'ACTIVE',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    speedMbps: 100,
+    price: 3500,
+    durationDays: 30,
+    description: 'High-speed connectivity for demanding households.',
+    features: [
+      '4K streaming',
+      'Gaming priority',
+      'Multiple devices',
+      'Priority support',
+    ],
+    status: 'ACTIVE',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra Fiber',
+    speedMbps: 200,
+    price: 5500,
+    durationDays: 30,
+    description: 'Premium fiber capacity for high-performance connectivity.',
+    features: [
+      'Symmetric fiber',
+      '4K multi-stream',
+      'Static IP option',
+      'Premium support',
+    ],
+    status: 'ACTIVE',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+  },
+];
+
+export const mockPackageSubscriberSummaries: PackageSubscriberSummaryDto[] = [
+  { packageId: 'basic', subscriberCount: 312 },
+  { packageId: 'plus', subscriberCount: 487 },
+  { packageId: 'premium', subscriberCount: 265 },
+  { packageId: 'ultra', subscriberCount: 96 },
+];

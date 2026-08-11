@@ -7,3 +7,4 @@ export * from './RevenueTrendCard';
 export * from './UserGrowthCard';
 export * from './complaints';
 export * from './customers';
+export * from './packages';
