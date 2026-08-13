@@ -3,6 +3,17 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 
+@objc(AirmaxEnvironment)
+class AirmaxEnvironmentModule: NSObject, RCTBridgeModule {
+  static func moduleName() -> String! { "AirmaxEnvironment" }
+  static func requiresMainQueueSetup() -> Bool { false }
+
+  func constantsToExport() -> [AnyHashable: Any]! {
+    let configured = Bundle.main.object(forInfoDictionaryKey: "AIRMAX_ENV") as? String
+    return ["environment": configured ?? ""]
+  }
+}
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
   var window: UIWindow?

@@ -21,7 +21,7 @@ react {
     //   The list of variants to that are debuggable. For those we're going to
     //   skip the bundling of the JS bundle and the assets. Default is "debug", "debugOptimized".
     //   If you add flavors like lite, prod, etc. you'll have to list your debuggableVariants.
-    // debuggableVariants = ["liteDebug", "liteDebugOptimized", "prodDebug", "prodDebugOptimized"]
+    debuggableVariants = ["mockDebug", "developmentLiveDebug", "stagingDebug", "productionDebug"]
 
     /* Bundling */
     //   A list containing the node command and its flags. Default is just 'node'.
@@ -71,6 +71,16 @@ def enableProguardInReleaseBuilds = false
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+def releaseStoreFile = System.getenv("AIRMAX_ANDROID_KEYSTORE_FILE")
+def releaseStorePassword = System.getenv("AIRMAX_ANDROID_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("AIRMAX_ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("AIRMAX_ANDROID_KEY_PASSWORD")
+def releaseSigningConfigured = [
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+].every { it != null && !it.isBlank() }
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -85,6 +95,35 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    flavorDimensions "environment"
+    productFlavors {
+        mock {
+            dimension "environment"
+            applicationIdSuffix ".mock"
+            buildConfigField "String", "AIRMAX_ENV", '"mock"'
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
+        }
+        developmentLive {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            buildConfigField "String", "AIRMAX_ENV", '"development-live"'
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
+        }
+        staging {
+            dimension "environment"
+            applicationIdSuffix ".staging"
+            buildConfigField "String", "AIRMAX_ENV", '"staging"'
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+        }
+        production {
+            dimension "environment"
+            buildConfigField "String", "AIRMAX_ENV", '"production"'
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -92,18 +131,37 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (releaseSigningConfigured) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig releaseSigningConfigured ? signingConfigs.release : null
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def buildsProductionRelease = graph.allTasks.any {
+        it.path.toLowerCase().contains("productionrelease")
+    }
+    if (buildsProductionRelease && !releaseSigningConfigured) {
+        throw new GradleException(
+            "Production release signing requires AIRMAX_ANDROID_KEYSTORE_FILE, " +
+            "AIRMAX_ANDROID_KEYSTORE_PASSWORD, AIRMAX_ANDROID_KEY_ALIAS, and " +
+            "AIRMAX_ANDROID_KEY_PASSWORD"
+        )
     }
 }
 

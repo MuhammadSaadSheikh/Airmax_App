@@ -1,0 +1,2 @@
+AIRMAX_ENV = mock
+INFOPLIST_FILE = Airmax/Info-Debug.plist

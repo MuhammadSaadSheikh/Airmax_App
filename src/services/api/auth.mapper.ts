@@ -8,10 +8,11 @@ import type {
   SessionUser,
 } from './auth.models';
 import type { Role } from '@/types';
+import { AuthenticationError } from './errors';
 
-export class AuthContractError extends Error {
+export class AuthContractError extends AuthenticationError {
   constructor(message: string) {
-    super(message);
+    super(message, 401);
     this.name = 'AuthContractError';
   }
 }

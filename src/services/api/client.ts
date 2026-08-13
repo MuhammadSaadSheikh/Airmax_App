@@ -1,28 +1,67 @@
 import { environment } from '@/config/environment';
 import { getAccessToken, refreshSession } from '@/services/auth/sessionManager';
+import {
+  ApiError,
+  type ApiErrorBody,
+  NetworkError,
+  TimeoutError,
+  ValidationError,
+  apiErrorForResponse,
+} from './errors';
 
-export type ApiErrorBody = {
-  code?: string;
-  message?: string;
-  details?: unknown;
-  requestId?: string;
-};
-
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly body?: ApiErrorBody,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+export { ApiError } from './errors';
+export type { ApiErrorBody } from './errors';
 
 export type ApiRequestOptions = {
   authenticate?: boolean;
   refreshOnUnauthorized?: boolean;
+  timeoutMs?: number;
 };
+
+export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const INVALID_JSON = Symbol('INVALID_JSON');
+
+async function parseResponseBody(response: Response): Promise<unknown> {
+  if (response.status === 204) return undefined;
+  try {
+    if (typeof response.text === 'function') {
+      const text = await response.text();
+      if (!text) return undefined;
+      try {
+        return JSON.parse(text) as unknown;
+      } catch {
+        return response.ok ? INVALID_JSON : { message: text };
+      }
+    }
+    return await response.json();
+  } catch {
+    return undefined;
+  }
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const externalSignal = init.signal;
+  const abort = () => controller.abort();
+  externalSignal?.addEventListener('abort', abort, { once: true });
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted && !externalSignal?.aborted) {
+      throw new TimeoutError('Request timed out. Please try again.', undefined);
+    }
+    if (error instanceof ApiError) throw error;
+    throw new NetworkError('Network unavailable. Check your connection.', undefined);
+  } finally {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener('abort', abort);
+  }
+}
 
 export async function apiRequest<T>(
   path: string,
@@ -40,19 +79,26 @@ async function executeRequest<T>(
 ): Promise<T> {
   const shouldAuthenticate = options.authenticate !== false;
   const requestAccessToken = shouldAuthenticate ? getAccessToken() : null;
-  const response = await fetch(`${environment.apiUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(requestAccessToken
-        ? { Authorization: `Bearer ${requestAccessToken}` }
-        : {}),
-      ...init.headers,
+  const response = await fetchWithTimeout(
+    `${environment.apiUrl}${path}`,
+    {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(requestAccessToken
+          ? { Authorization: `Bearer ${requestAccessToken}` }
+          : {}),
+        ...init.headers,
+      },
     },
-  });
-  const body: unknown =
-    response.status === 204 ? undefined : await response.json();
+    options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+  );
+  const body = await parseResponseBody(response);
+
+  if (response.ok && body === INVALID_JSON) {
+    throw new ValidationError('Invalid JSON response from server', response.status);
+  }
 
   if (
     response.status === 401 &&
@@ -67,12 +113,7 @@ async function executeRequest<T>(
   }
 
   if (!response.ok) {
-    const error = body as ApiErrorBody | undefined;
-    throw new ApiError(
-      error?.message ?? 'AIRMAX request failed',
-      response.status,
-      error,
-    );
+    throw apiErrorForResponse(response.status, body as ApiErrorBody | undefined);
   }
   return body as T;
 }

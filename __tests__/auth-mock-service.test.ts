@@ -1,5 +1,12 @@
 jest.mock('../src/config/environment', () => ({
-  environment: { apiUrl: 'https://unused.test', useMockApi: true },
+  environment: {
+    name: 'mock',
+    apiUrl: 'https://mock.invalid',
+    authMode: 'mock',
+    allowsMockAuth: true,
+    useMockApi: true,
+    isProduction: false,
+  },
 }));
 jest.mock('react-native-keychain', () => ({
   ACCESSIBLE: { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'device-only' },
@@ -20,7 +27,7 @@ describe('mock auth compatibility', () => {
     await expect(
       authService.login({
         identifier: 'admin@airmax.pk',
-        password: 'airmax123',
+        password: 'any-password',
         mockRole: 'admin',
       }),
     ).resolves.toMatchObject({ user: { role: 'admin' } });
@@ -28,18 +35,17 @@ describe('mock auth compatibility', () => {
     await expect(
       authService.login({
         identifier: '+92 300 1234567',
-        password: 'airmax123',
+        password: 'any-password',
         mockRole: 'customer',
       }),
     ).resolves.toMatchObject({ user: { role: 'customer' } });
   });
 
-  it('keeps demo OTP verification', async () => {
+  it('uses challenge-bound OTP verification without a demo code', async () => {
+    const challenge = await authService.requestOtp('+923001234567');
+    expect(challenge).not.toHaveProperty('developmentCode');
     await expect(
-      authService.requestOtp('+923001234567'),
-    ).resolves.toMatchObject({ developmentCode: '123456' });
-    await expect(
-      authService.verifyOtp('+923001234567', '123456'),
+      authService.verifyOtp('+923001234567', challenge.challengeId, '654321'),
     ).resolves.toMatchObject({ user: { role: 'customer' } });
   });
 });

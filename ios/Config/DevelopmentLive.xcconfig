@@ -1,0 +1,2 @@
+AIRMAX_ENV = development-live
+INFOPLIST_FILE = Airmax/Info-Debug.plist

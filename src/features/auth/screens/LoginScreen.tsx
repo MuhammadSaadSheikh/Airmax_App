@@ -23,8 +23,8 @@ export default function Login() {
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      identifier: '+92 300 1234567',
-      password: 'airmax123',
+      identifier: '',
+      password: '',
       role: 'customer',
     },
   });
@@ -34,7 +34,7 @@ export default function Login() {
       await login({
         identifier: v.identifier,
         password: v.password,
-        mockRole: environment.useMockApi ? v.role : undefined,
+        mockRole: environment.allowsMockAuth ? v.role : undefined,
       });
     } catch {
       // The store owns the user-facing authentication error.
@@ -54,7 +54,7 @@ export default function Login() {
         <Text style={[ui.body, { marginTop: 5, marginBottom: 20 }]}>
           Sign in to manage your connection.
         </Text>
-        {environment.useMockApi ? (
+        {environment.allowsMockAuth ? (
           <View style={styles.switch}>
             <Pressable
               onPress={() => setValue('role', 'customer')}
@@ -114,9 +114,11 @@ export default function Login() {
             />
           )}
         />
-        <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={styles.forgot}>Forgot password?</Text>
-        </Pressable>
+        {!environment.isProduction ? (
+          <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgot}>Forgot password?</Text>
+          </Pressable>
+        ) : null}
         {authError ? <Text style={styles.error}>{authError}</Text> : null}
         <Button
           title="Sign in"

@@ -63,5 +63,4 @@ export type LoginInput = {
 
 export type OtpChallenge = {
   challengeId: string;
-  developmentCode?: string;
 };

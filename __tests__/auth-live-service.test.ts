@@ -1,5 +1,12 @@
 jest.mock('../src/config/environment', () => ({
-  environment: { apiUrl: 'https://api.example.test', useMockApi: false },
+  environment: {
+    name: 'production',
+    apiUrl: 'https://api.example.test',
+    authMode: 'live',
+    allowsMockAuth: false,
+    useMockApi: false,
+    isProduction: true,
+  },
 }));
 jest.mock('react-native-keychain', () => ({
   ACCESSIBLE: { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'device-only' },
@@ -76,4 +83,48 @@ describe('live auth service', () => {
     ).rejects.toThrow('Invalid credentials');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('propagates the OTP challenge id during verification', async () => {
+    jest.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(backendSession),
+    } as Response);
+
+    await authService.verifyOtp(
+      '+923001234567',
+      'a9e8eb90-a8b1-4e89-b78d-7e96e16ea42a',
+      '654321',
+    );
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.example.test/auth/otp/verify',
+      expect.objectContaining({
+        body: JSON.stringify({
+          phone: '+923001234567',
+          challengeId: 'a9e8eb90-a8b1-4e89-b78d-7e96e16ea42a',
+          code: '654321',
+        }),
+      }),
+    );
+  });
+
+  it.each(['PENDING', 'SUSPENDED', 'DISABLED'])(
+    'rejects a %s account returned by authentication',
+    async status => {
+      jest.mocked(globalThis.fetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            ...backendSession,
+            user: { ...backendSession.user, status },
+          }),
+      } as Response);
+
+      await expect(
+        authService.login({ identifier: 'user@example.test', password: 'password' }),
+      ).rejects.toThrow(`Account is ${status.toLowerCase()}`);
+    },
+  );
 });

@@ -1,42 +1,20 @@
 import { AppText as Text } from '@/components/foundation/AppText';
 import { useAuthNavigation } from '@/navigation';
-import { useState } from 'react';
-import { Button, Header, Input, Screen, ui } from '@/components';
-export default function Forgot() {
+import { Button, Header, Screen, ui } from '@/components';
+
+export default function ForgotPasswordScreen() {
   const navigation = useAuthNavigation();
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
   return (
     <Screen>
       <Header
-        title="Reset password"
-        subtitle="We’ll send a secure reset link"
+        title="Password reset unavailable"
+        subtitle="This service has not been enabled yet"
       />
-      {sent ? (
-        <>
-          <Text style={[ui.body, { marginBottom: 16 }]}>
-            A reset link was sent to {email}. Check your inbox and spam folder.
-          </Text>
-          <Button title="Back to sign in" onPress={() => navigation.goBack()} />
-        </>
-      ) : (
-        <>
-          <Input
-            label="Email address"
-            icon="mail-outline"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-          />
-          <Button
-            title="Send reset link"
-            onPress={() => setSent(true)}
-            disabled={!email.includes('@')}
-          />
-        </>
-      )}
+      <Text style={[ui.body, { marginBottom: 16 }]}>
+        Contact AIRMAX support to recover access. This app will not claim that a
+        reset message was sent until the backend supports password recovery.
+      </Text>
+      <Button title="Back to sign in" onPress={() => navigation.goBack()} />
     </Screen>
   );
 }

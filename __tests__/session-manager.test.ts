@@ -8,6 +8,7 @@ import type { AuthSession } from '../src/services/api/auth.models';
 import {
   clearSession,
   configureSessionManager,
+  establishSession,
   getAccessToken,
   refreshSession,
   restoreSession,
@@ -18,6 +19,12 @@ import {
   removeRefreshToken,
   setRefreshToken,
 } from '../src/services/auth/tokenStorage';
+import {
+  AuthenticationError,
+  NetworkError,
+  ServerError,
+  TimeoutError,
+} from '../src/services/api/errors';
 
 const session: AuthSession = {
   accessToken: 'new-access',
@@ -94,11 +101,13 @@ describe('session manager', () => {
     expect(setRefreshToken).not.toHaveBeenCalled();
   });
 
-  it.each(['expired', 'revoked'])('cleans up an %s refresh token', async () => {
+  it.each(['expired', 'revoked', 'disabled'])('cleans up an %s refresh token', async () => {
     const onExpired = jest.fn();
     jest.mocked(getRefreshToken).mockResolvedValue('invalid-refresh');
     configureSessionManager({
-      refresh: jest.fn().mockRejectedValue(new Error('Unauthorized')),
+      refresh: jest.fn().mockRejectedValue(
+        new AuthenticationError('Unauthorized', 401),
+      ),
       onExpired,
     });
 
@@ -106,5 +115,29 @@ describe('session manager', () => {
     expect(removeRefreshToken).toHaveBeenCalled();
     expect(getAccessToken()).toBeNull();
     expect(onExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    new NetworkError('Offline', undefined),
+    new TimeoutError('Timed out', undefined),
+    new ServerError('Service unavailable', 503),
+  ])('preserves the secure session after transient refresh failure', async error => {
+    const onExpired = jest.fn();
+    await establishSession({
+      ...session,
+      accessToken: 'existing-access',
+      refreshToken: 'stored-refresh',
+    });
+    jest.clearAllMocks();
+    jest.mocked(getRefreshToken).mockResolvedValue('stored-refresh');
+    configureSessionManager({
+      refresh: jest.fn().mockRejectedValue(error),
+      onExpired,
+    });
+
+    await expect(refreshSession()).rejects.toBe(error);
+    expect(removeRefreshToken).not.toHaveBeenCalled();
+    expect(onExpired).not.toHaveBeenCalled();
+    expect(getAccessToken()).toBe('existing-access');
   });
 });

@@ -26,7 +26,7 @@ type AuthState = {
   bootstrap: () => Promise<void>;
   login: (input: LoginInput) => Promise<void>;
   requestOtp: (phone: string) => Promise<OtpChallenge>;
-  verifyOtp: (phone: string, code: string) => Promise<void>;
+  verifyOtp: (phone: string, challengeId: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   acceptSession: (user: SessionUser) => void;
   expireSession: () => void;
@@ -79,10 +79,10 @@ export const useAuthStore = create<AuthState>(set => ({
 
   requestOtp: phone => authService.requestOtp(phone),
 
-  verifyOtp: async (phone, code) => {
+  verifyOtp: async (phone, challengeId, code) => {
     set({ status: 'authenticating', user: null, error: null });
     try {
-      const session = await authService.verifyOtp(phone, code);
+      const session = await authService.verifyOtp(phone, challengeId, code);
       await establishSession(session);
       set({ status: 'authenticated', user: session.user, error: null });
     } catch (error) {
@@ -94,12 +94,13 @@ export const useAuthStore = create<AuthState>(set => ({
 
   logout: async () => {
     const refreshToken = await getRefreshToken().catch(() => null);
-    if (refreshToken) {
-      await authService.logout(refreshToken).catch(() => undefined);
-    }
+    // Local logout is authoritative and completes before any network work.
     await clearSession().catch(() => undefined);
     await clearQueries();
     set({ status: 'anonymous', user: null, error: null });
+    if (refreshToken) {
+      void authService.logout(refreshToken).catch(() => undefined);
+    }
   },
 
   acceptSession: user => set({ status: 'authenticated', user, error: null }),

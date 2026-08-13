@@ -1,5 +1,9 @@
 import type { AuthSession } from '@/services/api/auth.models';
 import {
+  AuthenticationError,
+  isPermanentSessionError,
+} from '@/services/api/errors';
+import {
   getRefreshToken,
   removeRefreshToken,
   setRefreshToken,
@@ -34,6 +38,9 @@ export function getAccessToken(): string | null {
 }
 
 export async function establishSession(session: AuthSession): Promise<void> {
+  if (session.user.status !== 'active') {
+    throw new AuthenticationError('Account is not active', 401);
+  }
   const generation = ++sessionGeneration;
   await setRefreshToken(session.refreshToken);
   if (generation !== sessionGeneration) {
@@ -75,12 +82,16 @@ export async function refreshSession(): Promise<AuthSession> {
       if (error instanceof SessionSupersededError) {
         throw new SessionExpiredError();
       }
-      accessToken = null;
-      await removeRefreshToken().catch(() => undefined);
-      await activeHandlers.onExpired?.();
-      throw error instanceof SessionExpiredError
-        ? error
-        : new SessionExpiredError();
+      if (error instanceof SessionExpiredError || isPermanentSessionError(error)) {
+        accessToken = null;
+        await removeRefreshToken().catch(() => undefined);
+        await activeHandlers.onExpired?.();
+        throw error instanceof SessionExpiredError
+          ? error
+          : new SessionExpiredError();
+      }
+      // Offline, timeout, and server failures preserve both tokens and UI state.
+      throw error;
     } finally {
       refreshInFlight = null;
     }

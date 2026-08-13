@@ -2,14 +2,22 @@ const mockGetAccessToken = jest.fn();
 const mockRefreshSession = jest.fn();
 
 jest.mock('../src/config/environment', () => ({
-  environment: { apiUrl: 'https://api.example.test', useMockApi: false },
+  environment: { apiUrl: 'https://api.example.test', authMode: 'live' },
 }));
 jest.mock('../src/services/auth/sessionManager', () => ({
   getAccessToken: () => mockGetAccessToken(),
   refreshSession: () => mockRefreshSession(),
 }));
 
-import { ApiError, apiRequest } from '../src/services/api/client';
+import { apiRequest } from '../src/services/api/client';
+import {
+  AuthenticationError,
+  AuthorizationError,
+  NetworkError,
+  ServerError,
+  TimeoutError,
+  ValidationError,
+} from '../src/services/api/errors';
 
 function response(status: number, body: unknown): Response {
   return {
@@ -72,7 +80,7 @@ describe('authenticated API requests', () => {
         { method: 'POST' },
         { authenticate: false, refreshOnUnauthorized: false },
       ),
-    ).rejects.toBeInstanceOf(ApiError);
+    ).rejects.toBeInstanceOf(AuthenticationError);
     expect(mockRefreshSession).not.toHaveBeenCalled();
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'https://api.example.test/auth/login',
@@ -82,5 +90,40 @@ describe('authenticated API requests', () => {
         }),
       }),
     );
+  });
+
+  it.each([
+    [401, AuthenticationError],
+    [403, AuthorizationError],
+    [422, ValidationError],
+    [503, ServerError],
+  ])('classifies HTTP %s responses', async (status, ErrorType) => {
+    jest.mocked(globalThis.fetch).mockResolvedValue(
+      response(status, { message: 'classified' }),
+    );
+    await expect(apiRequest('/test', {}, {
+      authenticate: false,
+    })).rejects.toBeInstanceOf(ErrorType);
+  });
+
+  it('classifies network failures', async () => {
+    jest.mocked(globalThis.fetch).mockRejectedValue(new TypeError('offline'));
+    await expect(apiRequest('/test')).rejects.toBeInstanceOf(NetworkError);
+  });
+
+  it('aborts and classifies timed out requests', async () => {
+    jest.useFakeTimers();
+    jest.mocked(globalThis.fetch).mockImplementation((_url, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new Error('aborted')),
+        );
+      }),
+    );
+    const request = apiRequest('/slow', {}, { timeoutMs: 10 });
+    const expectation = expect(request).rejects.toBeInstanceOf(TimeoutError);
+    await jest.advanceTimersByTimeAsync(11);
+    await expectation;
+    jest.useRealTimers();
   });
 });

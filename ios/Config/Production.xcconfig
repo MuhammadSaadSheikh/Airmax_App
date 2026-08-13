@@ -1,0 +1,2 @@
+AIRMAX_ENV = production
+INFOPLIST_FILE = Airmax/Info.plist
