@@ -32,7 +32,7 @@ export default function More() {
           icon="receipt-outline"
           title="Payment management"
           subtitle="Bills, invoices and collections"
-          onPress={() => navigation.navigate('AdminPayments')}
+          onPress={() => navigation.navigate('Billing')}
         />
         <View style={ui.divider} />
         <Row

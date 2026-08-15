@@ -6,7 +6,7 @@ import AdminComplaintsScreen from '@/features/admin/screens/AdminComplaintsScree
 import AdminHomeScreen from '@/features/admin/screens/AdminHomeScreen';
 import AdminMoreScreen from '@/features/admin/screens/AdminMoreScreen';
 import AdminPackagesScreen from '@/features/admin/screens/AdminPackagesScreen';
-import AdminPaymentsScreen from '@/features/admin/screens/AdminPaymentsScreen';
+import AdminBillingScreen from '@/features/admin/screens/AdminBillingScreen';
 import AdminSubscriptionsScreen from '@/features/admin/screens/AdminSubscriptionsScreen';
 import ComplaintDetailScreen from '@/features/admin/screens/ComplaintDetailScreen';
 import CustomerDetailScreen from '@/features/admin/screens/CustomerDetailScreen';
@@ -16,6 +16,8 @@ import CustomersScreen from '@/features/admin/screens/CustomersScreen';
 import PackageCreateScreen from '@/features/admin/screens/PackageCreateScreen';
 import PackageDetailScreen from '@/features/admin/screens/PackageDetailScreen';
 import PackageEditScreen from '@/features/admin/screens/PackageEditScreen';
+import InvoiceDetailScreen from '@/features/admin/screens/InvoiceDetailScreen';
+import PaymentDetailScreen from '@/features/admin/screens/PaymentDetailScreen';
 import ReportsScreen from '@/features/admin/screens/ReportsScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
 import SubscriptionDetailScreen from '@/features/admin/screens/SubscriptionDetailScreen';
@@ -57,7 +59,10 @@ export function AdminNavigator() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="AdminTabs" component={AdminTabs} />
-      <Stack.Screen name="AdminPayments" component={AdminPaymentsScreen} />
+      <Stack.Screen name="AdminPayments" component={AdminBillingScreen} />
+      <Stack.Screen name="Billing" component={AdminBillingScreen} />
+      <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
+      <Stack.Screen name="PaymentDetail" component={PaymentDetailScreen} />
       <Stack.Screen name="Technicians" component={TechniciansScreen} />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
       <Stack.Screen name="Reports" component={ReportsScreen} />

@@ -64,6 +64,9 @@ export type AdminTabParamList = {
 export type AdminStackParamList = {
   AdminTabs: NavigatorScreenParams<AdminTabParamList> | undefined;
   AdminPayments: undefined;
+  Billing: undefined;
+  InvoiceDetail: { id: string };
+  PaymentDetail: { id: string };
   Technicians: undefined;
   ServiceAreas: undefined;
   Reports: undefined;

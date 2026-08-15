@@ -6,6 +6,7 @@ export * from './NetworkHealthCard';
 export * from './RevenueTrendCard';
 export * from './UserGrowthCard';
 export * from './complaints';
+export * from './billing';
 export * from './customers';
 export * from './packages';
 export * from './subscriptions';

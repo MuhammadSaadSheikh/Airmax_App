@@ -25,6 +25,14 @@ export const queryKeys = {
     ['admin-subscriptions', 'detail', id] as const,
   adminCustomerSubscriptions: (customerId: string) =>
     ['admin-subscriptions', 'customer', customerId] as const,
+  adminBilling: ['admin-billing'] as const,
+  adminInvoiceList: ['admin-billing', 'invoices'] as const,
+  adminInvoiceDetail: (id: string) =>
+    ['admin-billing', 'invoices', 'detail', id] as const,
+  adminPayments: ['admin-billing', 'payments'] as const,
+  adminPaymentDetail: (id: string) =>
+    ['admin-billing', 'payments', 'detail', id] as const,
+  adminBillingSummary: ['admin-billing', 'summary'] as const,
   adminDashboard: ['admin-dashboard'] as const,
   customerDashboard: (connectionId: string) =>
     ['customer-dashboard', connectionId] as const,

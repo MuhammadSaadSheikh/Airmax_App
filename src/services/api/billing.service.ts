@@ -1,29 +1,105 @@
 import { environment } from '@/config/environment';
-import { bills } from '@/services/mockData';
-import type { Bill } from '@/types';
-import { apiRequest, mockDelay } from './client';
+import { mockDelay } from './client';
+import { mapBillingSummary, mapInvoice, mapPayment } from './billing.mapper';
+import { mockBillingRepository } from './billing.mock.repository';
+import type {
+  AdminBillingSummary,
+  AdminInvoice,
+  AdminPayment,
+  MarkInvoicePaidInput,
+  RecordPaymentInput,
+} from './billing.models';
 
-export type PaymentResult = {
-  id: string;
-  method: string;
-  receipt: string;
-  status: 'paid';
-};
+function assertMockMode() {
+  if (!environment.useMockApi) {
+    throw new Error(
+      'Admin billing management is unavailable outside mock mode',
+    );
+  }
+}
 
-export const billingService = {
-  async listInvoices(): Promise<Bill[]> {
-    if (!environment.useMockApi)
-      return apiRequest<Bill[]>('/payments/invoices/me');
+function mapRepositoryInvoice(id: string): AdminInvoice {
+  const invoice = mockBillingRepository.getInvoiceById(id);
+  if (!invoice) throw new Error('Invoice not found');
+  return mapInvoice(
+    invoice,
+    mockBillingRepository.getInvoicePayments(invoice.id),
+  );
+}
+
+export const adminBillingService = {
+  async getInvoices(): Promise<AdminInvoice[]> {
+    assertMockMode();
     await mockDelay();
-    return bills;
+    return mockBillingRepository
+      .listInvoices()
+      .map(invoice =>
+        mapInvoice(
+          invoice,
+          mockBillingRepository.getInvoicePayments(invoice.id),
+        ),
+      );
   },
-  async payBill(id: string, method: string): Promise<PaymentResult> {
-    if (!environment.useMockApi)
-      return apiRequest<PaymentResult>(`/payments/${id}/verify`, {
-        method: 'POST',
-        body: JSON.stringify({ method }),
-      });
+
+  async getInvoiceById(id: string): Promise<AdminInvoice> {
+    assertMockMode();
+    await mockDelay();
+    return mapRepositoryInvoice(id);
+  },
+
+  async getCustomerInvoices(customerId: string): Promise<AdminInvoice[]> {
+    assertMockMode();
+    await mockDelay();
+    return mockBillingRepository
+      .getCustomerInvoices(customerId)
+      .map(invoice =>
+        mapInvoice(
+          invoice,
+          mockBillingRepository.getInvoicePayments(invoice.id),
+        ),
+      );
+  },
+
+  async getPayments(): Promise<AdminPayment[]> {
+    assertMockMode();
+    await mockDelay();
+    return mockBillingRepository.listPayments().map(mapPayment);
+  },
+
+  async getPaymentById(id: string): Promise<AdminPayment> {
+    assertMockMode();
+    await mockDelay();
+    const payment = mockBillingRepository.getPaymentById(id);
+    if (!payment) throw new Error('Payment not found');
+    return mapPayment(payment);
+  },
+
+  async recordPayment(input: RecordPaymentInput): Promise<AdminPayment> {
+    assertMockMode();
     await mockDelay(500);
-    return { id, method, receipt: `RCP-${Date.now()}`, status: 'paid' };
+    return mapPayment(mockBillingRepository.recordPayment(input));
+  },
+
+  async markInvoicePaid(
+    input: string | MarkInvoicePaidInput,
+  ): Promise<AdminInvoice> {
+    assertMockMode();
+    await mockDelay(500);
+    const invoiceId = typeof input === 'string' ? input : input.invoiceId;
+    mockBillingRepository.markInvoicePaid({ invoiceId });
+    return mapRepositoryInvoice(invoiceId);
+  },
+
+  async cancelInvoice(id: string): Promise<AdminInvoice> {
+    assertMockMode();
+    await mockDelay(500);
+    mockBillingRepository.cancelInvoice(id);
+    return mapRepositoryInvoice(id);
+  },
+
+  async getBillingSummary(): Promise<AdminBillingSummary> {
+    assertMockMode();
+    await mockDelay();
+    return mapBillingSummary(mockBillingRepository.getSummary());
   },
 };

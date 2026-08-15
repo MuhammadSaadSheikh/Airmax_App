@@ -14,7 +14,7 @@ module.exports = [
     ],
   },
   {
-    files: ['App.tsx', 'src/**/*.{ts,tsx}', '__tests__/**/*.ts'],
+    files: ['App.tsx', 'src/**/*.{ts,tsx}', '__tests__/**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: { ecmaFeatures: { jsx: true }, sourceType: 'module' },
