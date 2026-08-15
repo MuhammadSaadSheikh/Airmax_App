@@ -6,12 +6,12 @@ import type {
   AdminCustomerSubscription,
   AdminSubscriptionStatus,
   ApiCustomerStatus,
-  ApiSubscriptionStatus,
   CustomerDetailDto,
   CustomerListItemDto,
   CustomerPackageDto,
   CustomerSubscriptionDto,
 } from './customers.models';
+import type { ApiSubscriptionStatus } from './subscriptions.models';
 
 function mapCustomerStatus(status: ApiCustomerStatus): AdminCustomerStatus {
   switch (status) {

@@ -13,3 +13,5 @@ export * from './packages.service';
 export type * from './packages.models';
 export * from './reports.service';
 export type * from './reports.models';
+export * from './subscriptions.service';
+export type * from './subscriptions.models';

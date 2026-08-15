@@ -22,6 +22,13 @@ export default function More() {
       </View>
       <Card>
         <Row
+          icon="repeat-outline"
+          title="Subscription management"
+          subtitle="Customer packages and lifecycle controls"
+          onPress={() => navigation.navigate('Subscriptions')}
+        />
+        <View style={ui.divider} />
+        <Row
           icon="receipt-outline"
           title="Payment management"
           subtitle="Bills, invoices and collections"

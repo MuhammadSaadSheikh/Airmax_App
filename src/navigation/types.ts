@@ -74,4 +74,6 @@ export type AdminStackParamList = {
   PackageCreate: undefined;
   PackageEdit: { id: string };
   ComplaintDetail: { id: string };
+  Subscriptions: undefined;
+  SubscriptionDetail: { id: string };
 };

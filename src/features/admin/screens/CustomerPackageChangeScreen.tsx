@@ -49,14 +49,25 @@ export default function CustomerPackageChangeScreen({
   const mutation = useMutation({
     mutationFn: (packageId: string) =>
       customersService.changePackage({ customerId, packageId }),
-    onSuccess: customer => {
+    onSuccess: async customer => {
       queryClient.setQueryData(
         queryKeys.adminCustomerDetail(customer.id),
         customer,
       );
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.adminCustomerLists,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.adminCustomerLists,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.adminCustomerDetail(customer.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.adminSubscriptions,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.adminCustomerSubscriptions(customer.id),
+        }),
+      ]);
       navigation.goBack();
     },
   });

@@ -6,6 +6,7 @@ import {
   mapCustomerPackage,
 } from './customers.mapper';
 import { mockCustomerRepository } from './customers.mock.repository';
+import { subscriptionsService } from './subscriptions.service';
 import type {
   AdminCustomerDetail,
   AdminCustomerListItem,
@@ -94,8 +95,10 @@ export const customersService = {
     input: ChangeCustomerPackageInput,
   ): Promise<AdminCustomerDetail> {
     assertMockActionsEnabled();
-    await mockDelay(500);
-    return mapCustomerDetail(mockCustomerRepository.changePackage(input));
+    await subscriptionsService.assignCustomerPackage(input);
+    const customer = mockCustomerRepository.getById(input.customerId);
+    if (!customer) throw new Error('Customer not found');
+    return mapCustomerDetail(customer);
   },
 
   async updateCustomerInformation(

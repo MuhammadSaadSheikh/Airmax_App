@@ -1,7 +1,10 @@
+import type {
+  ApiSubscriptionStatus,
+  SubscriptionStatus,
+} from './subscriptions.models';
+
 export type ApiCustomerRole = 'ADMIN' | 'CUSTOMER';
 export type ApiCustomerStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING' | 'DISABLED';
-export type ApiSubscriptionStatus =
-  'PENDING' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'CANCELLED';
 
 export type CustomerListItemDto = {
   id: string;
@@ -50,8 +53,7 @@ export type CustomerDetailDto = CustomerListItemDto & {
 export type AdminCustomerStatus =
   'active' | 'suspended' | 'pending' | 'disabled';
 
-export type AdminSubscriptionStatus =
-  'pending' | 'active' | 'expired' | 'suspended' | 'cancelled';
+export type AdminSubscriptionStatus = SubscriptionStatus;
 
 export type AdminCustomerListItem = {
   id: string;

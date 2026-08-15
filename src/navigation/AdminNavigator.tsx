@@ -7,6 +7,7 @@ import AdminHomeScreen from '@/features/admin/screens/AdminHomeScreen';
 import AdminMoreScreen from '@/features/admin/screens/AdminMoreScreen';
 import AdminPackagesScreen from '@/features/admin/screens/AdminPackagesScreen';
 import AdminPaymentsScreen from '@/features/admin/screens/AdminPaymentsScreen';
+import AdminSubscriptionsScreen from '@/features/admin/screens/AdminSubscriptionsScreen';
 import ComplaintDetailScreen from '@/features/admin/screens/ComplaintDetailScreen';
 import CustomerDetailScreen from '@/features/admin/screens/CustomerDetailScreen';
 import CustomerEditScreen from '@/features/admin/screens/CustomerEditScreen';
@@ -17,6 +18,7 @@ import PackageDetailScreen from '@/features/admin/screens/PackageDetailScreen';
 import PackageEditScreen from '@/features/admin/screens/PackageEditScreen';
 import ReportsScreen from '@/features/admin/screens/ReportsScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
+import SubscriptionDetailScreen from '@/features/admin/screens/SubscriptionDetailScreen';
 import TechniciansScreen from '@/features/admin/screens/TechniciansScreen';
 import {
   createTabOptions,
@@ -82,6 +84,11 @@ export function AdminNavigator() {
         options={modalScreenOptions}
       />
       <Stack.Screen name="ComplaintDetail" component={ComplaintDetailScreen} />
+      <Stack.Screen name="Subscriptions" component={AdminSubscriptionsScreen} />
+      <Stack.Screen
+        name="SubscriptionDetail"
+        component={SubscriptionDetailScreen}
+      />
     </Stack.Navigator>
   );
 }
