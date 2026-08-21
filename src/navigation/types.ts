@@ -68,6 +68,8 @@ export type AdminStackParamList = {
   InvoiceDetail: { id: string };
   PaymentDetail: { id: string };
   Technicians: undefined;
+  TechnicianDetail: { id: string };
+  TechnicianAssignment: { complaintId: string };
   ServiceAreas: undefined;
   Reports: undefined;
   CustomerDetail: { id: string };

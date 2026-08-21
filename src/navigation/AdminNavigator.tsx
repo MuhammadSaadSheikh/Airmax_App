@@ -22,6 +22,8 @@ import ReportsScreen from '@/features/admin/screens/ReportsScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
 import SubscriptionDetailScreen from '@/features/admin/screens/SubscriptionDetailScreen';
 import TechniciansScreen from '@/features/admin/screens/TechniciansScreen';
+import TechnicianDetailScreen from '@/features/admin/screens/TechnicianDetailScreen';
+import TechnicianAssignmentScreen from '@/features/admin/screens/TechnicianAssignmentScreen';
 import {
   createTabOptions,
   modalScreenOptions,
@@ -64,6 +66,15 @@ export function AdminNavigator() {
       <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
       <Stack.Screen name="PaymentDetail" component={PaymentDetailScreen} />
       <Stack.Screen name="Technicians" component={TechniciansScreen} />
+      <Stack.Screen
+        name="TechnicianDetail"
+        component={TechnicianDetailScreen}
+      />
+      <Stack.Screen
+        name="TechnicianAssignment"
+        component={TechnicianAssignmentScreen}
+        options={modalScreenOptions}
+      />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
       <Stack.Screen name="Reports" component={ReportsScreen} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />

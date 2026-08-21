@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "react-native start",
-    "android": "react-native run-android --active-arch-only",
-    "android:all-architectures": "react-native run-android",
+    "android": "react-native run-android --mode mockDebug --appIdSuffix mock --active-arch-only",
+    "android:all-architectures": "react-native run-android --mode mockDebug --appIdSuffix mock",
+    "android:live": "react-native run-android --mode developmentLiveDebug --appIdSuffix dev --active-arch-only",
+    "android:staging": "react-native run-android --mode stagingDebug --appIdSuffix staging --active-arch-only",
+    "android:production": "react-native run-android --mode productionDebug --active-arch-only",
     "ios": "react-native run-ios",
     "lint": "eslint App.tsx src __tests__",
     "typecheck": "tsc --noEmit",

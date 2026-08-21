@@ -43,3 +43,29 @@ export async function invalidateAdminMutation(
     keys[scope].map(queryKey => queryClient.invalidateQueries({ queryKey })),
   );
 }
+
+export async function invalidateTechnicianAssignment(
+  queryClient: QueryClient,
+): Promise<void> {
+  await Promise.all(
+    [
+      queryKeys.adminComplaints,
+      queryKeys.supportComplaintsRoot,
+      queryKeys.adminTechnicians,
+      queryKeys.adminDashboard,
+    ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
+  );
+}
+
+export async function invalidateTechnicianStatus(
+  queryClient: QueryClient,
+  technicianId: string,
+): Promise<void> {
+  await Promise.all(
+    [
+      queryKeys.adminTechnicianList,
+      queryKeys.adminTechnicianDetail(technicianId),
+      queryKeys.adminTechnicianWorkload(technicianId),
+    ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
+  );
+}

@@ -154,7 +154,11 @@ android {
 
 gradle.taskGraph.whenReady { graph ->
     def buildsProductionRelease = graph.allTasks.any {
-        it.path.toLowerCase().contains("productionrelease")
+        it.name in [
+            "assembleProductionRelease",
+            "bundleProductionRelease",
+            "packageProductionRelease",
+        ]
     }
     if (buildsProductionRelease && !releaseSigningConfigured) {
         throw new GradleException(

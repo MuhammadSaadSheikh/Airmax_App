@@ -16,3 +16,4 @@ export * from './reports.service';
 export type * from './reports.models';
 export * from './subscriptions.service';
 export type * from './subscriptions.models';
+export * from './technicians.service';
