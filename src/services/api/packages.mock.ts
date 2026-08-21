@@ -1,7 +1,4 @@
-import type {
-  PackageDto,
-  PackageSubscriberSummaryDto,
-} from './packages.models';
+import type { PackageDto } from './packages.models';
 
 export const mockAdminPackages: PackageDto[] = [
   {
@@ -62,11 +59,4 @@ export const mockAdminPackages: PackageDto[] = [
     createdAt: '2025-01-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',
   },
-];
-
-export const mockPackageSubscriberSummaries: PackageSubscriberSummaryDto[] = [
-  { packageId: 'basic', subscriberCount: 312 },
-  { packageId: 'plus', subscriberCount: 487 },
-  { packageId: 'premium', subscriberCount: 265 },
-  { packageId: 'ultra', subscriberCount: 96 },
 ];

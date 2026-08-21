@@ -5,10 +5,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 import { packageInformationSchema } from '@/features/admin/package.schema';
 import { customersService } from '@/services/api/customers.service';
-import { mockCustomerRepository } from '@/services/api/customers.mock.repository';
 import { mockPackageRepository } from '@/services/api/packages.mock.repository';
 import { packagesService } from '@/services/api/packages.service';
 import type { CreatePackageInput } from '@/services/api/packages.models';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 const newPackage: CreatePackageInput = {
   name: 'Business Connect',
@@ -21,8 +21,7 @@ const newPackage: CreatePackageInput = {
 
 describe('Phase 3D admin package management', () => {
   beforeEach(() => {
-    mockPackageRepository.reset();
-    mockCustomerRepository.reset();
+    mockSystemRepository.reset();
   });
 
   it('lists the canonical admin package catalogue', async () => {
@@ -42,7 +41,7 @@ describe('Phase 3D admin package management', () => {
     expect(packageItem).toEqual(
       expect.objectContaining({
         name: 'Premium',
-        subscriberCount: 265,
+        subscriberCount: 1,
       }),
     );
   });
@@ -99,15 +98,15 @@ describe('Phase 3D admin package management', () => {
         id: 'plus',
         name: 'Air Plus Business',
         speedMbps: 150,
-        subscriberCount: 487,
+        subscriberCount: 0,
         features: ['First feature', 'Second feature'],
       }),
     );
   });
 
   it('does not rewrite existing subscription terms after catalogue edits', async () => {
-    const originalSubscription =
-      mockCustomerRepository.getById('u1')!.subscriptions[0]!;
+    const originalSubscription = (await customersService.getById('u1'))
+      .latestSubscription!;
 
     await packagesService.update({
       packageId: 'premium',
@@ -118,8 +117,8 @@ describe('Phase 3D admin package management', () => {
     });
     await packagesService.deactivate('premium');
 
-    const existingSubscription =
-      mockCustomerRepository.getById('u1')!.subscriptions[0]!;
+    const existingSubscription = (await customersService.getById('u1'))
+      .latestSubscription!;
     expect(existingSubscription.package.price).toBe(
       originalSubscription.package.price,
     );
@@ -129,7 +128,7 @@ describe('Phase 3D admin package management', () => {
     expect(existingSubscription.package.durationDays).toBe(
       originalSubscription.package.durationDays,
     );
-    expect(existingSubscription.package.status).toBe('ACTIVE');
+    expect(existingSubscription.package.status).toBe('active');
   });
 
   it('deactivates and reactivates packages', async () => {

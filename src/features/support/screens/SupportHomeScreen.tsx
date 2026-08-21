@@ -52,7 +52,7 @@ export default function SupportHomeScreen() {
       subtitle: 'Create a new ticket',
       onPress: () => navigation.navigate('CreateComplaint'),
     },
-  ];
+  ] as const;
 
   return (
     <AppScreen contentContainerStyle={styles.content}>

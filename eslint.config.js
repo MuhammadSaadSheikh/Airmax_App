@@ -26,4 +26,11 @@ module.exports = [
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  {
+    files: ['src/services/api/auth.service.ts'],
+    rules: {
+      // Intentional synchronous lazy loading keeps mock auth out of live startup.
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ];

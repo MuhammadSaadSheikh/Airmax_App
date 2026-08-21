@@ -112,6 +112,15 @@ export type UpdateCustomerInformationInput = {
   cnic: string | null;
 };
 
+export type CreateCustomerInput = {
+  name: string;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  cnic: string | null;
+  connectionId: string | null;
+};
+
 export type SuspendCustomerInput = {
   customerId: string;
   reason: SuspensionReason;

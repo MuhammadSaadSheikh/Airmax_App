@@ -16,7 +16,7 @@ import {
 } from '@/features/admin/components';
 import type { AdminStackParamList } from '@/navigation';
 import { packagesService } from '@/services/api';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'PackageDetail'>;
@@ -30,17 +30,7 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
   });
 
   const synchronizePackage = () =>
-    Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminPackageList,
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminPackageDetail(packageId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminCustomerPackageOptions,
-      }),
-    ]);
+    invalidateAdminMutation(queryClient, 'package');
 
   const activateMutation = useMutation({
     mutationFn: () => packagesService.activate(packageId),

@@ -22,7 +22,7 @@ import type {
   AdminCustomerDetail,
   SuspensionReason,
 } from '@/services/api/customers.models';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'CustomerDetail'>;
@@ -40,9 +40,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
       queryKeys.adminCustomerDetail(customer.id),
       customer,
     );
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.adminCustomerLists,
-    });
+    void invalidateAdminMutation(queryClient, 'customer');
   };
 
   const activateMutation = useMutation({

@@ -13,7 +13,7 @@ import {
 } from '@/components';
 import { IssueCategoryCard } from '@/features/support/components';
 import { useCustomerNavigation } from '@/navigation';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import {
   supportService,
   type AttachmentType,
@@ -68,6 +68,7 @@ export default function CreateComplaintScreen() {
         queryKeys.supportComplaintDetail(connectionId, complaint.id),
         complaint,
       );
+      void invalidateAdminMutation(queryClient, 'complaint');
       navigation.replace('ComplaintDetail', { id: complaint.id });
     },
     onError: () =>

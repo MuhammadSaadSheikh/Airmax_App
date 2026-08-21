@@ -15,7 +15,7 @@ import {
 } from '@/features/admin/package.schema';
 import type { AdminStackParamList } from '@/navigation';
 import { packagesService } from '@/services/api';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'PackageCreate'>;
@@ -47,12 +47,7 @@ export default function PackageCreateScreen({ navigation }: Props) {
         queryKeys.adminPackageDetail(packageItem.id),
         packageItem,
       );
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.adminPackageList,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.adminCustomerPackageOptions,
-      });
+      void invalidateAdminMutation(queryClient, 'package');
       navigation.replace('PackageDetail', { id: packageItem.id });
     },
   });

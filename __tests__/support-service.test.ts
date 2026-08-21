@@ -3,9 +3,12 @@ import {
   supportService,
   type CreateComplaintInput,
 } from '@/services/support';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 describe('support service', () => {
-  const connectionId = 'AMX-TEST-01';
+  const connectionId = 'AMX-1042';
+
+  beforeEach(() => mockSystemRepository.reset());
 
   it('returns complaint summaries and full timeline details', async () => {
     const complaints = await supportService.getComplaints(connectionId);

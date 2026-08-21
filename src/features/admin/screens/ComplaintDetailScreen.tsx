@@ -22,7 +22,7 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService } from '@/services/api';
 import type { AdminComplaintStatus } from '@/services/api/complaints.models';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'ComplaintDetail'>;
@@ -39,12 +39,8 @@ export default function ComplaintDetailScreen({ route }: Props) {
     queryFn: complaintsService.listTechnicians,
   });
 
-  const synchronizeComplaint = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminComplaints }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard }),
-    ]);
-  };
+  const synchronizeComplaint = () =>
+    invalidateAdminMutation(queryClient, 'complaint');
 
   const assignMutation = useMutation({
     mutationFn: (technicianId: string) =>

@@ -2,6 +2,9 @@ import { environment } from '@/config/environment';
 import { mockDelay } from './client';
 import { mapSubscription } from './subscriptions.mapper';
 import { mockSubscriptionRepository } from './subscriptions.mock.repository';
+import { mockCustomerRepository } from './customers.mock.repository';
+import { mockPackageRepository } from './packages.mock.repository';
+import { mockBillingRepository } from './billing.mock.repository';
 import type {
   AdminSubscription,
   AssignCustomerSubscriptionInput,
@@ -15,6 +18,24 @@ function assertMockMode() {
       'Admin subscription management is unavailable outside mock mode',
     );
   }
+}
+
+function packageForAssignment(packageId: string) {
+  const packageItem = mockPackageRepository.getById(packageId);
+  if (!packageItem) throw new Error('Package not found');
+  return packageItem;
+}
+
+function customerSnapshot(customerId: string) {
+  const customer = mockCustomerRepository.getById(customerId);
+  if (!customer) throw new Error('Customer not found');
+  return {
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email,
+    connectionId: customer.connectionId,
+  };
 }
 
 export const subscriptionsService = {
@@ -47,11 +68,11 @@ export const subscriptionsService = {
   ): Promise<AdminSubscription> {
     assertMockMode();
     await mockDelay(500);
-    return mapSubscription(
-      mockSubscriptionRepository.activate(
-        typeof id === 'string' ? id : id.subscriptionId,
-      ),
+    const subscription = mockSubscriptionRepository.activate(
+      typeof id === 'string' ? id : id.subscriptionId,
     );
+    mockCustomerRepository.setStatus(subscription.userId, 'ACTIVE');
+    return mapSubscription(subscription);
   },
 
   async suspendSubscription(
@@ -59,11 +80,11 @@ export const subscriptionsService = {
   ): Promise<AdminSubscription> {
     assertMockMode();
     await mockDelay(500);
-    return mapSubscription(
-      mockSubscriptionRepository.suspend(
-        typeof id === 'string' ? id : id.subscriptionId,
-      ),
+    const subscription = mockSubscriptionRepository.suspend(
+      typeof id === 'string' ? id : id.subscriptionId,
     );
+    mockCustomerRepository.setStatus(subscription.userId, 'SUSPENDED');
+    return mapSubscription(subscription);
   },
 
   async cancelSubscription(
@@ -71,11 +92,11 @@ export const subscriptionsService = {
   ): Promise<AdminSubscription> {
     assertMockMode();
     await mockDelay(500);
-    return mapSubscription(
-      mockSubscriptionRepository.cancel(
-        typeof id === 'string' ? id : id.subscriptionId,
-      ),
+    const subscription = mockSubscriptionRepository.cancel(
+      typeof id === 'string' ? id : id.subscriptionId,
     );
+    mockCustomerRepository.setStatus(subscription.userId, 'DISABLED');
+    return mapSubscription(subscription);
   },
 
   async changeSubscriptionPackage(
@@ -83,7 +104,12 @@ export const subscriptionsService = {
   ): Promise<AdminSubscription> {
     assertMockMode();
     await mockDelay(500);
-    return mapSubscription(mockSubscriptionRepository.changePackage(input));
+    return mapSubscription(
+      mockSubscriptionRepository.changePackage(
+        input,
+        packageForAssignment(input.packageId),
+      ),
+    );
   },
 
   async assignCustomerPackage(
@@ -91,8 +117,12 @@ export const subscriptionsService = {
   ): Promise<AdminSubscription> {
     assertMockMode();
     await mockDelay(500);
-    return mapSubscription(
-      mockSubscriptionRepository.assignCustomerPackage(input),
+    const subscription = mockSubscriptionRepository.assignCustomerPackage(
+      input,
+      customerSnapshot(input.customerId),
+      packageForAssignment(input.packageId),
     );
+    mockBillingRepository.ensureInvoiceForSubscription(subscription);
+    return mapSubscription(subscription);
   },
 };

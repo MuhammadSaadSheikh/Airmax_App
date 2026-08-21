@@ -2,6 +2,7 @@ import { environment } from '@/config/environment';
 import { mockDelay } from './client';
 import { mapPackage } from './packages.mapper';
 import { mockPackageRepository } from './packages.mock.repository';
+import { mockSubscriptionRepository } from './subscriptions.mock.repository';
 import type {
   AdminPackage,
   CreatePackageInput,
@@ -18,10 +19,17 @@ function assertMockMode() {
 }
 
 function mapRepositoryPackage(packageDto: PackageDto): AdminPackage {
-  return mapPackage(
-    packageDto,
-    mockPackageRepository.subscriberSummary(packageDto.id),
-  );
+  return mapPackage(packageDto, {
+    packageId: packageDto.id,
+    subscriberCount: mockSubscriptionRepository
+      .list()
+      .filter(
+        subscription =>
+          subscription.packageId === packageDto.id &&
+          subscription.status !== 'CANCELLED' &&
+          subscription.status !== 'EXPIRED',
+      ).length,
+  });
 }
 
 export const packagesService = {

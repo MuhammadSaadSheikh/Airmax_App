@@ -1,5 +1,3 @@
-import { mockCustomers } from './customers.mock';
-import { mockPackageRepository } from './packages.mock.repository';
 import type { PackageDto } from './packages.models';
 import { mockSubscriptions } from './subscriptions.mock';
 import type {
@@ -34,9 +32,7 @@ function subscriptionIndex(id: string): number {
   return index;
 }
 
-function activePackage(packageId: string): PackageDto {
-  const packageItem = mockPackageRepository.getById(packageId);
-  if (!packageItem) throw new Error('Package not found');
+function activePackage(packageItem: PackageDto): PackageDto {
   if (packageItem.status !== 'ACTIVE') {
     throw new Error('Inactive packages cannot be assigned');
   }
@@ -136,13 +132,18 @@ export const mockSubscriptionRepository = {
     );
   },
 
-  changePackage(input: ChangeSubscriptionPackageInput): SubscriptionDto {
+  changePackage(
+    input: ChangeSubscriptionPackageInput,
+    packageItem: PackageDto,
+  ): SubscriptionDto {
     const index = subscriptionIndex(input.subscriptionId);
     const current = subscriptionsState[index]!;
     if (current.status === 'CANCELLED' || current.status === 'EXPIRED') {
       throw new Error('This subscription package cannot be changed');
     }
-    const selectedPackage = activePackage(input.packageId);
+    const selectedPackage = activePackage(packageItem);
+    if (selectedPackage.id !== input.packageId)
+      throw new Error('Package not found');
     if (current.packageId === input.packageId) {
       throw new Error('Select a different package');
     }
@@ -168,26 +169,28 @@ export const mockSubscriptionRepository = {
 
   assignCustomerPackage(
     input: AssignCustomerSubscriptionInput,
+    customer: SubscriptionCustomerDto,
+    packageItem: PackageDto,
   ): SubscriptionDto {
     const existing = subscriptionsState.find(
       item => item.userId === input.customerId,
     );
     if (existing) {
-      return this.changePackage({
-        subscriptionId: existing.id,
-        packageId: input.packageId,
-      });
+      return this.changePackage(
+        {
+          subscriptionId: existing.id,
+          packageId: input.packageId,
+        },
+        packageItem,
+      );
     }
-    const customer = mockCustomers.find(item => item.id === input.customerId);
-    if (!customer) throw new Error('Customer not found');
-    const selectedPackage = activePackage(input.packageId);
+    if (customer.id !== input.customerId) throw new Error('Customer not found');
+    const selectedPackage = activePackage(packageItem);
+    if (selectedPackage.id !== input.packageId)
+      throw new Error('Package not found');
     const timestamp = new Date().toISOString();
     const customerSnapshot: SubscriptionCustomerDto = {
-      id: customer.id,
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-      connectionId: customer.connectionId,
+      ...customer,
     };
     const subscription: SubscriptionDto = {
       id: `mock-sub-${customer.id}`,

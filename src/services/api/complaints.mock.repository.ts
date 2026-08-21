@@ -3,6 +3,7 @@ import type {
   ApiComplaintStatus,
   AssignComplaintInput,
   ComplaintDto,
+  CreateComplaintRepositoryInput,
   ReplyToComplaintInput,
   TechnicianDto,
   UpdateComplaintStatusInput,
@@ -18,6 +19,7 @@ const flow: ApiComplaintStatus[] = [
 ];
 
 let complaintsState = cloneComplaints(mockComplaints);
+let nextComplaintNumber = 3000;
 
 function cloneComplaint(complaint: ComplaintDto): ComplaintDto {
   return {
@@ -61,12 +63,13 @@ function statusEvent(
   complaint: ComplaintDto,
   status: ApiComplaintStatus,
   createdAt: string,
+  note: string | null = null,
 ) {
   return {
     id: `mock-event-${complaint.id}-${complaint.events.length + 1}`,
     complaintId: complaint.id,
     status,
-    note: null,
+    note,
     actorId: 'admin-mock',
     createdAt,
   };
@@ -83,7 +86,53 @@ export const mockComplaintRepository = {
   },
 
   technicians(): TechnicianDto[] {
-    return mockComplaintTechnicians.map(cloneTechnician);
+    return mockComplaintTechnicians.map(technician =>
+      cloneTechnician({
+        ...technician,
+        _count: {
+          complaints: complaintsState.filter(
+            complaint =>
+              complaint.technicianId === technician.id &&
+              complaint.status !== 'RESOLVED' &&
+              complaint.status !== 'CLOSED',
+          ).length,
+        },
+      }),
+    );
+  },
+
+  create(input: CreateComplaintRepositoryInput): ComplaintDto {
+    const timestamp = new Date().toISOString();
+    const ticketNumber = nextComplaintNumber++;
+    const complaint: ComplaintDto = {
+      id: `mock-complaint-${ticketNumber}`,
+      ticketNumber,
+      userId: input.customerId,
+      category: input.category,
+      title: input.title,
+      description: input.description,
+      attachmentUrl: input.attachmentUrl,
+      status: 'PENDING',
+      technicianId: null,
+      adminReply: null,
+      user: { ...input.customer },
+      technician: null,
+      events: [
+        {
+          id: `mock-event-${ticketNumber}-1`,
+          complaintId: `mock-complaint-${ticketNumber}`,
+          status: 'PENDING',
+          note: 'Complaint submitted by customer',
+          actorId: input.customerId,
+          createdAt: timestamp,
+        },
+      ],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      resolvedAt: null,
+    };
+    complaintsState = [complaint, ...complaintsState];
+    return cloneComplaint(complaint);
   },
 
   assign(input: AssignComplaintInput): ComplaintDto {
@@ -97,16 +146,19 @@ export const mockComplaintRepository = {
     const updatedAt = new Date().toISOString();
     const status =
       complaint.status === 'PENDING' ? 'ASSIGNED' : complaint.status;
-    const statusChanged = status !== complaint.status;
+    const assignmentNote = complaint.technicianId
+      ? `Reassigned to ${technician.name}`
+      : `Assigned to ${technician.name}`;
     const updated: ComplaintDto = {
       ...complaint,
       technicianId: technician.id,
       technician: cloneTechnician(technician),
       status,
       updatedAt,
-      events: statusChanged
-        ? [...complaint.events, statusEvent(complaint, status, updatedAt)]
-        : complaint.events,
+      events: [
+        ...complaint.events,
+        statusEvent(complaint, status, updatedAt, assignmentNote),
+      ],
     };
     complaintsState[index] = updated;
     return cloneComplaint(updated);
@@ -142,10 +194,20 @@ export const mockComplaintRepository = {
     const reply = input.reply.trim();
     if (!reply) throw new Error('Admin reply cannot be empty');
 
+    const updatedAt = new Date().toISOString();
     const updated: ComplaintDto = {
       ...complaint,
       adminReply: reply,
-      updatedAt: new Date().toISOString(),
+      updatedAt,
+      events: [
+        ...complaint.events,
+        statusEvent(
+          complaint,
+          complaint.status,
+          updatedAt,
+          `Admin reply: ${reply}`,
+        ),
+      ],
     };
     complaintsState[index] = updated;
     return cloneComplaint(updated);
@@ -153,5 +215,6 @@ export const mockComplaintRepository = {
 
   reset(): void {
     complaintsState = cloneComplaints(mockComplaints);
+    nextComplaintNumber = 3000;
   },
 };

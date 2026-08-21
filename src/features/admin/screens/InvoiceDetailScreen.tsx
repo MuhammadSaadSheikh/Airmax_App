@@ -24,7 +24,7 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { adminBillingService } from '@/services/api';
 import type { PaymentMethod } from '@/services/api/billing.models';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, money, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'InvoiceDetail'>;
@@ -49,41 +49,8 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
     queryFn: () => adminBillingService.getInvoiceById(invoiceId),
   });
 
-  const invalidateRecordPayment = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminInvoiceDetail(invoiceId),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminInvoiceList }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminPayments }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminBillingSummary,
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard }),
-    ]);
-  };
-
-  const invalidateMarkPaid = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminInvoiceDetail(invoiceId),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminInvoiceList }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminBillingSummary,
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard }),
-    ]);
-  };
-
-  const invalidateCancellation = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminInvoiceDetail(invoiceId),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminInvoiceList }),
-    ]);
-  };
+  const invalidateBilling = () =>
+    invalidateAdminMutation(queryClient, 'billing');
 
   const recordMutation = useMutation({
     mutationFn: (method: PaymentMethod) =>
@@ -92,15 +59,15 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
         amount: invoiceQuery.data!.amount,
         method,
       }),
-    onSuccess: invalidateRecordPayment,
+    onSuccess: invalidateBilling,
   });
   const markPaidMutation = useMutation({
     mutationFn: () => adminBillingService.markInvoicePaid(invoiceId),
-    onSuccess: invalidateMarkPaid,
+    onSuccess: invalidateBilling,
   });
   const cancelMutation = useMutation({
     mutationFn: () => adminBillingService.cancelInvoice(invoiceId),
-    onSuccess: invalidateCancellation,
+    onSuccess: invalidateBilling,
   });
 
   const choosePaymentMethod = () => {

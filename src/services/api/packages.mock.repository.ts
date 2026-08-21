@@ -1,16 +1,11 @@
-import {
-  mockAdminPackages,
-  mockPackageSubscriberSummaries,
-} from './packages.mock';
+import { mockAdminPackages } from './packages.mock';
 import type {
   CreatePackageInput,
   PackageDto,
-  PackageSubscriberSummaryDto,
   UpdatePackageInput,
 } from './packages.models';
 
 let packagesState = clonePackages(mockAdminPackages);
-let summariesState = cloneSummaries(mockPackageSubscriberSummaries);
 let nextPackageNumber = 1;
 
 function clonePackage(packageDto: PackageDto): PackageDto {
@@ -19,18 +14,6 @@ function clonePackage(packageDto: PackageDto): PackageDto {
 
 function clonePackages(packages: PackageDto[]): PackageDto[] {
   return packages.map(clonePackage);
-}
-
-function cloneSummary(
-  summary: PackageSubscriberSummaryDto,
-): PackageSubscriberSummaryDto {
-  return { ...summary };
-}
-
-function cloneSummaries(
-  summaries: PackageSubscriberSummaryDto[],
-): PackageSubscriberSummaryDto[] {
-  return summaries.map(cloneSummary);
 }
 
 function packageIndex(id: string): number {
@@ -91,12 +74,6 @@ export const mockPackageRepository = {
     return packageDto ? clonePackage(packageDto) : undefined;
   },
 
-  subscriberSummary(packageId: string): PackageSubscriberSummaryDto {
-    packageIndex(packageId);
-    const summary = summariesState.find(item => item.packageId === packageId);
-    return cloneSummary(summary ?? { packageId, subscriberCount: 0 });
-  },
-
   create(input: CreatePackageInput): PackageDto {
     const normalized = normalizeInput(input);
     assertUniqueName(normalized.name);
@@ -109,10 +86,6 @@ export const mockPackageRepository = {
       updatedAt: timestamp,
     };
     packagesState = [...packagesState, packageDto];
-    summariesState = [
-      ...summariesState,
-      { packageId: packageDto.id, subscriberCount: 0 },
-    ];
     return clonePackage(packageDto);
   },
 
@@ -158,7 +131,6 @@ export const mockPackageRepository = {
 
   reset(): void {
     packagesState = clonePackages(mockAdminPackages);
-    summariesState = cloneSummaries(mockPackageSubscriberSummaries);
     nextPackageNumber = 1;
   },
 };

@@ -1,4 +1,18 @@
-import type { CurrentBillSnapshot, Invoice, Payment, PaymentMethod, PaymentReceipt } from './models';
+import { mockBillingRepository } from '@/services/api/billing.mock.repository';
+import type {
+  InvoiceDto,
+  PaymentMethod as AdminPaymentMethod,
+  PaymentDto,
+} from '@/services/api/billing.models';
+import { resolveMockCustomer } from '@/services/api/mockCustomerContext';
+import type {
+  BillingStatus,
+  CurrentBillSnapshot,
+  Invoice,
+  Payment,
+  PaymentMethod,
+  PaymentReceipt,
+} from './models';
 
 export interface BillingService {
   getCurrentBill(connectionId: string): Promise<CurrentBillSnapshot>;
@@ -9,29 +23,168 @@ export interface BillingService {
   processPayment(invoiceId: string, methodId: string): Promise<PaymentReceipt>;
 }
 
-const invoices: Invoice[] = [
-  { id: 'AMX-2608-1042', amount: 3500, date: '1 August 2026', dueDate: '15 August 2026', status: 'pending', items: [{ id: 'service', description: 'AIRMAX Premium — Monthly service', quantity: 1, amount: 3500 }] },
-  { id: 'AMX-2607-1042', amount: 3500, date: '1 July 2026', dueDate: '15 July 2026', status: 'paid', items: [{ id: 'service', description: 'AIRMAX Premium — Monthly service', quantity: 1, amount: 3500 }] },
-  { id: 'AMX-2606-1042', amount: 3500, date: '1 June 2026', dueDate: '15 June 2026', status: 'paid', items: [{ id: 'service', description: 'AIRMAX Premium — Monthly service', quantity: 1, amount: 3500 }] },
-];
-const payments: Payment[] = [
-  { id: 'TXN-0726-1042', amount: 3500, method: 'Visa •••• 4242', date: '5 July 2026', status: 'completed', invoiceId: 'AMX-2607-1042', reference: 'RCP-2607051042' },
-  { id: 'TXN-0626-1042', amount: 3500, method: 'JazzCash •••• 8831', date: '4 June 2026', status: 'completed', invoiceId: 'AMX-2606-1042', reference: 'RCP-2606041042' },
-];
 const methods: PaymentMethod[] = [
-  { id: 'card-4242', type: 'card', name: 'Visa', detail: '•••• 4242', isDefault: true },
-  { id: 'wallet-8831', type: 'wallet', name: 'JazzCash', detail: '•••• 8831', isDefault: false },
-  { id: 'bank', type: 'bank', name: 'Bank transfer', detail: 'Secure account transfer', isDefault: false },
+  {
+    id: 'card-4242',
+    type: 'card',
+    name: 'Visa',
+    detail: '•••• 4242',
+    isDefault: true,
+  },
+  {
+    id: 'wallet-8831',
+    type: 'wallet',
+    name: 'JazzCash',
+    detail: '•••• 8831',
+    isDefault: false,
+  },
+  {
+    id: 'bank',
+    type: 'bank',
+    name: 'Bank transfer',
+    detail: 'Secure account transfer',
+    isDefault: false,
+  },
 ];
-const paidInvoiceIds = new Set<string>();
-const wait = () => new Promise<void>(resolve => setTimeout(resolve, 320));
-const copyInvoice = (invoice: Invoice): Invoice => ({ ...invoice, items: invoice.items.map(item => ({ ...item })) });
+
+const wait = (duration = 320) =>
+  new Promise<void>(resolve => setTimeout(resolve, duration));
+
+function invoiceStatus(invoice: InvoiceDto): BillingStatus {
+  if (invoice.status === 'PAID') return 'paid';
+  if (invoice.status === 'OVERDUE') return 'overdue';
+  return 'pending';
+}
+
+function mapInvoice(invoice: InvoiceDto): Invoice {
+  const amount = Number(invoice.amount);
+  return {
+    id: invoice.id,
+    amount: Number.isFinite(amount) ? amount : 0,
+    date: invoice.createdAt,
+    dueDate: invoice.dueDate,
+    status: invoiceStatus(invoice),
+    items: [
+      {
+        id: `${invoice.id}-service`,
+        description: `${invoice.subscription.packageName} — Monthly service`,
+        quantity: 1,
+        amount: Number.isFinite(amount) ? amount : 0,
+      },
+    ],
+  };
+}
+
+function customerInvoices(customerId: string): InvoiceDto[] {
+  return mockBillingRepository
+    .getCustomerInvoices(customerId)
+    .filter(invoice => invoice.status !== 'CANCELLED');
+}
+
+function mapPayment(payment: PaymentDto): Payment {
+  const method = payment.method.toLowerCase().replace('_', ' ');
+  return {
+    id: payment.id,
+    amount: Number(payment.amount),
+    method,
+    date: payment.createdAt,
+    status:
+      payment.status === 'SUCCESSFUL'
+        ? 'completed'
+        : (payment.status.toLowerCase() as Payment['status']),
+    invoiceId: payment.invoiceId,
+    reference: payment.reference,
+  };
+}
+
+function adminMethod(methodId: string): AdminPaymentMethod {
+  if (methodId.startsWith('card')) return 'card';
+  if (methodId.startsWith('wallet')) return 'jazzcash';
+  return 'bank_transfer';
+}
 
 export const billingCenterService: BillingService = {
-  async getCurrentBill(connectionId) { void connectionId; await wait(); const paid = paidInvoiceIds.has(invoices[0]!.id); return { invoice: { ...copyInvoice(invoices[0]!), status: paid ? 'paid' : 'pending' }, summary: { currentAmount: paid ? 0 : 3500, dueDate: '15 August 2026', status: paid ? 'paid' : 'pending', nextBillingDate: '1 September 2026', daysRemaining: paid ? 0 : 10, billingCycle: 'Monthly', packageName: 'AIRMAX Premium', renewalStatus: 'automatic' } }; },
-  async getInvoices(connectionId) { void connectionId; await wait(); return invoices.map(invoice => ({ ...copyInvoice(invoice), status: paidInvoiceIds.has(invoice.id) ? 'paid' : invoice.status })); },
-  async getInvoice(id) { await wait(); const invoice = invoices.find(item => item.id === id); return invoice ? { ...copyInvoice(invoice), status: paidInvoiceIds.has(id) ? 'paid' : invoice.status } : undefined; },
-  async getPaymentHistory(connectionId) { void connectionId; await wait(); return payments.map(payment => ({ ...payment })); },
-  async getPaymentMethods(connectionId) { void connectionId; await wait(); return methods.map(method => ({ ...method })); },
-  async processPayment(invoiceId, methodId) { await new Promise<void>(resolve => setTimeout(resolve, 900)); const method = methods.find(item => item.id === methodId) ?? methods[0]!; paidInvoiceIds.add(invoiceId); return { transactionId: `TXN-${Date.now()}`, invoiceId, amount: invoices.find(item => item.id === invoiceId)?.amount ?? 3500, method: `${method.name} ${method.detail}`, paidAt: new Date().toISOString(), reference: `RCP-${Date.now()}` }; },
+  async getCurrentBill(connectionId) {
+    await wait();
+    const customer = resolveMockCustomer(connectionId);
+    const current =
+      customerInvoices(customer.id).find(
+        invoice => invoice.status === 'PENDING' || invoice.status === 'OVERDUE',
+      ) ?? customerInvoices(customer.id)[0];
+    if (!current) throw new Error('Customer invoice not found');
+    const mapped = mapInvoice(current);
+    const dueTime = new Date(current.dueDate).getTime();
+    const daysRemaining = Math.max(
+      0,
+      Math.ceil((dueTime - Date.now()) / 86_400_000),
+    );
+    return {
+      invoice: mapped,
+      summary: {
+        currentAmount: mapped.status === 'paid' ? 0 : mapped.amount,
+        dueDate: current.dueDate,
+        status: mapped.status,
+        nextBillingDate: current.billingPeriodEnd,
+        daysRemaining,
+        billingCycle: 'Monthly',
+        packageName: current.subscription.packageName,
+        renewalStatus: 'automatic',
+      },
+    };
+  },
+
+  async getInvoices(connectionId) {
+    await wait();
+    const customer = resolveMockCustomer(connectionId);
+    return customerInvoices(customer.id).map(mapInvoice);
+  },
+
+  async getInvoice(id) {
+    await wait();
+    const invoice = mockBillingRepository.getInvoiceById(id);
+    return invoice && invoice.status !== 'CANCELLED'
+      ? mapInvoice(invoice)
+      : undefined;
+  },
+
+  async getPaymentHistory(connectionId) {
+    await wait();
+    const customer = resolveMockCustomer(connectionId);
+    const invoiceIds = new Set(
+      mockBillingRepository
+        .getCustomerInvoices(customer.id)
+        .map(invoice => invoice.id),
+    );
+    return mockBillingRepository
+      .listPayments()
+      .filter(payment => invoiceIds.has(payment.invoiceId))
+      .map(mapPayment);
+  },
+
+  async getPaymentMethods(connectionId) {
+    resolveMockCustomer(connectionId);
+    await wait();
+    return methods.map(method => ({ ...method }));
+  },
+
+  async processPayment(invoiceId, methodId) {
+    await wait(900);
+    const invoice = mockBillingRepository.getInvoiceById(invoiceId);
+    if (!invoice) throw new Error('Invoice not found');
+    const payment = mockBillingRepository.recordPayment({
+      invoiceId,
+      amount: Number(invoice.amount),
+      method: adminMethod(methodId),
+      actorId: `customer:${invoice.customerId}`,
+    });
+    const method = methods.find(item => item.id === methodId) ?? methods[0]!;
+    return {
+      transactionId: payment.id,
+      invoiceId,
+      amount: Number(payment.amount),
+      method: `${method.name} ${method.detail}`,
+      paidAt: payment.processedAt ?? payment.createdAt,
+      reference: payment.reference,
+    };
+  },
 };

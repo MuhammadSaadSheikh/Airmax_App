@@ -23,7 +23,7 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { environment } from '@/config/environment';
 import { customersService } from '@/services/api';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'CustomerEdit'>;
@@ -79,9 +79,7 @@ export default function CustomerEditScreen({ navigation, route }: Props) {
         queryKeys.adminCustomerDetail(customer.id),
         customer,
       );
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.adminCustomerLists,
-      });
+      void invalidateAdminMutation(queryClient, 'customer');
       navigation.goBack();
     },
   });

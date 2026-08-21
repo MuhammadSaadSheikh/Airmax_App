@@ -21,7 +21,7 @@ import {
 } from '@/features/admin/components';
 import type { AdminStackParamList } from '@/navigation';
 import { subscriptionsService } from '@/services/api';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'SubscriptionDetail'>;
@@ -45,16 +45,8 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
     queryFn: () => subscriptionsService.getSubscriptionById(subscriptionId),
   });
 
-  const synchronizeSubscription = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminSubscriptions }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.adminCustomerSubscriptions(
-          subscriptionQuery.data?.customer.id ?? '',
-        ),
-      }),
-    ]);
-  };
+  const synchronizeSubscription = () =>
+    invalidateAdminMutation(queryClient, 'subscription');
 
   const activateMutation = useMutation({
     mutationFn: () => subscriptionsService.activateSubscription(subscriptionId),

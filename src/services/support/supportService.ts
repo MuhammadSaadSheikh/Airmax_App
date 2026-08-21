@@ -1,5 +1,12 @@
+import { mockComplaintRepository } from '@/services/api/complaints.mock.repository';
+import type {
+  ApiComplaintStatus,
+  ComplaintDto,
+} from '@/services/api/complaints.models';
+import { resolveMockCustomer } from '@/services/api/mockCustomerContext';
 import type {
   Complaint,
+  ComplaintCategory,
   ComplaintDetail,
   ComplaintStatus,
   CreateComplaintInput,
@@ -41,7 +48,7 @@ const categories: SupportCategory[] = [
   },
 ];
 
-const steps: { status: ComplaintStatus; description: string }[] = [
+const stages: Array<{ status: ComplaintStatus; description: string }> = [
   { status: 'submitted', description: 'Your complaint was received.' },
   { status: 'assigned', description: 'A support specialist was assigned.' },
   {
@@ -51,115 +58,135 @@ const steps: { status: ComplaintStatus; description: string }[] = [
   { status: 'resolved', description: 'Service restored and confirmed.' },
 ];
 
-let complaints: ComplaintDetail[] = [
-  {
-    id: 'AMX-4821',
-    category: 'speed',
-    title: 'High latency during evening hours',
-    description: 'Video calls and gaming become unstable after 7 PM.',
-    status: 'technician_working',
-    createdAt: '2026-08-04T10:30:00.000Z',
-    updatedAt: '2026-08-06T08:45:00.000Z',
-    expectedResolution: 'Today, 6:00 PM',
-    timeline: steps.map((step, index) => ({
-      ...step,
-      completed: index < 3,
-      timestamp:
-        index < 3
-          ? ['4 Aug, 10:30 AM', '4 Aug, 11:15 AM', '6 Aug, 8:45 AM'][index]
-          : undefined,
-    })),
-    technician: {
-      technicianName: 'Hamza Khan',
-      status: 'working',
-      assignedAt: '4 Aug, 11:15 AM',
-      eta: 'On site · work in progress',
-      phone: '+92 300 111 2479',
-    },
-  },
-  {
-    id: 'AMX-4695',
-    category: 'router',
-    title: 'Router disconnecting intermittently',
-    description: 'The router restarted several times during the day.',
-    status: 'resolved',
-    createdAt: '2026-07-26T09:10:00.000Z',
-    updatedAt: '2026-07-27T14:20:00.000Z',
-    expectedResolution: 'Resolved 27 July',
-    timeline: steps.map((step, index) => ({
-      ...step,
-      completed: true,
-      timestamp: [
-        '26 Jul, 9:10 AM',
-        '26 Jul, 9:42 AM',
-        '27 Jul, 11:00 AM',
-        '27 Jul, 2:20 PM',
-      ][index],
-    })),
-    technician: {
-      technicianName: 'Adeel Ahmed',
-      status: 'completed',
-      assignedAt: '26 Jul, 9:42 AM',
-      eta: 'Visit completed',
-    },
-    resolution:
-      'Router firmware was updated and the connection remained stable after monitoring.',
-  },
-];
-
 const wait = (duration = 360) =>
   new Promise<void>(resolve => setTimeout(resolve, duration));
-const copy = (complaint: ComplaintDetail): ComplaintDetail => ({
-  ...complaint,
-  attachments: complaint.attachments?.map(item => ({ ...item })),
-  timeline: complaint.timeline.map(item => ({ ...item })),
-  technician: complaint.technician ? { ...complaint.technician } : undefined,
-});
+
+function customerStatus(status: ApiComplaintStatus): ComplaintStatus {
+  if (status === 'PENDING') return 'submitted';
+  if (status === 'ASSIGNED') return 'assigned';
+  if (status === 'IN_PROGRESS') return 'technician_working';
+  return 'resolved';
+}
+
+function customerCategory(category: string): ComplaintCategory {
+  const normalized = category.toLowerCase();
+  if (normalized.includes('speed')) return 'speed';
+  if (normalized.includes('router')) return 'router';
+  if (normalized.includes('bill')) return 'billing';
+  return 'internet';
+}
+
+function stageApiStatus(status: ComplaintStatus): ApiComplaintStatus {
+  if (status === 'submitted') return 'PENDING';
+  if (status === 'assigned') return 'ASSIGNED';
+  if (status === 'technician_working') return 'IN_PROGRESS';
+  return 'RESOLVED';
+}
+
+function mapComplaint(complaint: ComplaintDto): ComplaintDetail {
+  const status = customerStatus(complaint.status);
+  const currentIndex = stages.findIndex(stage => stage.status === status);
+  return {
+    id: complaint.id,
+    category: customerCategory(complaint.category),
+    title: complaint.title,
+    description: complaint.description,
+    status,
+    createdAt: complaint.createdAt,
+    updatedAt: complaint.updatedAt,
+    expectedResolution:
+      complaint.status === 'RESOLVED' || complaint.status === 'CLOSED'
+        ? 'Resolved'
+        : 'Within 24 hours',
+    attachments: complaint.attachmentUrl
+      ? [
+          {
+            id: `${complaint.id}-attachment-1`,
+            type: 'image',
+            uri: complaint.attachmentUrl,
+          },
+        ]
+      : undefined,
+    timeline: stages.map((stage, index) => {
+      const apiStatus = stageApiStatus(stage.status);
+      const event = complaint.events.find(item => item.status === apiStatus);
+      return {
+        ...stage,
+        completed: index <= currentIndex,
+        timestamp: event?.createdAt,
+      };
+    }),
+    technician: complaint.technician
+      ? {
+          technicianName: complaint.technician.name,
+          status:
+            complaint.status === 'RESOLVED' || complaint.status === 'CLOSED'
+              ? 'completed'
+              : complaint.status === 'IN_PROGRESS'
+                ? 'working'
+                : 'assigned',
+          assignedAt:
+            complaint.events.find(event => event.status === 'ASSIGNED')
+              ?.createdAt ?? complaint.updatedAt,
+          eta:
+            complaint.status === 'IN_PROGRESS'
+              ? 'Work in progress'
+              : 'Assigned',
+          phone: complaint.technician.phone,
+        }
+      : undefined,
+    resolution:
+      complaint.status === 'RESOLVED' || complaint.status === 'CLOSED'
+        ? (complaint.adminReply ?? 'Complaint resolved.')
+        : undefined,
+  };
+}
+
+function customerComplaints(customerId: string): ComplaintDto[] {
+  return mockComplaintRepository
+    .list()
+    .filter(complaint => complaint.userId === customerId);
+}
 
 export const supportService: SupportService = {
   async getComplaints(connectionId) {
-    void connectionId;
     await wait();
-    return complaints.map(copy);
+    const customer = resolveMockCustomer(connectionId);
+    return customerComplaints(customer.id).map(mapComplaint);
   },
+
   async createComplaint(connectionId, input) {
-    void connectionId;
     await wait(650);
-    const now = new Date().toISOString();
-    const complaint: ComplaintDetail = {
-      ...input,
-      attachments: input.attachments?.map(item => ({ ...item })),
-      id: `AMX-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: 'submitted',
-      createdAt: now,
-      updatedAt: now,
-      expectedResolution: 'Within 24 hours',
-      timeline: steps.map((step, index) => ({
-        ...step,
-        completed: index === 0,
-        timestamp: index === 0 ? 'Just now' : undefined,
-      })),
-    };
-    complaints = [complaint, ...complaints];
-    return copy(complaint);
+    const customer = resolveMockCustomer(connectionId);
+    return mapComplaint(
+      mockComplaintRepository.create({
+        customerId: customer.id,
+        customer: {
+          name: customer.name,
+          phone: customer.phone,
+          connectionId: customer.connectionId,
+        },
+        category:
+          categories.find(category => category.id === input.category)?.name ??
+          input.category,
+        title: input.title,
+        description: input.description,
+        attachmentUrl: input.attachments?.[0]?.uri ?? null,
+      }),
+    );
   },
+
   async getComplaintDetail(connectionId, id) {
-    void connectionId;
     await wait();
-    const complaint = complaints.find(item => item.id === id);
-    return complaint ? copy(complaint) : undefined;
+    const customer = resolveMockCustomer(connectionId);
+    const complaint = mockComplaintRepository.getById(id);
+    return complaint?.userId === customer.id
+      ? mapComplaint(complaint)
+      : undefined;
   },
+
   async getCategories() {
-    await wait(120);
+    await wait(180);
     return categories.map(category => ({ ...category }));
   },
 };
-
-export const getComplaints = (connectionId: string) =>
-  supportService.getComplaints(connectionId);
-export const createComplaint = (
-  connectionId: string,
-  complaint: CreateComplaintInput,
-) => supportService.createComplaint(connectionId, complaint);
-export const getComplaintDetail = (connectionId: string, id: string) =>
-  supportService.getComplaintDetail(connectionId, id);

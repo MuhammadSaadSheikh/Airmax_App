@@ -8,6 +8,7 @@ import { adminBillingService } from '@/services/api/billing.service';
 import { mockBillingRepository } from '@/services/api/billing.mock.repository';
 import { mockPackageRepository } from '@/services/api/packages.mock.repository';
 import { mockSubscriptionRepository } from '@/services/api/subscriptions.mock.repository';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 describe('Phase 2D billing service', () => {
   it('returns a current bill with subscription summary', async () => {
@@ -26,19 +27,17 @@ describe('Phase 2D billing service', () => {
   it('returns payment history and creates mock receipts', async () => {
     const history = await billingCenterService.getPaymentHistory('AMX-1042');
     const receipt = await billingCenterService.processPayment(
-      'AMX-2608-1042',
+      'invoice-u1-2026-08',
       'card-4242',
     );
     expect(history[0]?.reference).toBeDefined();
-    expect(receipt.reference).toMatch(/^RCP-/);
+    expect(receipt.reference).toMatch(/^AMX-PAY-/);
   });
 });
 
 describe('Phase 3D admin billing operations', () => {
   beforeEach(() => {
-    mockPackageRepository.reset();
-    mockSubscriptionRepository.reset();
-    mockBillingRepository.reset();
+    mockSystemRepository.reset();
   });
 
   it('lists invoices with subscription snapshots and payment attempts', async () => {
@@ -153,10 +152,13 @@ describe('Phase 3D admin billing operations', () => {
   it('preserves historical invoice snapshots after package changes', async () => {
     const before =
       await adminBillingService.getInvoiceById('invoice-u1-2026-08');
-    mockSubscriptionRepository.changePackage({
-      subscriptionId: 'sub-u1',
-      packageId: 'plus',
-    });
+    mockSubscriptionRepository.changePackage(
+      {
+        subscriptionId: 'sub-u1',
+        packageId: 'plus',
+      },
+      mockPackageRepository.getById('plus')!,
+    );
     mockPackageRepository.update({
       packageId: 'premium',
       name: 'Premium',
@@ -193,6 +195,27 @@ describe('Phase 3D admin billing operations', () => {
     expect(stored.status).toBe('failed');
     expect(stored.failureReason).toBe('Issuer declined');
     expect(stored.customer.name).toBe('Ahmed Khan');
+  });
+
+  it('prevents duplicate pending payment submissions and records the actor', () => {
+    const first = mockBillingRepository.recordPayment({
+      invoiceId: 'invoice-u3-2026-08',
+      amount: 4500,
+      method: 'card',
+      status: 'pending',
+      actorId: 'operator-1',
+    });
+
+    expect(first.actorId).toBe('operator-1');
+    expect(() =>
+      mockBillingRepository.recordPayment({
+        invoiceId: 'invoice-u3-2026-08',
+        amount: 4500,
+        method: 'card',
+        status: 'pending',
+        actorId: 'operator-1',
+      }),
+    ).toThrow('pending payment attempt already exists');
   });
 
   it('returns defensive invoice copies', () => {

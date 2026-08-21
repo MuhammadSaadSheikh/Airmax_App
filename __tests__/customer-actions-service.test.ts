@@ -5,11 +5,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { mockCustomerRepository } from '@/services/api/customers.mock.repository';
 import { customersService } from '@/services/api/customers.service';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 describe('Phase 3B-2 mock customer actions', () => {
-  beforeEach(() => mockCustomerRepository.reset());
+  beforeEach(() => mockSystemRepository.reset());
 
   it('activates the customer and latest subscription', async () => {
     const customer = await customersService.activateCustomer('u3');

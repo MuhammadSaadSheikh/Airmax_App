@@ -4,12 +4,12 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import { mapComplaint } from '@/services/api/complaints.mapper';
-import { mockComplaintRepository } from '@/services/api/complaints.mock.repository';
 import { mockComplaints } from '@/services/api/complaints.mock';
 import { complaintsService } from '@/services/api/complaints.service';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 describe('Phase 3C admin complaint operations service', () => {
-  beforeEach(() => mockComplaintRepository.reset());
+  beforeEach(() => mockSystemRepository.reset());
 
   it('maps backend complaint data into semantic domain models', () => {
     const complaint = mapComplaint(mockComplaints[0]!);
@@ -37,6 +37,7 @@ describe('Phase 3C admin complaint operations service', () => {
   });
 
   it('preserves workflow status when reassigning active work', async () => {
+    const before = await complaintsService.getById('complaint-2052');
     const complaint = await complaintsService.assignTechnician({
       complaintId: 'complaint-2052',
       technicianId: 'tech-sana',
@@ -44,6 +45,8 @@ describe('Phase 3C admin complaint operations service', () => {
 
     expect(complaint.status).toBe('in_progress');
     expect(complaint.technician?.name).toBe('Sana Javed');
+    expect(complaint.events).toHaveLength(before.events.length + 1);
+    expect(complaint.events.at(-1)?.note).toBe('Reassigned to Sana Javed');
   });
 
   it('enforces forward-only status transitions', async () => {
@@ -55,7 +58,8 @@ describe('Phase 3C admin complaint operations service', () => {
     ).rejects.toThrow('approved workflow');
   });
 
-  it('stores only the current admin reply', async () => {
+  it('stores the current admin reply and appends an audit event', async () => {
+    const before = await complaintsService.getById('complaint-2053');
     const complaint = await complaintsService.reply({
       complaintId: 'complaint-2053',
       reply: '  Technician arrival is scheduled for 3 PM.  ',
@@ -64,6 +68,8 @@ describe('Phase 3C admin complaint operations service', () => {
     expect(complaint.adminReply).toBe(
       'Technician arrival is scheduled for 3 PM.',
     );
+    expect(complaint.events).toHaveLength(before.events.length + 1);
+    expect(complaint.events.at(-1)?.note).toContain('Admin reply:');
   });
 
   it('prevents modifications to closed complaints', async () => {

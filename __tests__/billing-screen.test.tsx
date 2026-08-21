@@ -175,6 +175,7 @@ const overdueInvoice: AdminInvoice = {
       method: 'card',
       status: 'failed',
       reference: 'AMX-PAY-001',
+      actorId: 'admin-mock',
       failureReason: 'Declined',
       createdAt: '2026-08-04T10:00:00.000Z',
       processedAt: '2026-08-04T10:01:00.000Z',

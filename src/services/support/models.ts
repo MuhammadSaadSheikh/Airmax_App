@@ -54,7 +54,11 @@ export interface TechnicianAssignment {
 export interface SupportCategory {
   id: ComplaintCategory;
   name: string;
-  icon: string;
+  icon:
+    | 'cloud-offline-outline'
+    | 'speedometer-outline'
+    | 'hardware-chip-outline'
+    | 'receipt-outline';
   priority: number;
 }
 

@@ -18,7 +18,7 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { environment } from '@/config/environment';
 import { customersService } from '@/services/api';
-import { queryKeys } from '@/services/query';
+import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<
@@ -54,20 +54,7 @@ export default function CustomerPackageChangeScreen({
         queryKeys.adminCustomerDetail(customer.id),
         customer,
       );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.adminCustomerLists,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.adminCustomerDetail(customer.id),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.adminSubscriptions,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.adminCustomerSubscriptions(customer.id),
-        }),
-      ]);
+      await invalidateAdminMutation(queryClient, 'subscription');
       navigation.goBack();
     },
   });

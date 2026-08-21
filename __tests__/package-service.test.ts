@@ -4,7 +4,7 @@ describe('Phase 2C package service', () => {
   it('returns marketplace plans with premium metadata', async () => {
     const plans = await packageService.getPackages();
 
-    expect(plans).toHaveLength(3);
+    expect(plans).toHaveLength(4);
     expect(plans[0]).toEqual(
       expect.objectContaining({
         billingCycle: 'monthly',
@@ -27,7 +27,10 @@ describe('Phase 2C package service', () => {
   it('builds comparison rows for every selected package', async () => {
     const comparison = await packageService.comparePackages(['basic', 'ultra']);
 
-    expect(comparison.packages.map(plan => plan.id)).toEqual(['basic', 'ultra']);
+    expect(comparison.packages.map(plan => plan.id)).toEqual([
+      'basic',
+      'ultra',
+    ]);
     expect(comparison.comparisonFeatures).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'speed' }),

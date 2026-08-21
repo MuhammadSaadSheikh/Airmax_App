@@ -56,6 +56,7 @@ export const queryKeys = {
     ['payment-methods', connectionId] as const,
   supportComplaints: (connectionId: string) =>
     ['support-complaints', connectionId] as const,
+  supportComplaintsRoot: ['support-complaints'] as const,
   supportComplaintDetail: (connectionId: string, id: string) =>
     ['support-complaint-detail', connectionId, id] as const,
   notifications: (connectionId: string) =>

@@ -6,11 +6,14 @@ import {
   mapCustomerPackage,
 } from './customers.mapper';
 import { mockCustomerRepository } from './customers.mock.repository';
+import { mockPackageRepository } from './packages.mock.repository';
+import { mockSubscriptionRepository } from './subscriptions.mock.repository';
 import { subscriptionsService } from './subscriptions.service';
 import type {
   AdminCustomerDetail,
   AdminCustomerListItem,
   ChangeCustomerPackageInput,
+  CreateCustomerInput,
   CustomerDetailDto,
   CustomerListFilters,
   CustomerListItemDto,
@@ -29,7 +32,50 @@ function assertMockActionsEnabled() {
   }
 }
 
+function hydrateCustomer(customer: CustomerDetailDto): CustomerDetailDto {
+  return {
+    ...customer,
+    subscriptions: mockSubscriptionRepository
+      .getByCustomerId(customer.id)
+      .map(subscription => ({
+        id: subscription.id,
+        userId: subscription.userId,
+        packageId: subscription.packageId,
+        status: subscription.status,
+        startsAt: subscription.startsAt,
+        expiresAt: subscription.expiresAt,
+        pppoeUsername: subscription.pppoeUsername,
+        createdAt: subscription.createdAt,
+        updatedAt: subscription.updatedAt,
+        package: {
+          ...subscription.package,
+          features: [...subscription.package.features],
+        },
+      })),
+  };
+}
+
+function synchronizeSubscriptionCustomer(customer: CustomerDetailDto) {
+  mockSubscriptionRepository.updateCustomer({
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email,
+    connectionId: customer.connectionId,
+  });
+}
+
 export const customersService = {
+  async createCustomer(
+    input: CreateCustomerInput,
+  ): Promise<AdminCustomerDetail> {
+    assertMockActionsEnabled();
+    await mockDelay(500);
+    return mapCustomerDetail(
+      hydrateCustomer(mockCustomerRepository.create(input)),
+    );
+  },
+
   async list(
     filters: CustomerListFilters = {},
   ): Promise<AdminCustomerListItem[]> {
@@ -61,7 +107,7 @@ export const customersService = {
       await mockDelay();
       const customer = mockCustomerRepository.getById(id);
       if (!customer) throw new Error('Customer not found');
-      return mapCustomerDetail(customer);
+      return mapCustomerDetail(hydrateCustomer(customer));
     }
 
     const response = await apiRequest<CustomerDetailDto>(
@@ -74,13 +120,25 @@ export const customersService = {
   async listPackageOptions(): Promise<CustomerPackageOption[]> {
     assertMockActionsEnabled();
     await mockDelay();
-    return mockCustomerRepository.packages().map(mapCustomerPackage);
+    return mockPackageRepository
+      .list()
+      .filter(packageItem => packageItem.status === 'ACTIVE')
+      .map(mapCustomerPackage);
   },
 
   async activateCustomer(customerId: string): Promise<AdminCustomerDetail> {
     assertMockActionsEnabled();
     await mockDelay(500);
-    return mapCustomerDetail(mockCustomerRepository.activate(customerId));
+    const subscription =
+      mockSubscriptionRepository.getByCustomerId(customerId)[0];
+    if (!subscription)
+      throw new Error('Select a package before activating this customer');
+    if (subscription.status !== 'ACTIVE') {
+      mockSubscriptionRepository.activate(subscription.id);
+    }
+    return mapCustomerDetail(
+      hydrateCustomer(mockCustomerRepository.setStatus(customerId, 'ACTIVE')),
+    );
   },
 
   async suspendCustomer(
@@ -88,7 +146,15 @@ export const customersService = {
   ): Promise<AdminCustomerDetail> {
     assertMockActionsEnabled();
     await mockDelay(500);
-    return mapCustomerDetail(mockCustomerRepository.suspend(input));
+    const subscription = mockSubscriptionRepository.getByCustomerId(
+      input.customerId,
+    )[0];
+    if (subscription?.status === 'ACTIVE') {
+      mockSubscriptionRepository.suspend(subscription.id);
+    }
+    return mapCustomerDetail(
+      hydrateCustomer(mockCustomerRepository.suspend(input)),
+    );
   },
 
   async changePackage(
@@ -98,7 +164,7 @@ export const customersService = {
     await subscriptionsService.assignCustomerPackage(input);
     const customer = mockCustomerRepository.getById(input.customerId);
     if (!customer) throw new Error('Customer not found');
-    return mapCustomerDetail(customer);
+    return mapCustomerDetail(hydrateCustomer(customer));
   },
 
   async updateCustomerInformation(
@@ -106,6 +172,8 @@ export const customersService = {
   ): Promise<AdminCustomerDetail> {
     assertMockActionsEnabled();
     await mockDelay(500);
-    return mapCustomerDetail(mockCustomerRepository.updateInformation(input));
+    const customer = mockCustomerRepository.updateInformation(input);
+    synchronizeSubscriptionCustomer(customer);
+    return mapCustomerDetail(hydrateCustomer(customer));
   },
 };

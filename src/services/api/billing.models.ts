@@ -69,6 +69,7 @@ export type PaymentDto = {
   method: ApiPaymentMethod;
   status: ApiPaymentStatus;
   reference: string;
+  actorId: string;
   failureReason: string | null;
   createdAt: string;
   processedAt: string | null;
@@ -125,6 +126,7 @@ export type AdminPayment = {
   method: PaymentMethod;
   status: PaymentStatus;
   reference: string;
+  actorId: string;
   failureReason: string | null;
   createdAt: string;
   processedAt: string | null;
@@ -162,6 +164,7 @@ export type RecordPaymentInput = {
   method: PaymentMethod;
   status?: PaymentStatus;
   failureReason?: string | null;
+  actorId?: string;
 };
 
 export type MarkInvoicePaidInput = {

@@ -4,14 +4,14 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import { customersService } from '@/services/api/customers.service';
-import { mockCustomerRepository } from '@/services/api/customers.mock.repository';
+import { mockPackageRepository } from '@/services/api/packages.mock.repository';
 import { mockSubscriptionRepository } from '@/services/api/subscriptions.mock.repository';
 import { subscriptionsService } from '@/services/api/subscriptions.service';
+import { mockSystemRepository } from '@/services/api/mockSystem.repository';
 
 describe('Phase 3C extension admin subscription management', () => {
   beforeEach(() => {
-    mockCustomerRepository.reset();
-    mockSubscriptionRepository.reset();
+    mockSystemRepository.reset();
   });
 
   it('lists deterministic subscriptions for existing customers', async () => {
@@ -104,10 +104,13 @@ describe('Phase 3C extension admin subscription management', () => {
 
   it('resets mutable lifecycle and package state', () => {
     mockSubscriptionRepository.suspend('sub-u1');
-    mockSubscriptionRepository.changePackage({
-      subscriptionId: 'sub-u1',
-      packageId: 'plus',
-    });
+    mockSubscriptionRepository.changePackage(
+      {
+        subscriptionId: 'sub-u1',
+        packageId: 'plus',
+      },
+      mockPackageRepository.getById('plus')!,
+    );
     mockSubscriptionRepository.reset();
 
     expect(mockSubscriptionRepository.getById('sub-u1')).toEqual(

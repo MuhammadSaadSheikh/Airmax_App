@@ -1,18 +1,23 @@
 import { AppText as Text } from '@/components/foundation/AppText';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { navigationActions } from '@/navigation';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Header, Input, Screen, ui } from '@/components';
 import { colors } from '@/theme';
 import { installationsService } from '@/services/api';
-import { packages } from '@/services/mockData';
+import { packageService } from '@/services/packages';
+import { queryKeys } from '@/services/query';
 export default function Install() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [pkg, setPkg] = useState('plus');
   const [date, setDate] = useState('15 August 2026');
+  const packagesQuery = useQuery({
+    queryKey: queryKeys.packageMarketplace,
+    queryFn: packageService.getPackages,
+  });
   const m = useMutation({
     mutationFn: () =>
       installationsService.create({
@@ -54,7 +59,7 @@ export default function Install() {
       />
       <Text style={ui.label}>Selected package</Text>
       <View style={styles.packages}>
-        {packages.slice(0, 3).map(p => (
+        {(packagesQuery.data ?? []).slice(0, 3).map(p => (
           <Pressable
             key={p.id}
             onPress={() => setPkg(p.id)}
@@ -81,7 +86,7 @@ export default function Install() {
       <Button
         title="Submit installation request"
         loading={m.isPending}
-        disabled={!name || !phone || !address}
+        disabled={!name || !phone || !address || packagesQuery.isPending}
         onPress={() => m.mutate()}
       />
     </Screen>

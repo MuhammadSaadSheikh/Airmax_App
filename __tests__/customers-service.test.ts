@@ -8,6 +8,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import { mapCustomerDetail } from '@/services/api/customers.mapper';
 import { mockCustomers } from '@/services/api/customers.mock';
 import { customersService } from '@/services/api/customers.service';
+import { mockSubscriptions } from '@/services/api/subscriptions.mock';
 
 describe('Phase 3B-1 customer operations service', () => {
   it('returns read-only customer list domain models', async () => {
@@ -44,13 +45,14 @@ describe('Phase 3B-1 customer operations service', () => {
 
   it('normalizes unsafe router and package values', () => {
     const source = mockCustomers[0]!;
+    const subscription = mockSubscriptions[0]!;
     const mapped = mapCustomerDetail({
       ...source,
       routerDetails: ['unexpected'],
       subscriptions: [
         {
-          ...source.subscriptions[0]!,
-          package: { ...source.subscriptions[0]!.package, price: 'invalid' },
+          ...subscription,
+          package: { ...subscription.package, price: 'invalid' },
         },
       ],
     });

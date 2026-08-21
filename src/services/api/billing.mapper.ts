@@ -65,6 +65,7 @@ export function mapPayment(dto: PaymentDto): AdminPayment {
     method: mapPaymentMethod(dto.method),
     status: mapPaymentStatus(dto.status),
     reference: dto.reference,
+    actorId: dto.actorId,
     failureReason: dto.failureReason,
     createdAt: dto.createdAt,
     processedAt: dto.processedAt,

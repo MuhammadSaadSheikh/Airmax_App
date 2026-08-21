@@ -1,15 +1,4 @@
-import type {
-  DashboardAdvancedAnalytics,
-  ReportsAnalyticsResponse,
-} from './reports.models';
-
-export const mockReportsAnalyticsResponse: ReportsAnalyticsResponse = {
-  customers: 2_847,
-  activeConnections: 2_691,
-  openComplaints: 38,
-  revenue: 8_420_000,
-  pending: 546_000,
-};
+import type { DashboardAdvancedAnalytics } from './reports.models';
 
 export const mockAdvancedAnalytics: DashboardAdvancedAnalytics = {
   revenueTrend: [

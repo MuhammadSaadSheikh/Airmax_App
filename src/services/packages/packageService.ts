@@ -1,6 +1,11 @@
+import { mockPackageRepository } from '@/services/api/packages.mock.repository';
+import { resolveMockCustomer } from '@/services/api/mockCustomerContext';
+import { mockSubscriptionRepository } from '@/services/api/subscriptions.mock.repository';
+import type { PackageDto } from '@/services/api/packages.models';
 import type {
   CurrentPackageSnapshot,
   InternetPackage,
+  PackageCategory,
   PackageComparison,
   Recommendation,
 } from './models';
@@ -24,109 +29,142 @@ const faqs = [
   },
 ];
 
-const plans: InternetPackage[] = [
-  {
-    id: 'basic',
-    name: 'AIRMAX Basic',
-    speed: 50,
-    price: 1800,
-    billingCycle: 'monthly',
-    features: ['Unlimited internet', 'HD streaming', 'Standard support'],
-    benefits: ['Reliable browsing', 'HD video', 'Work from home ready'],
-    usersSupported: 4,
-    isRecommended: false,
-    category: 'basic',
-    description: 'Dependable connectivity for everyday browsing and streaming.',
-    faqs,
-  },
-  {
-    id: 'premium',
-    name: 'AIRMAX Premium',
-    speed: 100,
-    price: 3500,
-    billingCycle: 'monthly',
-    features: ['Unlimited internet', '4K streaming', 'Gaming optimized', 'Priority support'],
-    benefits: ['Low-latency gaming', 'Multiple 4K streams', 'Faster support'],
-    usersSupported: 8,
-    isRecommended: false,
-    category: 'premium',
-    description: 'Premium speed for connected homes, gaming and 4K entertainment.',
-    faqs,
-  },
-  {
-    id: 'ultra',
-    name: 'AIRMAX Ultra',
-    speed: 300,
-    price: 6500,
-    billingCycle: 'monthly',
-    features: ['Unlimited internet', 'Multi-room 4K', 'Pro gaming', 'Premium support'],
-    benefits: ['Maximum performance', 'Heavy multi-device use', 'Premium care'],
-    usersSupported: 15,
-    isRecommended: true,
-    category: 'ultra',
-    description: 'Our fastest home experience for demanding connected households.',
-    faqs,
-  },
-];
+const wait = () => new Promise<void>(resolve => setTimeout(resolve, 320));
 
-const delay = async () => {
-  await new Promise<void>(resolve => setTimeout(resolve, 320));
-};
+type PackageSnapshot = Omit<PackageDto, 'createdAt' | 'updatedAt'>;
 
-const copyPlan = (plan: InternetPackage): InternetPackage => ({
-  ...plan,
-  features: [...plan.features],
-  benefits: [...plan.benefits],
-  faqs: plan.faqs.map(faq => ({ ...faq })),
-});
+function category(packageItem: PackageSnapshot): PackageCategory {
+  if (packageItem.speedMbps <= 30) return 'basic';
+  if (packageItem.speedMbps <= 100) return 'premium';
+  return 'ultra';
+}
+
+function mapPackage(packageItem: PackageSnapshot): InternetPackage {
+  const price = Number(packageItem.price);
+  return {
+    id: packageItem.id,
+    name: packageItem.name,
+    speed: packageItem.speedMbps,
+    price: Number.isFinite(price) ? price : 0,
+    billingCycle: 'monthly',
+    features: [...packageItem.features],
+    benefits: [
+      `${packageItem.speedMbps} Mbps connectivity`,
+      `${packageItem.durationDays}-day subscription period`,
+      'AIRMAX customer support',
+    ],
+    usersSupported: Math.max(2, Math.round(packageItem.speedMbps / 12)),
+    isRecommended: packageItem.id === 'premium',
+    category: category(packageItem),
+    description:
+      packageItem.description ?? `${packageItem.name} internet package.`,
+    faqs: faqs.map(item => ({ ...item })),
+  };
+}
+
+function activePackages(): InternetPackage[] {
+  return mockPackageRepository
+    .list()
+    .filter(item => item.status === 'ACTIVE')
+    .map(mapPackage);
+}
 
 export const packageService: PackageService = {
   async getPackages() {
-    await delay();
-    return plans.map(copyPlan);
+    await wait();
+    return activePackages();
   },
+
   async getPackage(id) {
-    await delay();
-    const plan = plans.find(item => item.id === id);
-    return plan ? copyPlan(plan) : undefined;
+    await wait();
+    const packageItem = mockPackageRepository.getById(id);
+    return packageItem?.status === 'ACTIVE'
+      ? mapPackage(packageItem)
+      : undefined;
   },
+
   async getCurrentPackage(connectionId) {
-    void connectionId;
-    await delay();
+    await wait();
+    const customer = resolveMockCustomer(connectionId);
+    const subscription = mockSubscriptionRepository.getByCustomerId(
+      customer.id,
+    )[0];
+    if (!subscription) throw new Error('Customer subscription not found');
+    const expiry = new Date(subscription.expiresAt).getTime();
+    const remainingDays = Math.max(
+      0,
+      Math.ceil((expiry - Date.now()) / 86_400_000),
+    );
     return {
-      package: copyPlan(plans[1]!),
+      package: mapPackage(subscription.package),
       subscription: {
-        packageId: 'premium',
-        activationDate: '2026-07-15',
-        expiryDate: '15 August 2026',
-        status: 'active',
-        remainingDays: 10,
+        packageId: subscription.packageId,
+        activationDate: subscription.startsAt,
+        expiryDate: subscription.expiresAt,
+        status:
+          subscription.status === 'EXPIRED' ||
+          subscription.status === 'CANCELLED'
+            ? 'expired'
+            : remainingDays <= 5
+              ? 'expiring'
+              : 'active',
+        remainingDays,
       },
     };
   },
+
   async comparePackages(packageIds) {
-    await delay();
-    const selected = packageIds?.length
-      ? plans.filter(plan => packageIds.includes(plan.id))
-      : plans;
+    await wait();
+    const packages = activePackages().filter(
+      item => !packageIds || packageIds.includes(item.id),
+    );
+    const values = (value: (item: InternetPackage) => string) =>
+      Object.fromEntries(packages.map(item => [item.id, value(item)]));
     return {
-      packages: selected.map(copyPlan),
+      packages,
       comparisonFeatures: [
-        { key: 'speed', label: 'Speed', values: Object.fromEntries(selected.map(plan => [plan.id, `${plan.speed} Mbps`])) },
-        { key: 'price', label: 'Price', values: Object.fromEntries(selected.map(plan => [plan.id, `Rs. ${plan.price.toLocaleString('en-PK')}`])) },
-        { key: 'streaming', label: 'Streaming', values: { basic: 'HD', premium: '4K', ultra: 'Multi 4K' } },
-        { key: 'gaming', label: 'Gaming', values: { basic: 'Standard', premium: 'Optimized', ultra: 'Pro' } },
-        { key: 'support', label: 'Support', values: { basic: 'Standard', premium: 'Priority', ultra: 'Premium' } },
+        {
+          key: 'speed',
+          label: 'Speed',
+          values: values(item => `${item.speed} Mbps`),
+        },
+        {
+          key: 'price',
+          label: 'Monthly price',
+          values: values(item => `PKR ${item.price}`),
+        },
+        {
+          key: 'streaming',
+          label: 'Streaming',
+          values: values(item => (item.speed >= 50 ? '4K ready' : 'HD ready')),
+        },
+        {
+          key: 'gaming',
+          label: 'Gaming',
+          values: values(item => (item.speed >= 50 ? 'Optimized' : 'Standard')),
+        },
+        {
+          key: 'support',
+          label: 'Support',
+          values: values(item => (item.speed >= 100 ? 'Priority' : 'Standard')),
+        },
       ],
     };
   },
+
   async getRecommendations(connectionId) {
-    void connectionId;
-    await delay();
-    return [{
-      packageId: 'ultra',
-      reason: ['Your usage is high', 'Multiple devices detected', 'Better streaming experience'],
-      score: 94,
-    }];
+    await wait();
+    const customer = resolveMockCustomer(connectionId);
+    const current = mockSubscriptionRepository.getByCustomerId(customer.id)[0];
+    return activePackages()
+      .filter(item => item.id !== current?.packageId)
+      .map((item, index) => ({
+        packageId: item.id,
+        reason: [
+          `${item.speed} Mbps for connected devices`,
+          `PKR ${item.price} monthly catalogue price`,
+        ],
+        score: Math.max(60, 92 - index * 8),
+      }));
   },
 };

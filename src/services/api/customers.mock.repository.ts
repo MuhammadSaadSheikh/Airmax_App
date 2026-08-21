@@ -1,23 +1,17 @@
 import { mockCustomers } from './customers.mock';
-import { mockPackageRepository } from './packages.mock.repository';
-import { mockSubscriptionRepository } from './subscriptions.mock.repository';
 import type {
   ApiCustomerStatus,
+  CreateCustomerInput,
   CustomerDetailDto,
-  CustomerPackageDto,
   SuspendCustomerInput,
   UpdateCustomerInformationInput,
 } from './customers.models';
-import type { ApiSubscriptionStatus } from './subscriptions.models';
 
-let customersState = cloneCustomersWithoutSubscriptions(mockCustomers);
+let customersState = cloneCustomers(mockCustomers);
 const suspensionReasons = new Map<string, SuspendCustomerInput['reason']>();
+let nextCustomerNumber = 1;
 
-function clonePackage(customerPackage: CustomerPackageDto): CustomerPackageDto {
-  return { ...customerPackage, features: [...customerPackage.features] };
-}
-
-function cloneCustomerBase(customer: CustomerDetailDto): CustomerDetailDto {
+function cloneCustomer(customer: CustomerDetailDto): CustomerDetailDto {
   return {
     ...customer,
     routerDetails:
@@ -30,30 +24,8 @@ function cloneCustomerBase(customer: CustomerDetailDto): CustomerDetailDto {
   };
 }
 
-function cloneCustomersWithoutSubscriptions(
-  customers: CustomerDetailDto[],
-): CustomerDetailDto[] {
-  return customers.map(cloneCustomerBase);
-}
-
-function hydrateCustomer(customer: CustomerDetailDto): CustomerDetailDto {
-  return {
-    ...cloneCustomerBase(customer),
-    subscriptions: mockSubscriptionRepository
-      .getByCustomerId(customer.id)
-      .map(subscription => ({
-        id: subscription.id,
-        userId: subscription.userId,
-        packageId: subscription.packageId,
-        status: subscription.status,
-        startsAt: subscription.startsAt,
-        expiresAt: subscription.expiresAt,
-        pppoeUsername: subscription.pppoeUsername,
-        createdAt: subscription.createdAt,
-        updatedAt: subscription.updatedAt,
-        package: clonePackage(subscription.package),
-      })),
-  };
+function cloneCustomers(customers: CustomerDetailDto[]): CustomerDetailDto[] {
+  return customers.map(cloneCustomer);
 }
 
 function customerIndex(id: string): number {
@@ -67,9 +39,9 @@ function normalizedIdentity(value: string | null): string {
 }
 
 function assertUnique(
-  field: 'phone' | 'email' | 'cnic',
+  field: 'phone' | 'email' | 'cnic' | 'connectionId',
   value: string | null,
-  customerId: string,
+  customerId?: string,
 ) {
   const normalized = normalizedIdentity(value);
   if (!normalized) return;
@@ -84,65 +56,64 @@ function assertUnique(
   }
 }
 
-function updateStatus(
-  customerId: string,
-  customerStatus: ApiCustomerStatus,
-  subscriptionStatus: ApiSubscriptionStatus,
-): CustomerDetailDto {
-  const index = customerIndex(customerId);
-  const customer = customersState[index]!;
-  const subscription =
-    mockSubscriptionRepository.getByCustomerId(customerId)[0];
-  if (customerStatus === 'ACTIVE' && !subscription) {
-    throw new Error('Select a package before activating this customer');
-  }
-
-  if (subscription) {
-    if (subscriptionStatus === 'ACTIVE' && subscription.status !== 'ACTIVE') {
-      mockSubscriptionRepository.activate(subscription.id);
-    } else if (
-      subscriptionStatus === 'SUSPENDED' &&
-      subscription.status !== 'SUSPENDED'
-    ) {
-      mockSubscriptionRepository.suspend(subscription.id);
-    }
-  }
-
-  const updatedAt = new Date().toISOString();
-  const updated: CustomerDetailDto = {
-    ...customer,
-    status: customerStatus,
-    updatedAt,
-    subscriptions: [],
-  };
-  customersState[index] = updated;
-  return hydrateCustomer(updated);
-}
-
 export const mockCustomerRepository = {
   list(): CustomerDetailDto[] {
-    return customersState.map(hydrateCustomer);
+    return cloneCustomers(customersState);
   },
 
   getById(id: string): CustomerDetailDto | undefined {
     const customer = customersState.find(item => item.id === id);
-    return customer ? hydrateCustomer(customer) : undefined;
+    return customer ? cloneCustomer(customer) : undefined;
   },
 
-  packages(): CustomerPackageDto[] {
-    return mockPackageRepository
-      .list()
-      .filter(packageItem => packageItem.status === 'ACTIVE')
-      .map(clonePackage);
+  getByConnectionId(connectionId: string): CustomerDetailDto | undefined {
+    const normalized = normalizedIdentity(connectionId);
+    const customer = customersState.find(
+      item => normalizedIdentity(item.connectionId) === normalized,
+    );
+    return customer ? cloneCustomer(customer) : undefined;
   },
 
-  activate(customerId: string): CustomerDetailDto {
-    return updateStatus(customerId, 'ACTIVE', 'ACTIVE');
+  create(input: CreateCustomerInput): CustomerDetailDto {
+    assertUnique('phone', input.phone);
+    assertUnique('email', input.email);
+    assertUnique('cnic', input.cnic);
+    assertUnique('connectionId', input.connectionId);
+    const timestamp = new Date().toISOString();
+    const customer: CustomerDetailDto = {
+      id: `mock-customer-${nextCustomerNumber++}`,
+      name: input.name.trim(),
+      phone: input.phone.trim(),
+      email: input.email?.trim() || null,
+      role: 'CUSTOMER',
+      status: 'PENDING',
+      address: input.address?.trim() || null,
+      connectionId: input.connectionId?.trim() || null,
+      cnic: input.cnic?.trim() || null,
+      installationDate: null,
+      routerDetails: null,
+      subscriptions: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    customersState = [...customersState, customer];
+    return cloneCustomer(customer);
+  },
+
+  setStatus(customerId: string, status: ApiCustomerStatus): CustomerDetailDto {
+    const index = customerIndex(customerId);
+    const updated = {
+      ...customersState[index]!,
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+    customersState[index] = updated;
+    return cloneCustomer(updated);
   },
 
   suspend(input: SuspendCustomerInput): CustomerDetailDto {
     suspensionReasons.set(input.customerId, input.reason);
-    return updateStatus(input.customerId, 'SUSPENDED', 'SUSPENDED');
+    return this.setStatus(input.customerId, 'SUSPENDED');
   },
 
   updateInformation(input: UpdateCustomerInformationInput): CustomerDetailDto {
@@ -150,7 +121,6 @@ export const mockCustomerRepository = {
     assertUnique('phone', input.phone, input.customerId);
     assertUnique('email', input.email, input.customerId);
     assertUnique('cnic', input.cnic, input.customerId);
-
     const customer = customersState[index]!;
     const updated: CustomerDetailDto = {
       ...customer,
@@ -162,19 +132,12 @@ export const mockCustomerRepository = {
       updatedAt: new Date().toISOString(),
     };
     customersState[index] = updated;
-    mockSubscriptionRepository.updateCustomer({
-      id: updated.id,
-      name: updated.name,
-      phone: updated.phone,
-      email: updated.email,
-      connectionId: updated.connectionId,
-    });
-    return hydrateCustomer(updated);
+    return cloneCustomer(updated);
   },
 
   reset(): void {
-    customersState = cloneCustomersWithoutSubscriptions(mockCustomers);
+    customersState = cloneCustomers(mockCustomers);
     suspensionReasons.clear();
-    mockSubscriptionRepository.reset();
+    nextCustomerNumber = 1;
   },
 };

@@ -31,6 +31,7 @@ export type ComplaintDto = {
   ticketNumber: number;
   userId: string;
   category: string;
+  title: string;
   description: string;
   attachmentUrl: string | null;
   status: ApiComplaintStatus;
@@ -117,4 +118,13 @@ export type UpdateComplaintStatusInput = {
 export type ReplyToComplaintInput = {
   complaintId: string;
   reply: string;
+};
+
+export type CreateComplaintRepositoryInput = {
+  customerId: string;
+  customer: ComplaintCustomerDto;
+  category: string;
+  title: string;
+  description: string;
+  attachmentUrl: string | null;
 };
