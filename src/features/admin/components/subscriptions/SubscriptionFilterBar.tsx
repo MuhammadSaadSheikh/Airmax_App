@@ -29,6 +29,7 @@ export function SubscriptionFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search subscriptions"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search ID, customer, connection or package"
@@ -76,6 +77,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selectedFilter: {
     borderColor: colors.primary,

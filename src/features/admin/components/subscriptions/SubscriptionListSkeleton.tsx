@@ -7,6 +7,8 @@ export function SubscriptionListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading subscriptions"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={4} />

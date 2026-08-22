@@ -10,9 +10,9 @@ import {
   AppText,
   ErrorState,
   PrimaryButton,
-  SkeletonCard,
 } from '@/components';
 import {
+  AdminDetailSkeleton,
   PackageInformationForm,
   PackageMockNotice,
 } from '@/features/admin/components';
@@ -86,7 +86,7 @@ export default function PackageEditScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Edit package" showBack />
-        <SkeletonCard lines={7} />
+        <AdminDetailSkeleton label="Loading package editor" rows={[7]} />
       </AppScreen>
     );
   }

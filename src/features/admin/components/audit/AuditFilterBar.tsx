@@ -26,16 +26,19 @@ const actionOptions: AuditAction[] = [
 
 function Chip({
   label,
+  accessibilityLabel,
   selected,
   onPress,
 }: {
   label: string;
+  accessibilityLabel: string;
   selected: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -69,6 +72,7 @@ export function AuditFilterBar({
   return (
     <View>
       <SearchField
+        accessibilityLabel="Search audit events"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search actor, entity or metadata"
@@ -81,6 +85,7 @@ export function AuditFilterBar({
       >
         <Chip
           label="All"
+          accessibilityLabel="Filter audit events by all entities"
           selected={!entityType}
           onPress={() => onEntityTypeChange(undefined)}
         />
@@ -88,6 +93,7 @@ export function AuditFilterBar({
           <Chip
             key={option}
             label={option}
+            accessibilityLabel={`Filter audit events by entity ${option}`}
             selected={entityType === option}
             onPress={() => onEntityTypeChange(option)}
           />
@@ -101,6 +107,7 @@ export function AuditFilterBar({
       >
         <Chip
           label="All"
+          accessibilityLabel="Filter audit events by all actions"
           selected={!action}
           onPress={() => onActionChange(undefined)}
         />
@@ -108,6 +115,7 @@ export function AuditFilterBar({
           <Chip
             key={option}
             label={option}
+            accessibilityLabel={`Filter audit events by action ${option.replaceAll('_', ' ')}`}
             selected={action === option}
             onPress={() => onActionChange(option)}
           />
@@ -127,6 +135,8 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,

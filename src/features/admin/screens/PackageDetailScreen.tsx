@@ -1,14 +1,9 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, StyleSheet, View } from 'react-native';
+import { AppHeader, AppScreen, AppText, ErrorState } from '@/components';
 import {
-  AppHeader,
-  AppScreen,
-  AppText,
-  ErrorState,
-  SkeletonCard,
-} from '@/components';
-import {
+  AdminDetailSkeleton,
   PackageActionPanel,
   PackageMetricsCard,
   PackageMockNotice,
@@ -66,10 +61,7 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Package details" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={5} />
-        </View>
+        <AdminDetailSkeleton label="Loading package details" rows={[3, 5]} />
       </AppScreen>
     );
   }
@@ -139,7 +131,6 @@ function SectionTitle({ title }: { title: string }) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   profile: { marginTop: spacing.lg },
   sectionTitle: {
     ...typography.sectionTitle,

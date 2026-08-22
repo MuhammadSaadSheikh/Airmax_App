@@ -22,16 +22,19 @@ const statuses: ReadonlyArray<{
 
 function FilterChip({
   label,
+  accessibilityLabel,
   selected,
   onPress,
 }: {
   label: string;
+  accessibilityLabel: string;
   selected: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -67,6 +70,7 @@ export function TechnicianFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search technicians"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search name, area or skill"
@@ -82,6 +86,7 @@ export function TechnicianFilterBar({
           <FilterChip
             key={item.value}
             label={item.label}
+            accessibilityLabel={`Filter technicians by status ${item.label}`}
             selected={status === item.value}
             onPress={() => onStatusChange(item.value)}
           />
@@ -94,6 +99,7 @@ export function TechnicianFilterBar({
       >
         <FilterChip
           label="All areas"
+          accessibilityLabel="Filter technicians by all areas"
           selected={area === 'ALL'}
           onPress={() => onAreaChange('ALL')}
         />
@@ -101,6 +107,7 @@ export function TechnicianFilterBar({
           <FilterChip
             key={item.id}
             label={item.name}
+            accessibilityLabel={`Filter technicians by area ${item.name}`}
             selected={area === item.id}
             onPress={() => onAreaChange(item.id)}
           />
@@ -120,6 +127,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selectedChip: {
     borderColor: colors.primary,

@@ -23,6 +23,7 @@ export function PackageFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search packages"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search name, speed or feature"
@@ -40,6 +41,7 @@ export function PackageFilterBar({
             <Pressable
               key={filter.value}
               accessibilityRole="button"
+              accessibilityLabel={`Filter packages by ${filter.label}`}
               accessibilityState={{ selected }}
               onPress={() => onStatusChange(filter.value)}
               style={({ pressed }) => [
@@ -69,6 +71,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selected: { borderColor: colors.primary, backgroundColor: colors.primary },
   pressed: { opacity: animation.opacity.pressed },

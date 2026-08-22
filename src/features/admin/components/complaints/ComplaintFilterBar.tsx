@@ -29,6 +29,7 @@ export function ComplaintFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search complaints"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search ticket, customer, connection or category"
@@ -46,6 +47,7 @@ export function ComplaintFilterBar({
             <Pressable
               key={filter.value}
               accessibilityRole="button"
+              accessibilityLabel={`Filter complaints by ${filter.label}`}
               accessibilityState={{ selected }}
               onPress={() => onStatusChange(filter.value)}
               style={({ pressed }) => [
@@ -77,6 +79,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selectedFilter: {
     borderColor: colors.primary,

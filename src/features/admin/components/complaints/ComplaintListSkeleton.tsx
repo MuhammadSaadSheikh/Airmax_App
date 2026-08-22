@@ -7,6 +7,8 @@ export function ComplaintListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading complaints"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={3} />

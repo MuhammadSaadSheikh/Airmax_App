@@ -94,6 +94,7 @@ export function BillingFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search billing invoices"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search invoice, customer, subscription or package"

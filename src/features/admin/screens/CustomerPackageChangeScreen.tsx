@@ -9,9 +9,9 @@ import {
   EmptyState,
   ErrorState,
   PrimaryButton,
-  SkeletonCard,
 } from '@/components';
 import {
+  AdminDetailSkeleton,
   CustomerPackageOption,
   MockActionNotice,
 } from '@/features/admin/components';
@@ -75,11 +75,7 @@ export default function CustomerPackageChangeScreen({
     return (
       <AppScreen>
         <AppHeader title="Change package" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-        </View>
+        <AdminDetailSkeleton label="Loading package options" rows={[4, 4, 4]} />
       </AppScreen>
     );
   }
@@ -151,7 +147,6 @@ export default function CustomerPackageChangeScreen({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   options: { gap: spacing.md, marginTop: spacing.lg },
   error: {
     ...typography.small,

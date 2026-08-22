@@ -7,6 +7,8 @@ export function TechnicianListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading technicians"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={3} />

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
 import { environment } from '@/config/environment';
@@ -60,6 +60,16 @@ export default function AdminTechniciansScreen() {
     });
   }, [area, search, status, technicians]);
 
+  const renderTechnician = useCallback(
+    ({ item }: { item: AdminTechnician }) => (
+      <TechnicianListItem
+        technician={item}
+        onPress={() => navigation.navigate('TechnicianDetail', { id: item.id })}
+      />
+    ),
+    [navigation],
+  );
+
   if (techniciansQuery.isPending) {
     return (
       <AppScreen>
@@ -112,15 +122,8 @@ export default function AdminTechniciansScreen() {
         style={styles.list}
         data={filtered}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TechnicianListItem
-            technician={item}
-            onPress={() =>
-              navigation.navigate('TechnicianDetail', { id: item.id })
-            }
-          />
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        renderItem={renderTechnician}
+        ItemSeparatorComponent={ListSeparator}
         ListEmptyComponent={
           <EmptyState
             title="No technicians found"
@@ -141,6 +144,10 @@ export default function AdminTechniciansScreen() {
       />
     </AppScreen>
   );
+}
+
+function ListSeparator() {
+  return <View style={styles.separator} />;
 }
 
 const styles = StyleSheet.create({

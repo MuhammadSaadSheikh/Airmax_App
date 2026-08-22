@@ -1,14 +1,9 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
+import { AppHeader, AppScreen, AppText, ErrorState } from '@/components';
 import {
-  AppHeader,
-  AppScreen,
-  AppText,
-  ErrorState,
-  SkeletonCard,
-} from '@/components';
-import {
+  AdminDetailSkeleton,
   CustomerActionPanel,
   CustomerConnectionCard,
   CustomerContactCard,
@@ -84,11 +79,10 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Customer details" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={5} />
-          <SkeletonCard lines={5} />
-        </View>
+        <AdminDetailSkeleton
+          label="Loading customer details"
+          rows={[3, 5, 5]}
+        />
       </AppScreen>
     );
   }
@@ -163,7 +157,6 @@ function SectionTitle({ title }: { title: string }) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   sectionTitle: {
     ...typography.sectionTitle,
     color: colors.text,

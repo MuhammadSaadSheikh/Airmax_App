@@ -9,11 +9,11 @@ import {
   Button,
   ErrorState,
   Row,
-  SkeletonCard,
   Surface,
 } from '@/components';
 import { environment } from '@/config/environment';
 import {
+  AdminDetailSkeleton,
   TechnicianAssignmentCard,
   TechnicianMockNotice,
 } from '@/features/admin/components';
@@ -94,11 +94,10 @@ export default function TechnicianAssignmentScreen({
     return (
       <AppScreen>
         <AppHeader title="Assign technician" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={3} />
-        </View>
+        <AdminDetailSkeleton
+          label="Loading technician assignment"
+          rows={[4, 3, 3]}
+        />
       </AppScreen>
     );
   }
@@ -216,7 +215,6 @@ function SectionTitle({ title }: { title: string }) {
 }
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   sectionTitle: {
     ...typography.sectionTitle,
     color: colors.text,

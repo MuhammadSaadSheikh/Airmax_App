@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
 import { environment } from '@/config/environment';
@@ -47,11 +47,14 @@ export default function AdminComplaintsScreen() {
     });
   }, [complaints, search, status]);
 
-  const renderComplaint = ({ item }: { item: AdminComplaint }) => (
-    <ComplaintListItem
-      complaint={item}
-      onPress={() => navigation.navigate('ComplaintDetail', { id: item.id })}
-    />
+  const renderComplaint = useCallback(
+    ({ item }: { item: AdminComplaint }) => (
+      <ComplaintListItem
+        complaint={item}
+        onPress={() => navigation.navigate('ComplaintDetail', { id: item.id })}
+      />
+    ),
+    [navigation],
   );
 
   return (

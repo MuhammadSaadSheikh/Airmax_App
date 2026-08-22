@@ -2,21 +2,26 @@ import { StyleSheet, View } from 'react-native';
 import { SkeletonCard } from '@/components';
 import { spacing } from '@/theme';
 
-export function AuditSkeleton() {
+export function AdminDetailSkeleton({
+  label,
+  rows,
+}: {
+  label: string;
+  rows: readonly number[];
+}) {
   return (
     <View
-      testID="audit-skeleton"
-      accessibilityLabel="Loading audit events"
+      accessibilityLabel={label}
       accessibilityLiveRegion="polite"
       accessibilityRole="progressbar"
       accessibilityState={{ busy: true }}
       style={styles.container}
     >
-      <SkeletonCard lines={4} />
-      <SkeletonCard lines={4} />
-      <SkeletonCard lines={3} />
+      {rows.map((lines, index) => (
+        <SkeletonCard key={`${lines}-${index}`} lines={lines} />
+      ))}
     </View>
   );
 }
 
-const styles = StyleSheet.create({ container: { gap: spacing.md } });
+const styles = StyleSheet.create({ container: { gap: spacing.lg } });

@@ -7,6 +7,8 @@ export function InvoiceListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading billing invoices"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={4} />

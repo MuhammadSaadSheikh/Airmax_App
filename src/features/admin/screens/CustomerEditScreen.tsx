@@ -10,9 +10,9 @@ import {
   AppText,
   ErrorState,
   PrimaryButton,
-  SkeletonCard,
 } from '@/components';
 import {
+  AdminDetailSkeleton,
   CustomerInformationForm,
   MockActionNotice,
 } from '@/features/admin/components';
@@ -100,7 +100,7 @@ export default function CustomerEditScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Edit customer" showBack />
-        <SkeletonCard lines={7} />
+        <AdminDetailSkeleton label="Loading customer editor" rows={[7]} />
       </AppScreen>
     );
   }

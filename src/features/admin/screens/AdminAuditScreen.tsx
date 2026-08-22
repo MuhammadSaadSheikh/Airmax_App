@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { AppHeader, AppScreen, ErrorState } from '@/components';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/features/admin/components';
 import { auditService } from '@/services/api/audit.service';
 import type {
+  AdminAuditEvent,
   AuditAction,
   AuditEntityType,
   AuditFilters,
@@ -29,6 +30,10 @@ export default function AdminAuditScreen() {
     queryKey: queryKeys.adminAuditList(filters),
     queryFn: () => auditService.getAuditEvents(filters),
   });
+  const renderEvent = useCallback(
+    ({ item }: { item: AdminAuditEvent }) => <AuditListItem event={item} />,
+    [],
+  );
 
   return (
     <AppScreen scroll={false} contentContainerStyle={styles.screen}>
@@ -58,7 +63,7 @@ export default function AdminAuditScreen() {
           style={styles.list}
           data={query.data}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <AuditListItem event={item} />}
+          renderItem={renderEvent}
           ItemSeparatorComponent={Separator}
           ListEmptyComponent={<AuditEmptyState />}
           contentContainerStyle={[

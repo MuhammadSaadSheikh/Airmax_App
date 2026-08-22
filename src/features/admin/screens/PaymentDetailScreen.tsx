@@ -8,10 +8,12 @@ import {
   Divider,
   ErrorState,
   Row,
-  SkeletonCard,
   Surface,
 } from '@/components';
-import { PaymentStatusBadge } from '@/features/admin/components';
+import {
+  AdminDetailSkeleton,
+  PaymentStatusBadge,
+} from '@/features/admin/components';
 import type { AdminStackParamList } from '@/navigation';
 import { adminBillingService } from '@/services/api';
 import { queryKeys } from '@/services/query';
@@ -37,7 +39,7 @@ export default function PaymentDetailScreen({ route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Payment details" showBack />
-        <SkeletonCard lines={6} />
+        <AdminDetailSkeleton label="Loading payment details" rows={[6]} />
       </AppScreen>
     );
   }

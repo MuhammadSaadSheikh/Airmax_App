@@ -7,10 +7,10 @@ import {
   AppText,
   Button,
   ErrorState,
-  SkeletonCard,
 } from '@/components';
 import { environment } from '@/config/environment';
 import {
+  AdminDetailSkeleton,
   TechnicianHistoryTimeline,
   TechnicianMockNotice,
   TechnicianProfileCard,
@@ -116,11 +116,10 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Technician details" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={4} />
-        </View>
+        <AdminDetailSkeleton
+          label="Loading technician details"
+          rows={[4, 3, 4]}
+        />
       </AppScreen>
     );
   }
@@ -316,7 +315,6 @@ function SectionTitle({ title }: { title: string }) {
 }
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   top: { marginTop: spacing.lg },
   sectionTitle: {
     ...typography.sectionTitle,

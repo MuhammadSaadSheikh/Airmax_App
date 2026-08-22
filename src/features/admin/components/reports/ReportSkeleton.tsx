@@ -7,6 +7,8 @@ export function ReportSkeleton() {
     <View
       testID="report-skeleton"
       accessibilityLabel="Loading report"
+      accessibilityLiveRegion="polite"
+      accessibilityRole="progressbar"
       accessibilityState={{ busy: true }}
       style={styles.container}
     >

@@ -25,6 +25,7 @@ export function CustomerFilterBar({
   return (
     <View style={styles.container}>
       <SearchField
+        accessibilityLabel="Search customers"
         value={search}
         onChangeText={onSearchChange}
         placeholder="Search name, phone or connection ID"
@@ -42,6 +43,7 @@ export function CustomerFilterBar({
             <Pressable
               key={filter.value}
               accessibilityRole="button"
+              accessibilityLabel={`Filter customers by ${filter.label}`}
               accessibilityState={{ selected }}
               onPress={() => onStatusChange(filter.value)}
               style={({ pressed }) => [
@@ -73,6 +75,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   selectedFilter: {
     borderColor: colors.primary,

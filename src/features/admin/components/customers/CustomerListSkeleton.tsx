@@ -7,6 +7,8 @@ export function CustomerListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading customers"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={3} />

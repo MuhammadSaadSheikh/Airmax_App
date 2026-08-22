@@ -2,8 +2,18 @@ import { AppText as Text } from '@/components/foundation/AppText';
 import { useAdminNavigation } from '@/navigation';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Button, Card, Header, Row, Screen, ui } from '@/components';
-import { colors } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 import { useAuthStore } from '@/store/auth.store';
+
+function initials(name?: string): string {
+  return (name ?? 'Admin')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('');
+}
+
 export default function More() {
   const navigation = useAdminNavigation();
   const user = useAuthStore(state => state.user);
@@ -11,9 +21,13 @@ export default function More() {
   return (
     <Screen>
       <Header title="Administration" subtitle="Operations and configuration" />
-      <View style={styles.profile}>
+      <View
+        accessible
+        accessibilityLabel={`${user?.name ?? 'Administrator'}, Super administrator`}
+        style={styles.profile}
+      >
         <View style={styles.avatar}>
-          <Text style={styles.initial}>DA</Text>
+          <Text style={styles.initial}>{initials(user?.name)}</Text>
         </View>
         <View>
           <Text style={styles.name}>{user?.name}</Text>
@@ -105,24 +119,24 @@ const styles = StyleSheet.create({
   profile: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginBottom: 20,
+    gap: spacing.lg,
+    marginBottom: spacing.xl,
   },
   avatar: {
     width: 58,
     height: 58,
-    borderRadius: 18,
+    borderRadius: radius.lg,
     backgroundColor: colors.surfaceAvatar,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.primary,
   },
-  initial: { color: colors.primary, fontWeight: '900', fontSize: 18 },
+  initial: { ...typography.sectionTitle, color: colors.primary },
   name: {
+    ...typography.bodyLarge,
     color: colors.text,
-    fontWeight: '800',
-    fontSize: 17,
-    marginBottom: 5,
+    fontFamily: typography.sectionTitle.fontFamily,
+    marginBottom: spacing.xs,
   },
 });

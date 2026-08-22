@@ -1,4 +1,5 @@
 export * from './AdminQuickActions';
+export * from './AdminDetailSkeleton';
 export * from './AnalyticsSourceBadge';
 export * from './DashboardBreakdownCard';
 export * from './DashboardMetricGrid';

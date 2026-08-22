@@ -37,7 +37,7 @@ export function ComplaintActionPanel({
   const copy = actionCopy[status];
 
   return (
-    <Surface disabled={status === 'closed'}>
+    <Surface loading={loading} disabled={status === 'closed'}>
       {status === 'pending' ? (
         <AppText style={styles.help}>
           Assign a technician to move this complaint into the workflow.

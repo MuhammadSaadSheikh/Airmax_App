@@ -1,11 +1,10 @@
-import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppIcon, AppText, Surface } from '@/components';
 import type { AdminPackage } from '@/services/api/packages.models';
 import { animation, colors, money, spacing, typography } from '@/theme';
 import { PackageStatusBadge } from './PackageStatusBadge';
 
-export const PackageListItem = memo(function PackageListItem({
+export function PackageListItem({
   packageItem,
   onPress,
 }: {
@@ -45,7 +44,7 @@ export const PackageListItem = memo(function PackageListItem({
       </Surface>
     </Pressable>
   );
-});
+}
 
 const styles = StyleSheet.create({
   pressed: { opacity: animation.opacity.pressed },

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
 import {
@@ -42,11 +42,14 @@ export default function CustomersScreen() {
     [customersQuery.data, status],
   );
 
-  const renderCustomer = ({ item }: { item: AdminCustomerListItem }) => (
-    <CustomerListItem
-      customer={item}
-      onPress={() => navigation.navigate('CustomerDetail', { id: item.id })}
-    />
+  const renderCustomer = useCallback(
+    ({ item }: { item: AdminCustomerListItem }) => (
+      <CustomerListItem
+        customer={item}
+        onPress={() => navigation.navigate('CustomerDetail', { id: item.id })}
+      />
+    ),
+    [navigation],
   );
 
   return (

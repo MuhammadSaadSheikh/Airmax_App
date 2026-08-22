@@ -7,11 +7,11 @@ import {
   AppText,
   ErrorState,
   Row,
-  SkeletonCard,
   Surface,
 } from '@/components';
 import { environment } from '@/config/environment';
 import {
+  AdminDetailSkeleton,
   SubscriptionActionPanel,
   SubscriptionMockNotice,
   SubscriptionPackageCard,
@@ -125,11 +125,10 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Subscription details" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-        </View>
+        <AdminDetailSkeleton
+          label="Loading subscription details"
+          rows={[3, 4, 4]}
+        />
       </AppScreen>
     );
   }
@@ -228,7 +227,6 @@ function SectionTitle({ title }: { title: string }) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   statusCard: { marginTop: spacing.lg },
   dates: { gap: spacing.md, marginTop: spacing.lg },
   sectionTitle: {

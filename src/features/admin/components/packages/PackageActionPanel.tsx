@@ -17,7 +17,7 @@ export function PackageActionPanel({
   onDeactivate: () => void;
 }) {
   return (
-    <Surface>
+    <Surface loading={loading}>
       <AppText style={styles.help}>
         Existing subscription terms and invoices remain unchanged by catalogue
         updates.

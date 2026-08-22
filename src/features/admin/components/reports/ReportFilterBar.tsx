@@ -113,6 +113,7 @@ export function ReportFilterChips({
             <Pressable
               key={option.id || 'all'}
               accessibilityRole="button"
+              accessibilityLabel={`${label}: ${option.label}`}
               accessibilityState={{ selected }}
               onPress={() => onChange(option.id || undefined)}
               style={({ pressed }) => [
@@ -137,6 +138,8 @@ const styles = StyleSheet.create({
   option: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,

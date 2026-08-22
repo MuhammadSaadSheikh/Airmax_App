@@ -7,7 +7,6 @@ import {
   AppText,
   ErrorState,
   Row,
-  SkeletonCard,
   Surface,
 } from '@/components';
 import { environment } from '@/config/environment';
@@ -18,6 +17,7 @@ import {
 } from '@/features/admin/security';
 import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import {
+  AdminDetailSkeleton,
   BillingActionPanel,
   BillingMockNotice,
   InvoiceCustomerCard,
@@ -176,11 +176,7 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
     return (
       <AppScreen>
         <AppHeader title="Invoice details" showBack />
-        <View style={styles.loading}>
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={3} />
-        </View>
+        <AdminDetailSkeleton label="Loading invoice details" rows={[4, 4, 3]} />
       </AppScreen>
     );
   }
@@ -282,7 +278,6 @@ function SectionTitle({ title }: { title: string }) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.huge },
-  loading: { gap: spacing.lg },
   topCard: { marginTop: spacing.lg },
   statusRow: {
     flexDirection: 'row',

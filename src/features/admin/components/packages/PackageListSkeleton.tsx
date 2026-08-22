@@ -7,6 +7,8 @@ export function PackageListSkeleton() {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel="Loading packages"
+      accessibilityLiveRegion="polite"
+      accessibilityState={{ busy: true }}
       style={styles.container}
     >
       <SkeletonCard lines={4} />
