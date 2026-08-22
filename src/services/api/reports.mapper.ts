@@ -1,5 +1,8 @@
 import type {
   DashboardSummary,
+  ReportMetadata,
+  ReportMetrics,
+  ReportsFoundationAnalytics,
   ReportsAnalyticsResponse,
   ReportsNumericValue,
 } from './reports.models';
@@ -7,6 +10,78 @@ import type {
 function numericValue(value: ReportsNumericValue): number {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function nonNegative(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+export function mapReportsFoundation(
+  metrics: ReportMetrics,
+  metadata: ReportMetadata,
+): ReportsFoundationAnalytics {
+  return {
+    ...metadata,
+    customers: {
+      totalCustomers: nonNegative(metrics.customers.totalCustomers),
+      newCustomers: nonNegative(metrics.customers.newCustomers),
+      statusDistribution: metrics.customers.statusDistribution.map(item => ({
+        id: item.id,
+        value: nonNegative(item.value),
+      })),
+    },
+    subscriptions: {
+      activeSubscriptions: nonNegative(
+        metrics.subscriptions.activeSubscriptions,
+      ),
+      activationCount: nonNegative(metrics.subscriptions.activationCount),
+      cancellationCount: nonNegative(metrics.subscriptions.cancellationCount),
+      packageDistribution: metrics.subscriptions.packageDistribution.map(
+        item => ({ id: item.id, value: nonNegative(item.value) }),
+      ),
+    },
+    financial: {
+      grossBilledAmount: {
+        amount: nonNegative(metrics.financial.grossBilledAmount.amount),
+        currency: metadata.currency,
+      },
+      collectedCash: {
+        amount: nonNegative(metrics.financial.collectedCash.amount),
+        currency: metadata.currency,
+      },
+      pendingReceivables: {
+        amount: nonNegative(metrics.financial.pendingReceivables.amount),
+        currency: metadata.currency,
+      },
+      overdueAmount: {
+        amount: nonNegative(metrics.financial.overdueAmount.amount),
+        currency: metadata.currency,
+      },
+    },
+    complaints: {
+      openComplaints: nonNegative(metrics.complaints.openComplaints),
+      statusDistribution: metrics.complaints.statusDistribution.map(item => ({
+        id: item.id,
+        value: nonNegative(item.value),
+      })),
+      categoryDistribution: metrics.complaints.categoryDistribution.map(
+        item => ({ id: item.id, value: nonNegative(item.value) }),
+      ),
+      averageResolutionTimeHours:
+        metrics.complaints.averageResolutionTimeHours === null
+          ? null
+          : nonNegative(metrics.complaints.averageResolutionTimeHours),
+    },
+    technicians: {
+      activeWorkload: nonNegative(metrics.technicians.activeWorkload),
+      totalCapacity: nonNegative(metrics.technicians.totalCapacity),
+      utilizationPercentage: Math.min(
+        100,
+        nonNegative(metrics.technicians.utilizationPercentage),
+      ),
+      completedWorkOrders: nonNegative(metrics.technicians.completedWorkOrders),
+    },
+  };
 }
 
 export function mapReportsSummary(

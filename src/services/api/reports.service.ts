@@ -1,28 +1,41 @@
 import { environment } from '@/config/environment';
 import { apiRequest, mockDelay } from './client';
-import { mapReportsSummary } from './reports.mapper';
+import { aggregateReportMetrics } from './reports.aggregator';
+import { mapReportsFoundation, mapReportsSummary } from './reports.mapper';
+import {
+  createReportMetadata,
+  systemReportingClock,
+  type ReportingClock,
+} from './reporting.clock';
 import { mockAdvancedAnalytics } from './reports.mock';
+import {
+  mockReportsRepository,
+  type ReportsSnapshotRepository,
+} from './reports.mock.repository';
 import type {
   AnalyticsDataSource,
   DashboardAdvancedAnalytics,
   DashboardAnalytics,
+  ReportFilters,
+  ReportMetadata,
   ReportsAnalyticsResponse,
+  ReportsFoundationAnalytics,
 } from './reports.models';
-import { mockCustomerRepository } from './customers.mock.repository';
-import { mockBillingRepository } from './billing.mock.repository';
-import { mockComplaintRepository } from './complaints.mock.repository';
 
 function numericValue(value: number | string): number {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
-function repositoryAnalytics(): ReportsAnalyticsResponse {
-  const customers = mockCustomerRepository
-    .list()
-    .filter(customer => customer.role === 'CUSTOMER');
-  const invoices = mockBillingRepository.listInvoices();
-  const complaints = mockComplaintRepository.list();
+function repositoryAnalytics(
+  repository: ReportsSnapshotRepository,
+): ReportsAnalyticsResponse {
+  const snapshot = repository.snapshot();
+  const customers = snapshot.customers.filter(
+    customer => customer.role === 'CUSTOMER',
+  );
+  const invoices = snapshot.invoices;
+  const complaints = snapshot.complaints;
   return {
     customers: customers.length,
     activeConnections: customers.filter(
@@ -64,10 +77,12 @@ function copyAdvancedAnalytics(): DashboardAdvancedAnalytics {
 function buildDashboardAnalytics(
   response: ReportsAnalyticsResponse,
   summarySource: AnalyticsDataSource,
+  metadata: ReportMetadata,
 ): DashboardAnalytics {
   const summary = mapReportsSummary(response);
 
   return {
+    ...metadata,
     summary,
     summarySource,
     advancedAnalyticsSource: 'mock',
@@ -84,15 +99,61 @@ function buildDashboardAnalytics(
   };
 }
 
-export const reportsService = {
-  async getDashboardAnalytics(): Promise<DashboardAnalytics> {
+type ReportsServiceDependencies = {
+  clock?: ReportingClock;
+  repository?: ReportsSnapshotRepository;
+};
+
+export function createReportsService(
+  dependencies: ReportsServiceDependencies = {},
+) {
+  const clock = dependencies.clock ?? systemReportingClock;
+  const repository = dependencies.repository ?? mockReportsRepository;
+
+  const getFoundationAnalytics = async (
+    filters: ReportFilters = {},
+  ): Promise<ReportsFoundationAnalytics> => {
     if (environment.useMockApi) {
       await mockDelay();
-      return buildDashboardAnalytics(repositoryAnalytics(), 'mock');
+      const metadata = createReportMetadata(filters, clock, 'mock');
+      const metrics = aggregateReportMetrics(repository.snapshot(), metadata);
+      return mapReportsFoundation(metrics, metadata);
     }
 
-    const response =
-      await apiRequest<ReportsAnalyticsResponse>('/reports/analytics');
-    return buildDashboardAnalytics(response, 'api');
-  },
-};
+    const query = new URLSearchParams(
+      Object.entries(filters).filter((entry): entry is [string, string] =>
+        Boolean(entry[1]),
+      ),
+    ).toString();
+    return apiRequest<ReportsFoundationAnalytics>(
+      `/reports/foundation${query ? `?${query}` : ''}`,
+    );
+  };
+
+  return {
+    async getDashboardAnalytics(): Promise<DashboardAnalytics> {
+      const metadata = createReportMetadata(
+        {},
+        clock,
+        environment.useMockApi ? 'mock' : 'api',
+      );
+      if (environment.useMockApi) {
+        await mockDelay();
+        return buildDashboardAnalytics(
+          repositoryAnalytics(repository),
+          'mock',
+          metadata,
+        );
+      }
+
+      const response =
+        await apiRequest<ReportsAnalyticsResponse>('/reports/analytics');
+      return buildDashboardAnalytics(response, 'api', metadata);
+    },
+
+    getFoundationAnalytics,
+    getReportsAnalytics: getFoundationAnalytics,
+  };
+}
+
+export const reportsService = createReportsService();
