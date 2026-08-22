@@ -18,11 +18,13 @@ export async function invalidateAdminMutation(
       queryKeys.adminCustomers,
       queryKeys.adminSubscriptions,
       queryKeys.adminDashboard,
+      queryKeys.adminReports,
     ],
     package: [
       queryKeys.adminPackages,
       queryKeys.adminCustomerPackageOptions,
       queryKeys.packageMarketplace,
+      queryKeys.adminReports,
     ],
     subscription: [
       queryKeys.adminSubscriptions,
@@ -30,12 +32,18 @@ export async function invalidateAdminMutation(
       queryKeys.adminPackages,
       queryKeys.adminBilling,
       queryKeys.adminDashboard,
+      queryKeys.adminReports,
     ],
-    billing: [queryKeys.adminBilling, queryKeys.adminDashboard],
+    billing: [
+      queryKeys.adminBilling,
+      queryKeys.adminDashboard,
+      queryKeys.adminReports,
+    ],
     complaint: [
       queryKeys.adminComplaints,
       queryKeys.supportComplaintsRoot,
       queryKeys.adminDashboard,
+      queryKeys.adminReports,
     ],
   } satisfies Record<AdminMutationScope, readonly (readonly unknown[])[]>;
 
@@ -53,6 +61,7 @@ export async function invalidateTechnicianAssignment(
       queryKeys.supportComplaintsRoot,
       queryKeys.adminTechnicians,
       queryKeys.adminDashboard,
+      queryKeys.adminReports,
     ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
   );
 }
@@ -66,6 +75,7 @@ export async function invalidateTechnicianStatus(
       queryKeys.adminTechnicianList,
       queryKeys.adminTechnicianDetail(technicianId),
       queryKeys.adminTechnicianWorkload(technicianId),
+      queryKeys.adminReports,
     ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
   );
 }
@@ -83,6 +93,7 @@ export async function invalidateTechnicianWorkOrder(
       queryKeys.adminComplaintDetail(complaintId),
       queryKeys.adminComplaintList,
       queryKeys.adminDashboard,
+      queryKeys.adminReports,
     ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
   );
 }

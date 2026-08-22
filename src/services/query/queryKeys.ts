@@ -1,3 +1,5 @@
+import type { ReportFilters } from '@/services/api/reports.models';
+
 export const queryKeys = {
   currentUser: ['current-user'] as const,
   packages: ['packages'] as const,
@@ -42,6 +44,15 @@ export const queryKeys = {
     ['admin-billing', 'payments', 'detail', id] as const,
   adminBillingSummary: ['admin-billing', 'summary'] as const,
   adminDashboard: ['admin-dashboard'] as const,
+  adminReports: ['admin-reports'] as const,
+  adminFinancialReport: (filters: ReportFilters) =>
+    ['admin-reports', 'financial', filters] as const,
+  adminCustomerReport: (filters: ReportFilters) =>
+    ['admin-reports', 'customer', filters] as const,
+  adminComplaintReport: (filters: ReportFilters) =>
+    ['admin-reports', 'complaint', filters] as const,
+  adminTechnicianReport: (filters: ReportFilters) =>
+    ['admin-reports', 'technician', filters] as const,
   customerDashboard: (connectionId: string) =>
     ['customer-dashboard', connectionId] as const,
   networkHealth: (connectionId: string) =>

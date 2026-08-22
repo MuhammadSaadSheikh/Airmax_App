@@ -18,7 +18,11 @@ import PackageDetailScreen from '@/features/admin/screens/PackageDetailScreen';
 import PackageEditScreen from '@/features/admin/screens/PackageEditScreen';
 import InvoiceDetailScreen from '@/features/admin/screens/InvoiceDetailScreen';
 import PaymentDetailScreen from '@/features/admin/screens/PaymentDetailScreen';
-import ReportsScreen from '@/features/admin/screens/ReportsScreen';
+import AdminReportsScreen from '@/features/admin/screens/AdminReportsScreen';
+import FinancialReportScreen from '@/features/admin/screens/FinancialReportScreen';
+import CustomerReportScreen from '@/features/admin/screens/CustomerReportScreen';
+import ComplaintReportScreen from '@/features/admin/screens/ComplaintReportScreen';
+import TechnicianReportScreen from '@/features/admin/screens/TechnicianReportScreen';
 import ServiceAreasScreen from '@/features/admin/screens/ServiceAreasScreen';
 import SubscriptionDetailScreen from '@/features/admin/screens/SubscriptionDetailScreen';
 import TechniciansScreen from '@/features/admin/screens/TechniciansScreen';
@@ -76,7 +80,14 @@ export function AdminNavigator() {
         options={modalScreenOptions}
       />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
-      <Stack.Screen name="Reports" component={ReportsScreen} />
+      <Stack.Screen name="Reports" component={AdminReportsScreen} />
+      <Stack.Screen name="FinancialReport" component={FinancialReportScreen} />
+      <Stack.Screen name="CustomerReport" component={CustomerReportScreen} />
+      <Stack.Screen name="ComplaintReport" component={ComplaintReportScreen} />
+      <Stack.Screen
+        name="TechnicianReport"
+        component={TechnicianReportScreen}
+      />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen
         name="CustomerEdit"

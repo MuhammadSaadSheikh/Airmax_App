@@ -57,8 +57,26 @@ export function mapReportsFoundation(
         amount: nonNegative(metrics.financial.overdueAmount.amount),
         currency: metadata.currency,
       },
+      overdueAging: metrics.financial.overdueAging.map(bucket => ({
+        ...bucket,
+        count: nonNegative(bucket.count),
+        amount: {
+          amount: nonNegative(bucket.amount.amount),
+          currency: metadata.currency,
+        },
+      })),
+      revenueByPackage: metrics.financial.revenueByPackage.map(item => ({
+        id: item.id,
+        value: nonNegative(item.value),
+      })),
+      paymentStatusDistribution:
+        metrics.financial.paymentStatusDistribution.map(item => ({
+          id: item.id,
+          value: nonNegative(item.value),
+        })),
     },
     complaints: {
+      complaintVolume: nonNegative(metrics.complaints.complaintVolume),
       openComplaints: nonNegative(metrics.complaints.openComplaints),
       statusDistribution: metrics.complaints.statusDistribution.map(item => ({
         id: item.id,
@@ -80,6 +98,7 @@ export function mapReportsFoundation(
         nonNegative(metrics.technicians.utilizationPercentage),
       ),
       completedWorkOrders: nonNegative(metrics.technicians.completedWorkOrders),
+      cancelledWorkOrders: nonNegative(metrics.technicians.cancelledWorkOrders),
     },
   };
 }

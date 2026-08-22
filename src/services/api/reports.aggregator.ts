@@ -2,6 +2,7 @@ import type {
   ComplaintReportMetrics,
   CustomerReportMetrics,
   FinancialReportMetrics,
+  AgingBucket,
   MoneyMetric,
   ReportBreakdownItem,
   ReportDateRange,
@@ -26,6 +27,8 @@ export type ReportingInvoiceFact = {
   status: string;
   amount: number | string;
   billingPeriodStart: string;
+  dueDate?: string;
+  subscription?: { packageId: string; packageName?: string };
 };
 
 export type ReportingPaymentFact = {
@@ -49,6 +52,7 @@ export type ReportingTechnicianFact = {
 export type ReportingWorkOrderFact = {
   status: string;
   completedAt: string | null;
+  updatedAt?: string;
 };
 
 export type ReportingSnapshotFacts = {
@@ -95,6 +99,60 @@ function breakdown(values: string[]): ReportBreakdownItem[] {
   return [...counts.entries()]
     .map(([id, value]) => ({ id, value }))
     .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function valueBreakdown(
+  values: Array<{ id: string; value: number }>,
+): ReportBreakdownItem[] {
+  const totals = new Map<string, number>();
+  values.forEach(item => {
+    const id = item.id.trim() || 'unknown';
+    totals.set(id, (totals.get(id) ?? 0) + item.value);
+  });
+  return [...totals.entries()]
+    .map(([id, value]) => ({ id, value }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function overdueAging(
+  invoices: ReportingInvoiceFact[],
+  asOf: string,
+): AgingBucket[] {
+  const definitions = [
+    { id: '0-30', label: '0–30 days', minimumDays: 0, maximumDays: 30 },
+    { id: '31-60', label: '31–60 days', minimumDays: 31, maximumDays: 60 },
+    { id: '61-90', label: '61–90 days', minimumDays: 61, maximumDays: 90 },
+    { id: '91-plus', label: '91+ days', minimumDays: 91, maximumDays: null },
+  ] as const;
+  const asOfTimestamp = Date.parse(asOf);
+
+  return definitions.map(definition => {
+    const matching = invoices.filter(invoice => {
+      if (!invoice.dueDate || invoice.status !== 'OVERDUE') return false;
+      const dueTimestamp = Date.parse(invoice.dueDate);
+      if (!Number.isFinite(dueTimestamp) || !Number.isFinite(asOfTimestamp)) {
+        return false;
+      }
+      const days = Math.max(
+        0,
+        Math.floor((asOfTimestamp - dueTimestamp) / 86_400_000),
+      );
+      return (
+        days >= definition.minimumDays &&
+        (definition.maximumDays === null || days <= definition.maximumDays)
+      );
+    });
+    return {
+      ...definition,
+      count: matching.length,
+      amount: money(
+        matching.reduce(
+          (total, invoice) => total + numericValue(invoice.amount),
+          0,
+        ),
+      ),
+    };
+  });
 }
 
 export function aggregateCustomerMetrics(
@@ -144,11 +202,18 @@ export function aggregateFinancialMetrics(
       item.status === 'SUCCESSFUL' &&
       isInRange(item.processedAt ?? item.createdAt, range),
   );
+  const periodPayments = payments.filter(item =>
+    isInRange(item.processedAt ?? item.createdAt, range),
+  );
+  const billableInvoices = periodInvoices.filter(
+    item => item.status !== 'CANCELLED',
+  );
   return {
     grossBilledAmount: money(
-      periodInvoices
-        .filter(item => item.status !== 'CANCELLED')
-        .reduce((total, item) => total + numericValue(item.amount), 0),
+      billableInvoices.reduce(
+        (total, item) => total + numericValue(item.amount),
+        0,
+      ),
     ),
     collectedCash: money(
       successfulPayments.reduce(
@@ -165,6 +230,19 @@ export function aggregateFinancialMetrics(
       periodInvoices
         .filter(item => item.status === 'OVERDUE')
         .reduce((total, item) => total + numericValue(item.amount), 0),
+    ),
+    overdueAging: overdueAging(periodInvoices, range.to),
+    revenueByPackage: valueBreakdown(
+      billableInvoices.map(item => ({
+        id:
+          item.subscription?.packageName ??
+          item.subscription?.packageId ??
+          'unknown',
+        value: numericValue(item.amount),
+      })),
+    ),
+    paymentStatusDistribution: breakdown(
+      periodPayments.map(item => item.status.toLowerCase()),
     ),
   };
 }
@@ -192,6 +270,7 @@ export function aggregateComplaintMetrics(
             100,
         ) / 100;
   return {
+    complaintVolume: periodComplaints.length,
     openComplaints: periodComplaints.filter(
       item => item.status !== 'RESOLVED' && item.status !== 'CLOSED',
     ).length,
@@ -226,6 +305,10 @@ export function aggregateTechnicianMetrics(
         : Math.min(100, (activeWorkload / totalCapacity) * 100),
     completedWorkOrders: workOrders.filter(
       item => item.status === 'COMPLETED' && isInRange(item.completedAt, range),
+    ).length,
+    cancelledWorkOrders: workOrders.filter(
+      item =>
+        item.status === 'CANCELLED' && isInRange(item.updatedAt ?? null, range),
     ).length,
   };
 }

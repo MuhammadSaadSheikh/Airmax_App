@@ -14,6 +14,7 @@ describe('Phase 3 admin cache invalidation policy', () => {
         queryKeys.adminCustomers,
         queryKeys.adminSubscriptions,
         queryKeys.adminDashboard,
+        queryKeys.adminReports,
       ],
     ],
     [
@@ -22,6 +23,7 @@ describe('Phase 3 admin cache invalidation policy', () => {
         queryKeys.adminPackages,
         queryKeys.adminCustomerPackageOptions,
         queryKeys.packageMarketplace,
+        queryKeys.adminReports,
       ],
     ],
     [
@@ -32,15 +34,24 @@ describe('Phase 3 admin cache invalidation policy', () => {
         queryKeys.adminPackages,
         queryKeys.adminBilling,
         queryKeys.adminDashboard,
+        queryKeys.adminReports,
       ],
     ],
-    ['billing', [queryKeys.adminBilling, queryKeys.adminDashboard]],
+    [
+      'billing',
+      [
+        queryKeys.adminBilling,
+        queryKeys.adminDashboard,
+        queryKeys.adminReports,
+      ],
+    ],
     [
       'complaint',
       [
         queryKeys.adminComplaints,
         queryKeys.supportComplaintsRoot,
         queryKeys.adminDashboard,
+        queryKeys.adminReports,
       ],
     ],
   ] as const)(

@@ -11,3 +11,4 @@ export * from './customers';
 export * from './packages';
 export * from './subscriptions';
 export * from './technicians';
+export * from './reports';

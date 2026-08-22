@@ -71,9 +71,13 @@ export type FinancialReportMetrics = {
   collectedCash: MoneyMetric;
   pendingReceivables: MoneyMetric;
   overdueAmount: MoneyMetric;
+  overdueAging: AgingBucket[];
+  revenueByPackage: ReportBreakdownItem[];
+  paymentStatusDistribution: ReportBreakdownItem[];
 };
 
 export type ComplaintReportMetrics = {
+  complaintVolume: number;
   openComplaints: number;
   statusDistribution: ReportBreakdownItem[];
   categoryDistribution: ReportBreakdownItem[];
@@ -85,6 +89,7 @@ export type TechnicianReportMetrics = {
   totalCapacity: number;
   utilizationPercentage: number;
   completedWorkOrders: number;
+  cancelledWorkOrders: number;
 };
 
 export type ReportMetrics = {

@@ -59,16 +59,22 @@ function reportingFacts(): ReportingSnapshotFacts {
         status: 'PAID',
         amount: 100,
         billingPeriodStart: '2026-08-01T00:00:00.000Z',
+        dueDate: '2026-08-10T00:00:00.000Z',
+        subscription: { packageId: 'premium', packageName: 'Premium' },
       },
       {
         status: 'PENDING',
         amount: '50',
         billingPeriodStart: '2026-08-01T00:00:00.000Z',
+        dueDate: '2026-08-15T00:00:00.000Z',
+        subscription: { packageId: 'basic', packageName: 'Basic' },
       },
       {
         status: 'OVERDUE',
         amount: 30,
         billingPeriodStart: '2026-08-01T00:00:00.000Z',
+        dueDate: '2026-07-15T00:00:00.000Z',
+        subscription: { packageId: 'basic', packageName: 'Basic' },
       },
       {
         status: 'CANCELLED',
@@ -109,6 +115,11 @@ function reportingFacts(): ReportingSnapshotFacts {
       { status: 'IN_PROGRESS', completedAt: null },
       { status: 'COMPLETED', completedAt: '2026-08-07T00:00:00.000Z' },
       { status: 'COMPLETED', completedAt: '2026-07-07T00:00:00.000Z' },
+      {
+        status: 'CANCELLED',
+        completedAt: null,
+        updatedAt: '2026-08-08T00:00:00.000Z',
+      },
     ],
   };
 }
@@ -136,8 +147,51 @@ describe('Phase 3G.1 reporting aggregation foundation', () => {
       collectedCash: { amount: 100, currency: 'PKR' },
       pendingReceivables: { amount: 50, currency: 'PKR' },
       overdueAmount: { amount: 30, currency: 'PKR' },
+      overdueAging: [
+        {
+          id: '0-30',
+          label: '0–30 days',
+          minimumDays: 0,
+          maximumDays: 30,
+          count: 0,
+          amount: { amount: 0, currency: 'PKR' },
+        },
+        {
+          id: '31-60',
+          label: '31–60 days',
+          minimumDays: 31,
+          maximumDays: 60,
+          count: 1,
+          amount: { amount: 30, currency: 'PKR' },
+        },
+        {
+          id: '61-90',
+          label: '61–90 days',
+          minimumDays: 61,
+          maximumDays: 90,
+          count: 0,
+          amount: { amount: 0, currency: 'PKR' },
+        },
+        {
+          id: '91-plus',
+          label: '91+ days',
+          minimumDays: 91,
+          maximumDays: null,
+          count: 0,
+          amount: { amount: 0, currency: 'PKR' },
+        },
+      ],
+      revenueByPackage: [
+        { id: 'Basic', value: 80 },
+        { id: 'Premium', value: 100 },
+      ],
+      paymentStatusDistribution: [
+        { id: 'failed', value: 1 },
+        { id: 'successful', value: 1 },
+      ],
     });
     expect(report.complaints).toEqual({
+      complaintVolume: 2,
       openComplaints: 1,
       statusDistribution: [
         { id: 'pending', value: 1 },
@@ -150,6 +204,7 @@ describe('Phase 3G.1 reporting aggregation foundation', () => {
       activeWorkload: 1,
       totalCapacity: 3,
       completedWorkOrders: 1,
+      cancelledWorkOrders: 1,
     });
     expect(report.technicians.utilizationPercentage).toBeCloseTo(100 / 3);
   });
