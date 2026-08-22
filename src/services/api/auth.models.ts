@@ -1,6 +1,8 @@
 import type { Role } from '@/types';
 
-export type BackendRole = 'ADMIN' | 'CUSTOMER';
+export type BackendAdminRole =
+  'SUPER_ADMIN' | 'ADMIN' | 'FINANCE' | 'SUPPORT' | 'TECHNICIAN_MANAGER';
+export type BackendRole = BackendAdminRole | 'CUSTOMER';
 export type BackendUserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING' | 'DISABLED';
 
 export type BackendSessionUser = {
@@ -35,6 +37,8 @@ export type SessionUser = {
   phone: string;
   email?: string;
   role: Role;
+  /** Preserves granular backend authorization without changing portal routing. */
+  adminRole?: BackendAdminRole;
   status: 'active' | 'suspended' | 'pending' | 'disabled';
   address?: string;
   connectionId?: string;

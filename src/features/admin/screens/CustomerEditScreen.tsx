@@ -21,6 +21,12 @@ import {
   type CustomerInformationValues,
 } from '@/features/admin/customer.schema';
 import type { AdminStackParamList } from '@/navigation';
+import {
+  adminActionPermissions,
+  adminAuditEvents,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import { environment } from '@/config/environment';
 import { customersService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
@@ -38,6 +44,7 @@ const emptyValues: CustomerInformationValues = {
 
 export default function CustomerEditScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const customerId = route.params.id;
   const customerQuery = useQuery({
     queryKey: queryKeys.adminCustomerDetail(customerId),
@@ -66,20 +73,29 @@ export default function CustomerEditScreen({ navigation, route }: Props) {
 
   const mutation = useMutation({
     mutationFn: (values: CustomerInformationValues) =>
-      customersService.updateCustomerInformation({
-        customerId,
-        name: values.name,
-        phone: values.phone,
-        email: values.email || null,
-        address: values.address || null,
-        cnic: values.cnic || null,
-      }),
-    onSuccess: customer => {
+      runProtectedAdminAction(
+        adminActionPermissions.editCustomer(),
+        'edit customer',
+        'customers',
+        () =>
+          customersService.updateCustomerInformation({
+            customerId,
+            name: values.name,
+            phone: values.phone,
+            email: values.email || null,
+            address: values.address || null,
+            cnic: values.cnic || null,
+          }),
+      ),
+    onSuccess: async customer => {
       queryClient.setQueryData(
         queryKeys.adminCustomerDetail(customer.id),
         customer,
       );
-      void invalidateAdminMutation(queryClient, 'customer');
+      await invalidateAdminMutation(queryClient, 'customer');
+      await recordAudit(
+        adminAuditEvents.customerUpdated(customer.id, customer.name),
+      );
       navigation.goBack();
     },
   });

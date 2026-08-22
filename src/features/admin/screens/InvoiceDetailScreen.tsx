@@ -12,6 +12,7 @@ import {
 import { environment } from '@/config/environment';
 import { billingPermissions } from '@/features/admin/billing.permissions';
 import {
+  adminAuditEvents,
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
@@ -73,16 +74,14 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
       ),
     onSuccess: async payment => {
       await invalidateBilling();
-      await recordAudit({
-        action: 'PAYMENT_RECORDED',
-        entityType: 'PAYMENT',
-        entityId: payment.id,
-        metadata: {
-          invoiceId: payment.invoiceId,
-          amount: payment.amount,
-          method: payment.method,
-        },
-      });
+      await recordAudit(
+        adminAuditEvents.paymentRecorded(
+          payment.id,
+          payment.invoiceId,
+          payment.amount,
+          payment.method,
+        ),
+      );
     },
   });
   const markPaidMutation = useMutation({
@@ -93,7 +92,16 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
         'billing',
         () => adminBillingService.markInvoicePaid(invoiceId),
       ),
-    onSuccess: invalidateBilling,
+    onSuccess: async invoice => {
+      await invalidateBilling();
+      await recordAudit(
+        adminAuditEvents.invoiceChanged(invoice.id, 'marked_paid', {
+          invoiceNumber: invoice.invoiceNumber,
+          customerId: invoice.customer.id,
+          amount: invoice.amount,
+        }),
+      );
+    },
   });
   const cancelMutation = useMutation({
     mutationFn: () =>
@@ -105,16 +113,13 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
       ),
     onSuccess: async invoice => {
       await invalidateBilling();
-      await recordAudit({
-        action: 'INVOICE_CANCELLED',
-        entityType: 'INVOICE',
-        entityId: invoice.id,
-        metadata: {
+      await recordAudit(
+        adminAuditEvents.invoiceChanged(invoice.id, 'cancelled', {
           invoiceNumber: invoice.invoiceNumber,
           customerId: invoice.customer.id,
           amount: invoice.amount,
-        },
-      });
+        }),
+      );
     },
   });
 

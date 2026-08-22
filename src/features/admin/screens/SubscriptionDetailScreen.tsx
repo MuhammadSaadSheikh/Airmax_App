@@ -20,6 +20,7 @@ import {
   SubscriptionTimeline,
 } from '@/features/admin/components';
 import {
+  adminAuditEvents,
   adminActionPermissions,
   createAdminConfirmation,
   runProtectedAdminAction,
@@ -56,8 +57,24 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
     invalidateAdminMutation(queryClient, 'subscription');
 
   const activateMutation = useMutation({
-    mutationFn: () => subscriptionsService.activateSubscription(subscriptionId),
-    onSuccess: synchronizeSubscription,
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.activateSubscription(),
+        'activate subscription',
+        'subscriptions',
+        () => subscriptionsService.activateSubscription(subscriptionId),
+      ),
+    onSuccess: async subscription => {
+      await synchronizeSubscription();
+      await recordAudit(
+        adminAuditEvents.subscriptionChanged(
+          subscription.id,
+          'activated',
+          subscription.customer.id,
+          subscription.package.id,
+        ),
+      );
+    },
   });
   const suspendMutation = useMutation({
     mutationFn: () =>
@@ -69,15 +86,14 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
       ),
     onSuccess: async subscription => {
       await synchronizeSubscription();
-      await recordAudit({
-        action: 'SUBSCRIPTION_SUSPENDED',
-        entityType: 'SUBSCRIPTION',
-        entityId: subscription.id,
-        metadata: {
-          customerId: subscription.customer.id,
-          packageId: subscription.package.id,
-        },
-      });
+      await recordAudit(
+        adminAuditEvents.subscriptionChanged(
+          subscription.id,
+          'suspended',
+          subscription.customer.id,
+          subscription.package.id,
+        ),
+      );
     },
   });
   const cancelMutation = useMutation({
@@ -90,15 +106,14 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
       ),
     onSuccess: async subscription => {
       await synchronizeSubscription();
-      await recordAudit({
-        action: 'SUBSCRIPTION_CANCELLED',
-        entityType: 'SUBSCRIPTION',
-        entityId: subscription.id,
-        metadata: {
-          customerId: subscription.customer.id,
-          packageId: subscription.package.id,
-        },
-      });
+      await recordAudit(
+        adminAuditEvents.subscriptionChanged(
+          subscription.id,
+          'cancelled',
+          subscription.customer.id,
+          subscription.package.id,
+        ),
+      );
     },
   });
 

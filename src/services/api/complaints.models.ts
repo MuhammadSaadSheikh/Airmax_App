@@ -1,7 +1,7 @@
 export type ApiComplaintStatus =
   'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
-export type ApiTechnicianStatus = 'AVAILABLE' | 'BUSY' | 'OFFLINE';
+export type ApiTechnicianStatus = 'AVAILABLE' | 'BUSY' | 'OFFLINE' | 'ON_LEAVE';
 
 export type ComplaintCustomerDto = {
   name: string;
@@ -59,7 +59,8 @@ export type UpdateComplaintDto = {
 export type AdminComplaintStatus =
   'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
 
-export type AdminTechnicianStatus = 'available' | 'busy' | 'offline';
+export type AdminTechnicianStatus =
+  'available' | 'busy' | 'offline' | 'on_leave';
 
 export type AdminComplaintCustomer = {
   name: string;

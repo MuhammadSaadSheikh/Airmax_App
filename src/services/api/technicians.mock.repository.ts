@@ -235,7 +235,7 @@ function seedHistory(): TechnicianHistory[] {
     {
       id: 'technician-history-seed-0002',
       technicianId: 'tech-ali',
-      complaintId: 'complaint-historical-ali',
+      complaintId: 'complaint-2051',
       workOrderId: 'work-order-0002',
       action: 'WORK_ORDER_COMPLETED',
       note: 'Work order completed',

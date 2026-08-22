@@ -3,9 +3,12 @@ import {
   mapAuthSession,
   mapBackendRole,
 } from '../src/services/api/auth.mapper';
-import type { BackendAuthSession } from '../src/services/api/auth.models';
+import type {
+  BackendAuthSession,
+  BackendRole,
+} from '../src/services/api/auth.models';
 
-const response = (role: 'ADMIN' | 'CUSTOMER'): BackendAuthSession => ({
+const response = (role: BackendRole): BackendAuthSession => ({
   accessToken: 'access-token',
   refreshToken: 'refresh-token',
   user: {
@@ -22,11 +25,23 @@ const response = (role: 'ADMIN' | 'CUSTOMER'): BackendAuthSession => ({
 
 describe('auth response mapping', () => {
   it.each([
+    ['SUPER_ADMIN', 'admin'],
     ['ADMIN', 'admin'],
+    ['FINANCE', 'admin'],
+    ['SUPPORT', 'admin'],
+    ['TECHNICIAN_MANAGER', 'admin'],
     ['CUSTOMER', 'customer'],
   ] as const)('maps backend role %s to %s', (backend, mobile) => {
     expect(mapBackendRole(backend)).toBe(mobile);
     expect(mapAuthSession(response(backend)).user.role).toBe(mobile);
+  });
+
+  it('preserves granular admin roles for future capability mapping', () => {
+    expect(mapAuthSession(response('FINANCE')).user).toMatchObject({
+      role: 'admin',
+      adminRole: 'FINANCE',
+    });
+    expect(mapAuthSession(response('CUSTOMER')).user.adminRole).toBeUndefined();
   });
 
   it('rejects unknown roles instead of choosing a portal', () => {

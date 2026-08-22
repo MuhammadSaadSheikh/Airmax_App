@@ -9,6 +9,7 @@ import {
   createAdminAuditEvent,
   createAdminConfirmation,
   createAdminPermissions,
+  createAdminPermissionsForRole,
   runProtectedAdminAction,
 } from '@/features/admin/security';
 
@@ -45,6 +46,39 @@ describe('Phase 3H.1 admin security controls', () => {
     expect(adminActionPermissions.cancelSubscription(restricted)).toBe(false);
     expect(adminActionPermissions.reassignComplaint(restricted)).toBe(false);
     expect(adminActionPermissions.changeWorkOrder(restricted)).toBe(false);
+  });
+
+  it('covers every Phase 3 admin mutation and future read surface', () => {
+    const denied = createAdminPermissions({
+      view: [],
+      create: [],
+      edit: [],
+      delete: [],
+      managePayments: false,
+    });
+
+    expect(
+      Object.values(adminActionPermissions).every(check => !check(denied)),
+    ).toBe(true);
+    expect(Object.values(adminActionPermissions).every(check => check())).toBe(
+      true,
+    );
+  });
+
+  it('prepares least-privilege matrices for future backend admin roles', () => {
+    const finance = createAdminPermissionsForRole('FINANCE');
+    const support = createAdminPermissionsForRole('SUPPORT');
+    const technicianManager =
+      createAdminPermissionsForRole('TECHNICIAN_MANAGER');
+
+    expect(adminActionPermissions.managePayment(finance)).toBe(true);
+    expect(adminActionPermissions.reassignComplaint(finance)).toBe(false);
+    expect(adminActionPermissions.replyToComplaint(support)).toBe(true);
+    expect(adminActionPermissions.managePayment(support)).toBe(false);
+    expect(adminActionPermissions.changeWorkOrder(technicianManager)).toBe(
+      true,
+    );
+    expect(adminActionPermissions.cancelInvoice(technicianManager)).toBe(false);
   });
 
   it('blocks protected actions before their mutation callback executes', () => {

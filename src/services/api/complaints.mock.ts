@@ -1,36 +1,17 @@
-import type { ComplaintDto, TechnicianDto } from './complaints.models';
+import type { ComplaintDto, ComplaintTechnicianDto } from './complaints.models';
+import { mockTechnicians } from './technicians.mock';
 
-export const mockComplaintTechnicians: TechnicianDto[] = [
-  {
-    id: 'tech-ali',
-    name: 'Ali Raza',
-    phone: '+92 300 555 0101',
-    areaId: 'area-central',
-    status: 'AVAILABLE',
-    area: { id: 'area-central', city: 'Lahore', name: 'Central' },
-    _count: { complaints: 2 },
-  },
-  {
-    id: 'tech-usman',
-    name: 'Usman Tariq',
-    phone: '+92 300 555 0102',
-    areaId: 'area-north',
-    status: 'BUSY',
-    area: { id: 'area-north', city: 'Lahore', name: 'North' },
-    _count: { complaints: 3 },
-  },
-  {
-    id: 'tech-sana',
-    name: 'Sana Javed',
-    phone: '+92 300 555 0103',
-    areaId: 'area-south',
-    status: 'AVAILABLE',
-    area: { id: 'area-south', city: 'Lahore', name: 'South' },
-    _count: { complaints: 1 },
-  },
-];
-
-const technicians = mockComplaintTechnicians;
+function technician(id: string): ComplaintTechnicianDto {
+  const source = mockTechnicians.find(item => item.id === id);
+  if (!source) throw new Error(`Missing complaint technician fixture: ${id}`);
+  return {
+    id: source.id,
+    name: source.name,
+    phone: source.phone,
+    areaId: source.area.id,
+    status: source.status,
+  };
+}
 
 export const mockComplaints: ComplaintDto[] = [
   {
@@ -72,15 +53,15 @@ export const mockComplaints: ComplaintDto[] = [
     title: 'Speed below package limit',
     description: 'Download speed remains below 10 Mbps on a 50 Mbps plan.',
     attachmentUrl: null,
-    status: 'ASSIGNED',
-    technicianId: technicians[0]!.id,
-    adminReply: 'A technician has been assigned and will contact you shortly.',
+    status: 'PENDING',
+    technicianId: null,
+    adminReply: null,
     user: {
       name: 'Sara Ali',
       phone: '+92 321 9876543',
       connectionId: 'AMX-1188',
     },
-    technician: technicians[0]!,
+    technician: null,
     events: [
       {
         id: 'event-2053-1',
@@ -90,17 +71,9 @@ export const mockComplaints: ComplaintDto[] = [
         actorId: 'u2',
         createdAt: '2026-08-09T11:40:00.000Z',
       },
-      {
-        id: 'event-2053-2',
-        complaintId: 'complaint-2053',
-        status: 'ASSIGNED',
-        note: null,
-        actorId: 'admin-mock',
-        createdAt: '2026-08-09T12:05:00.000Z',
-      },
     ],
     createdAt: '2026-08-09T11:40:00.000Z',
-    updatedAt: '2026-08-09T12:05:00.000Z',
+    updatedAt: '2026-08-09T11:40:00.000Z',
     resolvedAt: null,
   },
   {
@@ -112,14 +85,14 @@ export const mockComplaints: ComplaintDto[] = [
     description: 'Router restarts without warning several times a day.',
     attachmentUrl: null,
     status: 'IN_PROGRESS',
-    technicianId: technicians[1]!.id,
+    technicianId: 'tech-usman',
     adminReply: 'Diagnostics are in progress.',
     user: {
       name: 'Hamza Noor',
       phone: '+92 333 4567890',
       connectionId: 'AMX-1204',
     },
-    technician: technicians[1]!,
+    technician: technician('tech-usman'),
     events: [
       {
         id: 'event-2052-1',
@@ -159,14 +132,14 @@ export const mockComplaints: ComplaintDto[] = [
     description: 'Payment was completed but the invoice still appears unpaid.',
     attachmentUrl: 'customer-attachment://payment-receipt.pdf',
     status: 'RESOLVED',
-    technicianId: technicians[2]!.id,
+    technicianId: 'tech-ali',
     adminReply: 'The payment has been reconciled and the invoice corrected.',
     user: {
       name: 'Ayesha Malik',
       phone: '+92 301 7788990',
       connectionId: null,
     },
-    technician: technicians[2]!,
+    technician: technician('tech-ali'),
     events: [
       {
         id: 'event-2051-1',
@@ -214,14 +187,14 @@ export const mockComplaints: ComplaintDto[] = [
     description: 'Request completed after the fiber endpoint was replaced.',
     attachmentUrl: null,
     status: 'CLOSED',
-    technicianId: technicians[2]!.id,
+    technicianId: 'tech-hamza',
     adminReply: 'Service restored and confirmed by the customer.',
     user: {
       name: 'Omar Farooq',
       phone: '+92 304 9988776',
       connectionId: 'AMX-1301',
     },
-    technician: technicians[2]!,
+    technician: technician('tech-hamza'),
     events: [
       {
         id: 'event-2050-1',

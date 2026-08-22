@@ -12,6 +12,12 @@ import {
 } from '@/features/admin/components';
 import type { AdminStackParamList } from '@/navigation';
 import { environment } from '@/config/environment';
+import {
+  adminActionPermissions,
+  adminAuditEvents,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import { customersService } from '@/services/api';
 import type {
   AdminCustomerDetail,
@@ -24,28 +30,54 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'CustomerDetail'>;
 
 export default function CustomerDetailScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const customerId = route.params.id;
   const customerQuery = useQuery({
     queryKey: queryKeys.adminCustomerDetail(customerId),
     queryFn: () => customersService.getById(customerId),
   });
 
-  const synchronizeCustomer = (customer: AdminCustomerDetail) => {
+  const synchronizeCustomer = async (customer: AdminCustomerDetail) => {
     queryClient.setQueryData(
       queryKeys.adminCustomerDetail(customer.id),
       customer,
     );
-    void invalidateAdminMutation(queryClient, 'customer');
+    await invalidateAdminMutation(queryClient, 'customer');
   };
 
   const activateMutation = useMutation({
-    mutationFn: () => customersService.activateCustomer(customerId),
-    onSuccess: synchronizeCustomer,
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.changeCustomerStatus(),
+        'activate customer',
+        'customers',
+        () => customersService.activateCustomer(customerId),
+      ),
+    onSuccess: async customer => {
+      await synchronizeCustomer(customer);
+      await recordAudit(
+        adminAuditEvents.customerStatusChanged(customer.id, 'active'),
+      );
+    },
   });
   const suspendMutation = useMutation({
     mutationFn: (reason: SuspensionReason) =>
-      customersService.suspendCustomer({ customerId, reason }),
-    onSuccess: synchronizeCustomer,
+      runProtectedAdminAction(
+        adminActionPermissions.changeCustomerStatus(),
+        'suspend customer',
+        'customers',
+        () => customersService.suspendCustomer({ customerId, reason }),
+      ),
+    onSuccess: async (customer, reason) => {
+      await synchronizeCustomer(customer);
+      await recordAudit(
+        adminAuditEvents.customerStatusChanged(
+          customer.id,
+          'suspended',
+          reason,
+        ),
+      );
+    },
   });
 
   const confirmActivation = () =>

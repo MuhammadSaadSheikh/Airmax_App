@@ -1,4 +1,5 @@
-import { mockComplaints, mockComplaintTechnicians } from './complaints.mock';
+import { mockComplaints } from './complaints.mock';
+import { mockTechnicianRepository } from './technicians.mock.repository';
 import type {
   ApiComplaintStatus,
   AssignComplaintInput,
@@ -39,6 +40,29 @@ function cloneTechnician(technician: TechnicianDto): TechnicianDto {
     ...technician,
     area: technician.area ? { ...technician.area } : null,
     _count: { ...technician._count },
+  };
+}
+
+function technicianOption(
+  technician: ReturnType<
+    typeof mockTechnicianRepository.listTechnicians
+  >[number],
+): TechnicianDto {
+  return {
+    id: technician.id,
+    name: technician.name,
+    phone: technician.phone,
+    areaId: technician.area.id,
+    status: technician.status,
+    area: { ...technician.area },
+    _count: {
+      complaints: complaintsState.filter(
+        complaint =>
+          complaint.technicianId === technician.id &&
+          complaint.status !== 'RESOLVED' &&
+          complaint.status !== 'CLOSED',
+      ).length,
+    },
   };
 }
 
@@ -86,19 +110,10 @@ export const mockComplaintRepository = {
   },
 
   technicians(): TechnicianDto[] {
-    return mockComplaintTechnicians.map(technician =>
-      cloneTechnician({
-        ...technician,
-        _count: {
-          complaints: complaintsState.filter(
-            complaint =>
-              complaint.technicianId === technician.id &&
-              complaint.status !== 'RESOLVED' &&
-              complaint.status !== 'CLOSED',
-          ).length,
-        },
-      }),
-    );
+    return mockTechnicianRepository
+      .listTechnicians()
+      .map(technicianOption)
+      .map(cloneTechnician);
   },
 
   create(input: CreateComplaintRepositoryInput): ComplaintDto {
@@ -138,10 +153,11 @@ export const mockComplaintRepository = {
   assign(input: AssignComplaintInput): ComplaintDto {
     const [index, complaint] = mutableComplaint(input.complaintId);
     assertOpen(complaint);
-    const technician = mockComplaintTechnicians.find(
-      item => item.id === input.technicianId,
+    const source = mockTechnicianRepository.getTechnicianById(
+      input.technicianId,
     );
-    if (!technician) throw new Error('Technician not found');
+    if (!source) throw new Error('Technician not found');
+    const technician = technicianOption(source);
 
     const updatedAt = new Date().toISOString();
     const status =

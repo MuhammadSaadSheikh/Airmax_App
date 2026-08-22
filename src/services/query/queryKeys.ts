@@ -61,22 +61,30 @@ export const queryKeys = {
     ['admin-reports', 'complaint', filters] as const,
   adminTechnicianReport: (filters: ReportFilters) =>
     ['admin-reports', 'technician', filters] as const,
+  customerDashboards: ['customer-dashboard'] as const,
   customerDashboard: (connectionId: string) =>
     ['customer-dashboard', connectionId] as const,
   networkHealth: (connectionId: string) =>
     ['network-health', connectionId] as const,
   packageMarketplace: ['package-marketplace'] as const,
+  currentPackages: ['current-package'] as const,
   currentPackage: (connectionId: string) =>
     ['current-package', connectionId] as const,
+  packageRecommendations: ['package-recommendation'] as const,
   packageRecommendation: (connectionId: string) =>
     ['package-recommendation', connectionId] as const,
   packageDetail: (id: string) => ['package-detail', id] as const,
+  packageDetails: ['package-detail'] as const,
   packageComparison: ['package-comparison'] as const,
   currentBill: (connectionId: string) =>
     ['current-bill', connectionId] as const,
+  currentBills: ['current-bill'] as const,
+  customerInvoices: ['billing-invoices'] as const,
   invoices: (connectionId: string) =>
     ['billing-invoices', connectionId] as const,
+  customerInvoiceDetails: ['invoice-detail'] as const,
   invoiceDetail: (id: string) => ['invoice-detail', id] as const,
+  paymentHistories: ['payment-history'] as const,
   paymentHistory: (connectionId: string) =>
     ['payment-history', connectionId] as const,
   paymentMethods: (connectionId: string) =>
@@ -84,6 +92,7 @@ export const queryKeys = {
   supportComplaints: (connectionId: string) =>
     ['support-complaints', connectionId] as const,
   supportComplaintsRoot: ['support-complaints'] as const,
+  supportComplaintDetailsRoot: ['support-complaint-detail'] as const,
   supportComplaintDetail: (connectionId: string, id: string) =>
     ['support-complaint-detail', connectionId, id] as const,
   notifications: (connectionId: string) =>

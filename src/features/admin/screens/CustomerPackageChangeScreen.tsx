@@ -17,6 +17,12 @@ import {
 } from '@/features/admin/components';
 import type { AdminStackParamList } from '@/navigation';
 import { environment } from '@/config/environment';
+import {
+  adminActionPermissions,
+  adminAuditEvents,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import { customersService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
@@ -32,6 +38,7 @@ export default function CustomerPackageChangeScreen({
 }: Props) {
   const customerId = route.params.id;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const [selectedId, setSelectedId] = useState<string>();
   const customerQuery = useQuery({
     queryKey: queryKeys.adminCustomerDetail(customerId),
@@ -48,13 +55,25 @@ export default function CustomerPackageChangeScreen({
 
   const mutation = useMutation({
     mutationFn: (packageId: string) =>
-      customersService.changePackage({ customerId, packageId }),
-    onSuccess: async customer => {
+      runProtectedAdminAction(
+        adminActionPermissions.changeCustomerPackage(),
+        'change customer package',
+        'subscriptions',
+        () => customersService.changePackage({ customerId, packageId }),
+      ),
+    onSuccess: async (customer, packageId) => {
       queryClient.setQueryData(
         queryKeys.adminCustomerDetail(customer.id),
         customer,
       );
       await invalidateAdminMutation(queryClient, 'subscription');
+      await recordAudit(
+        adminAuditEvents.customerPackageChanged(
+          customer.id,
+          packageId,
+          customer.latestSubscription?.id ?? null,
+        ),
+      );
       navigation.goBack();
     },
   });

@@ -1,28 +1,15 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, SearchField } from '@/components';
-import type { AuditAction, AuditEntityType } from '@/services/api/audit.models';
+import {
+  auditActions,
+  auditEntityTypes,
+  type AuditAction,
+  type AuditEntityType,
+} from '@/services/api/audit.models';
 import { animation, colors, radius, spacing, typography } from '@/theme';
 
-const entityOptions: AuditEntityType[] = [
-  'INVOICE',
-  'PAYMENT',
-  'PACKAGE',
-  'SUBSCRIPTION',
-  'COMPLAINT',
-  'WORK_ORDER',
-];
-const actionOptions: AuditAction[] = [
-  'INVOICE_CANCELLED',
-  'PAYMENT_RECORDED',
-  'PACKAGE_DEACTIVATED',
-  'SUBSCRIPTION_SUSPENDED',
-  'SUBSCRIPTION_CANCELLED',
-  'COMPLAINT_TECHNICIAN_REASSIGNED',
-  'WORK_ORDER_ACCEPTED',
-  'WORK_ORDER_STARTED',
-  'WORK_ORDER_COMPLETED',
-  'WORK_ORDER_CANCELLED',
-];
+const entityOptions: readonly AuditEntityType[] = auditEntityTypes;
+const actionOptions: readonly AuditAction[] = auditActions;
 
 function Chip({
   label,

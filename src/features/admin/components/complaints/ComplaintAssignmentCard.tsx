@@ -39,7 +39,12 @@ export function ComplaintAssignmentCard({
               key={technician.id}
               technician={technician}
               selected={complaint.technician?.id === technician.id}
-              disabled={locked || loading}
+              disabled={
+                locked ||
+                loading ||
+                (technician.status !== 'available' &&
+                  complaint.technician?.id !== technician.id)
+              }
               onPress={() => onAssign(technician.id)}
             />
           ))

@@ -157,7 +157,7 @@ describe('techniciansService', () => {
     ).rejects.toThrow('active work order');
     await expect(
       techniciansService.assignComplaint({
-        complaintId: 'complaint-historical-ali',
+        complaintId: 'complaint-2051',
         technicianId: 'tech-hamza',
       }),
     ).rejects.toThrow('Completed work orders are immutable');

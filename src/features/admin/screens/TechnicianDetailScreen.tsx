@@ -18,6 +18,7 @@ import {
   TechnicianWorkloadCard,
 } from '@/features/admin/components';
 import {
+  adminAuditEvents,
   adminActionPermissions,
   createAdminConfirmation,
   runProtectedAdminAction,
@@ -57,8 +58,21 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
   });
   const statusMutation = useMutation({
     mutationFn: (status: TechnicianStatus) =>
-      techniciansService.updateTechnicianStatus({ id, status }),
-    onSuccess: () => invalidateTechnicianStatus(queryClient, id),
+      runProtectedAdminAction(
+        adminActionPermissions.changeTechnicianStatus(),
+        'change technician status',
+        'technicians',
+        () => techniciansService.updateTechnicianStatus({ id, status }),
+      ),
+    onSuccess: async technician => {
+      await invalidateTechnicianStatus(queryClient, id);
+      await recordAudit(
+        adminAuditEvents.technicianStatusChanged(
+          technician.id,
+          technician.status,
+        ),
+      );
+    },
   });
   const lifecycleMutation = useMutation({
     mutationFn: ({
@@ -89,22 +103,15 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
         assignment.technicianId,
         assignment.complaintId,
       );
-      const auditAction = {
-        accept: 'WORK_ORDER_ACCEPTED',
-        start: 'WORK_ORDER_STARTED',
-        complete: 'WORK_ORDER_COMPLETED',
-        cancel: 'WORK_ORDER_CANCELLED',
-      } as const;
-      await recordAudit({
-        action: auditAction[variables.action],
-        entityType: 'WORK_ORDER',
-        entityId: assignment.workOrder.id,
-        metadata: {
-          complaintId: assignment.complaintId,
-          technicianId: assignment.technicianId,
-          status: assignment.workOrder.status,
-        },
-      });
+      await recordAudit(
+        adminAuditEvents.workOrderChanged(
+          assignment.workOrder.id,
+          variables.action,
+          assignment.complaintId,
+          assignment.technicianId,
+          assignment.workOrder.status,
+        ),
+      );
     },
   });
 

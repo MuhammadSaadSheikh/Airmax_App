@@ -22,6 +22,12 @@ import {
   type PackageInformationValues,
 } from '@/features/admin/package.schema';
 import type { AdminStackParamList } from '@/navigation';
+import {
+  adminActionPermissions,
+  adminAuditEvents,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import { packagesService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
@@ -40,6 +46,7 @@ const emptyValues: PackageInformationValues = {
 export default function PackageEditScreen({ navigation, route }: Props) {
   const packageId = route.params.id;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const packageQuery = useQuery({
     queryKey: queryKeys.adminPackageDetail(packageId),
     queryFn: () => packagesService.getById(packageId),
@@ -68,16 +75,29 @@ export default function PackageEditScreen({ navigation, route }: Props) {
 
   const mutation = useMutation({
     mutationFn: (values: PackageInformationValues) =>
-      packagesService.update({
-        packageId,
-        ...packageValuesToInput(values),
-      }),
-    onSuccess: packageItem => {
+      runProtectedAdminAction(
+        adminActionPermissions.editPackage(),
+        'edit package',
+        'packages',
+        () =>
+          packagesService.update({
+            packageId,
+            ...packageValuesToInput(values),
+          }),
+      ),
+    onSuccess: async packageItem => {
       queryClient.setQueryData(
         queryKeys.adminPackageDetail(packageItem.id),
         packageItem,
       );
-      void invalidateAdminMutation(queryClient, 'package');
+      await invalidateAdminMutation(queryClient, 'package');
+      await recordAudit(
+        adminAuditEvents.packageChanged(
+          packageItem.id,
+          'updated',
+          packageItem.name,
+        ),
+      );
       navigation.goBack();
     },
   });

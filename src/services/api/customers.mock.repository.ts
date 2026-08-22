@@ -8,18 +8,20 @@ import type {
 } from './customers.models';
 
 let customersState = cloneCustomers(mockCustomers);
-const suspensionReasons = new Map<string, SuspendCustomerInput['reason']>();
 let nextCustomerNumber = 1;
+
+function cloneUnknown(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneUnknown);
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, cloneUnknown(item)]),
+  );
+}
 
 function cloneCustomer(customer: CustomerDetailDto): CustomerDetailDto {
   return {
     ...customer,
-    routerDetails:
-      typeof customer.routerDetails === 'object' &&
-      customer.routerDetails !== null &&
-      !Array.isArray(customer.routerDetails)
-        ? { ...customer.routerDetails }
-        : customer.routerDetails,
+    routerDetails: cloneUnknown(customer.routerDetails),
     subscriptions: [],
   };
 }
@@ -112,7 +114,6 @@ export const mockCustomerRepository = {
   },
 
   suspend(input: SuspendCustomerInput): CustomerDetailDto {
-    suspensionReasons.set(input.customerId, input.reason);
     return this.setStatus(input.customerId, 'SUSPENDED');
   },
 
@@ -137,7 +138,6 @@ export const mockCustomerRepository = {
 
   reset(): void {
     customersState = cloneCustomers(mockCustomers);
-    suspensionReasons.clear();
     nextCustomerNumber = 1;
   },
 };

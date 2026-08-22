@@ -18,6 +18,7 @@ import {
   TechnicianMockNotice,
 } from '@/features/admin/components';
 import {
+  adminAuditEvents,
   adminActionPermissions,
   createAdminConfirmation,
   runProtectedAdminAction,
@@ -56,8 +57,10 @@ export default function TechnicianAssignmentScreen({
     mutationFn: async (technicianId: string) => {
       const reassigning = Boolean(complaintQuery.data?.technician);
       return runProtectedAdminAction(
-        !reassigning || adminActionPermissions.reassignComplaint(),
-        'reassign complaint',
+        reassigning
+          ? adminActionPermissions.reassignComplaint()
+          : adminActionPermissions.assignComplaint(),
+        reassigning ? 'reassign complaint' : 'assign complaint',
         'complaints',
         () =>
           reassigning
@@ -74,18 +77,14 @@ export default function TechnicianAssignmentScreen({
     onSuccess: async (assignment, technicianId) => {
       const previousTechnicianId = complaintQuery.data?.technician?.id;
       await invalidateTechnicianAssignment(queryClient);
-      if (previousTechnicianId) {
-        await recordAudit({
-          action: 'COMPLAINT_TECHNICIAN_REASSIGNED',
-          entityType: 'COMPLAINT',
-          entityId: complaintId,
-          metadata: {
-            previousTechnicianId,
-            technicianId,
-            workOrderId: assignment.workOrder.id,
-          },
-        });
-      }
+      await recordAudit(
+        adminAuditEvents.complaintAssignment(
+          complaintId,
+          technicianId,
+          assignment.workOrder.id,
+          previousTechnicianId,
+        ),
+      );
       navigation.goBack();
     },
   });

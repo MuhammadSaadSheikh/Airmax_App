@@ -32,7 +32,7 @@ describe('Phase 3C admin complaint operations service', () => {
     });
 
     expect(complaint.status).toBe('assigned');
-    expect(complaint.technician?.name).toBe('Ali Raza');
+    expect(complaint.technician?.name).toBe('Ali Ahmed');
     expect(complaint.events.at(-1)?.status).toBe('assigned');
   });
 
@@ -40,13 +40,13 @@ describe('Phase 3C admin complaint operations service', () => {
     const before = await complaintsService.getById('complaint-2052');
     const complaint = await complaintsService.assignTechnician({
       complaintId: 'complaint-2052',
-      technicianId: 'tech-sana',
+      technicianId: 'tech-ali',
     });
 
     expect(complaint.status).toBe('in_progress');
-    expect(complaint.technician?.name).toBe('Sana Javed');
+    expect(complaint.technician?.name).toBe('Ali Ahmed');
     expect(complaint.events).toHaveLength(before.events.length + 1);
-    expect(complaint.events.at(-1)?.note).toBe('Reassigned to Sana Javed');
+    expect(complaint.events.at(-1)?.note).toBe('Reassigned to Ali Ahmed');
   });
 
   it('enforces forward-only status transitions', async () => {

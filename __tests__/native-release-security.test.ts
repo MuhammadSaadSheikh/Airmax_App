@@ -18,20 +18,22 @@ describe('native release configuration', () => {
     expect(releaseBlock).toBeDefined();
     expect(releaseBlock).not.toContain('signingConfigs.debug');
     expect(gradle).toContain('AIRMAX_ANDROID_KEYSTORE_FILE');
-    expect(gradle).toContain('productionrelease');
+    expect(gradle).toContain('ProductionRelease');
   });
 
   it('keeps iOS local networking out of the production plist', () => {
-    const production = readFileSync(join(root, 'ios/Airmax/Info.plist'), 'utf8');
+    const production = readFileSync(
+      join(root, 'ios/Airmax/Info.plist'),
+      'utf8',
+    );
     const development = readFileSync(
       join(root, 'ios/Airmax/Info-Debug.plist'),
       'utf8',
     );
     expect(production).not.toContain('NSAllowsLocalNetworking');
     expect(development).toContain('NSAllowsLocalNetworking');
-    expect(readFileSync(
-      join(root, 'ios/Config/Production.xcconfig'),
-      'utf8',
-    )).toContain('AIRMAX_ENV = production');
+    expect(
+      readFileSync(join(root, 'ios/Config/Production.xcconfig'), 'utf8'),
+    ).toContain('AIRMAX_ENV = production');
   });
 });

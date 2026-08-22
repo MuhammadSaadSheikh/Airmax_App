@@ -14,6 +14,12 @@ import {
   type PackageInformationValues,
 } from '@/features/admin/package.schema';
 import type { AdminStackParamList } from '@/navigation';
+import {
+  adminActionPermissions,
+  adminAuditEvents,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import { packagesService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
@@ -31,6 +37,7 @@ const emptyValues: PackageInformationValues = {
 
 export default function PackageCreateScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const {
     control,
     handleSubmit,
@@ -41,13 +48,25 @@ export default function PackageCreateScreen({ navigation }: Props) {
   });
   const mutation = useMutation({
     mutationFn: (values: PackageInformationValues) =>
-      packagesService.create(packageValuesToInput(values)),
-    onSuccess: packageItem => {
+      runProtectedAdminAction(
+        adminActionPermissions.createPackage(),
+        'create package',
+        'packages',
+        () => packagesService.create(packageValuesToInput(values)),
+      ),
+    onSuccess: async packageItem => {
       queryClient.setQueryData(
         queryKeys.adminPackageDetail(packageItem.id),
         packageItem,
       );
-      void invalidateAdminMutation(queryClient, 'package');
+      await invalidateAdminMutation(queryClient, 'package');
+      await recordAudit(
+        adminAuditEvents.packageChanged(
+          packageItem.id,
+          'created',
+          packageItem.name,
+        ),
+      );
       navigation.replace('PackageDetail', { id: packageItem.id });
     },
   });

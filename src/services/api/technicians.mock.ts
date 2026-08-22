@@ -60,7 +60,7 @@ export const mockTechnicianAssignments: TechnicianAssignmentDto[] = [
   },
   {
     id: 'assignment-0002',
-    complaintId: 'complaint-historical-ali',
+    complaintId: 'complaint-2051',
     technicianId: 'tech-ali',
     workOrderId: 'work-order-0002',
     assignedBy: 'admin-mock',
@@ -83,7 +83,7 @@ export const mockTechnicianWorkOrders: TechnicianWorkOrderDto[] = [
   {
     id: 'work-order-0002',
     assignmentId: 'assignment-0002',
-    complaintId: 'complaint-historical-ali',
+    complaintId: 'complaint-2051',
     technicianId: 'tech-ali',
     status: 'COMPLETED',
     createdAt: '2026-08-01T09:00:00.000Z',

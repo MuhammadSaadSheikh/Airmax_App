@@ -21,3 +21,23 @@ export * from './reporting.timezone';
 export * from './subscriptions.service';
 export type * from './subscriptions.models';
 export * from './technicians.service';
+export type {
+  AdminTechnician,
+  AssignTechnicianComplaintInput,
+  ReassignTechnicianComplaintInput,
+  TechnicianArea,
+  TechnicianAreaDto,
+  TechnicianAssignment,
+  TechnicianAssignmentDto,
+  TechnicianDto as FieldTechnicianDto,
+  TechnicianFilters,
+  TechnicianHistory,
+  TechnicianHistoryAction,
+  TechnicianSkill,
+  TechnicianSkillDto,
+  TechnicianStatus,
+  TechnicianWorkload,
+  TechnicianWorkOrderDto,
+  UpdateTechnicianStatusInput,
+  WorkOrderStatus,
+} from './technicians.models';

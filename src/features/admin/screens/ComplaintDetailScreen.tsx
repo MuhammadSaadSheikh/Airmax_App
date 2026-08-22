@@ -15,16 +15,18 @@ import {
   ComplaintTimeline,
 } from '@/features/admin/components';
 import {
+  adminAuditEvents,
   adminActionPermissions,
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
 import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
-import { complaintsService } from '@/services/api';
+import { complaintsService, techniciansService } from '@/services/api';
 import type { AdminComplaintStatus } from '@/services/api/complaints.models';
 import {
   invalidateAdminMutation,
+  invalidateTechnicianAssignment,
   invalidateTechnicianWorkOrder,
   queryKeys,
 } from '@/services/query';
@@ -52,29 +54,45 @@ export default function ComplaintDetailScreen({ route }: Props) {
     mutationFn: (technicianId: string) => {
       const reassigning = Boolean(complaintQuery.data?.technician);
       return runProtectedAdminAction(
-        !reassigning || adminActionPermissions.reassignComplaint(),
-        'reassign complaint',
+        reassigning
+          ? adminActionPermissions.reassignComplaint()
+          : adminActionPermissions.assignComplaint(),
+        reassigning ? 'reassign complaint' : 'assign complaint',
         'complaints',
-        () => complaintsService.assignTechnician({ complaintId, technicianId }),
+        () =>
+          reassigning
+            ? techniciansService.reassignComplaint({
+                complaintId,
+                technicianId,
+              })
+            : techniciansService.assignComplaint({
+                complaintId,
+                technicianId,
+              }),
       );
     },
-    onSuccess: async (complaint, technicianId) => {
+    onSuccess: async (assignment, technicianId) => {
       const previousTechnicianId = complaintQuery.data?.technician?.id;
-      await synchronizeComplaint();
-      if (previousTechnicianId) {
-        await recordAudit({
-          action: 'COMPLAINT_TECHNICIAN_REASSIGNED',
-          entityType: 'COMPLAINT',
-          entityId: complaint.id,
-          metadata: { previousTechnicianId, technicianId },
-        });
-      }
+      await invalidateTechnicianAssignment(queryClient);
+      await recordAudit(
+        adminAuditEvents.complaintAssignment(
+          complaintId,
+          technicianId,
+          assignment.workOrder.id,
+          previousTechnicianId,
+        ),
+      );
     },
   });
   const statusMutation = useMutation({
     mutationFn: (status: AdminComplaintStatus) =>
-      complaintsService.updateStatus({ complaintId, status }),
-    onSuccess: async (_, status) => {
+      runProtectedAdminAction(
+        adminActionPermissions.changeComplaintStatus(),
+        'change complaint status',
+        'complaints',
+        () => complaintsService.updateStatus({ complaintId, status }),
+      ),
+    onSuccess: async (complaint, status) => {
       await synchronizeComplaint();
       const technicianId = complaintQuery.data?.technician?.id;
       if (status === 'resolved' && technicianId) {
@@ -84,12 +102,25 @@ export default function ComplaintDetailScreen({ route }: Props) {
           complaintId,
         );
       }
+      await recordAudit(
+        adminAuditEvents.complaintStatusChanged(complaint.id, status),
+      );
     },
   });
   const replyMutation = useMutation({
     mutationFn: (reply: string) =>
-      complaintsService.reply({ complaintId, reply }),
-    onSuccess: synchronizeComplaint,
+      runProtectedAdminAction(
+        adminActionPermissions.replyToComplaint(),
+        'reply to complaint',
+        'complaints',
+        () => complaintsService.reply({ complaintId, reply }),
+      ),
+    onSuccess: async complaint => {
+      await synchronizeComplaint();
+      await recordAudit(
+        adminAuditEvents.complaintReplied(complaint.id, complaint.status),
+      );
+    },
   });
 
   const confirmAssignment = (technicianId: string) => {

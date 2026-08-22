@@ -53,6 +53,8 @@ function mapTechnicianStatus(
       return 'busy';
     case 'OFFLINE':
       return 'offline';
+    case 'ON_LEAVE':
+      return 'on_leave';
   }
 }
 

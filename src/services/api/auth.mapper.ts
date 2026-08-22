@@ -1,5 +1,6 @@
 import type {
   AuthSession,
+  BackendAdminRole,
   BackendAuthSession,
   BackendCurrentUser,
   BackendRole,
@@ -19,13 +20,21 @@ export class AuthContractError extends AuthenticationError {
 
 export function mapBackendRole(role: BackendRole | string): Role {
   switch (role) {
+    case 'SUPER_ADMIN':
     case 'ADMIN':
+    case 'FINANCE':
+    case 'SUPPORT':
+    case 'TECHNICIAN_MANAGER':
       return 'admin';
     case 'CUSTOMER':
       return 'customer';
     default:
       throw new AuthContractError(`Unsupported backend role: ${role}`);
   }
+}
+
+function mapAdminRole(role: BackendRole): BackendAdminRole | undefined {
+  return role === 'CUSTOMER' ? undefined : role;
 }
 
 function requiredString(value: unknown, field: string): string {
@@ -65,6 +74,7 @@ export function mapSessionUser(user: BackendSessionUser): SessionUser {
     phone: requiredString(user.phone, 'user.phone'),
     email: optionalString(user.email, 'user.email'),
     role: mapBackendRole(user.role),
+    adminRole: mapAdminRole(user.role),
     status: mapStatus(user.status),
     address: optionalString(user.address, 'user.address'),
     connectionId: optionalString(user.connectionId, 'user.connectionId'),

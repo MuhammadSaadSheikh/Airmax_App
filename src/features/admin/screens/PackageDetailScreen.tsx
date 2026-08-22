@@ -10,6 +10,7 @@ import {
   PackageProfileHeader,
 } from '@/features/admin/components';
 import {
+  adminAuditEvents,
   adminActionPermissions,
   createAdminConfirmation,
   runProtectedAdminAction,
@@ -35,8 +36,23 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
     invalidateAdminMutation(queryClient, 'package');
 
   const activateMutation = useMutation({
-    mutationFn: () => packagesService.activate(packageId),
-    onSuccess: synchronizePackage,
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.activatePackage(),
+        'activate package',
+        'packages',
+        () => packagesService.activate(packageId),
+      ),
+    onSuccess: async packageResult => {
+      await synchronizePackage();
+      await recordAudit(
+        adminAuditEvents.packageChanged(
+          packageResult.id,
+          'activated',
+          packageResult.name,
+        ),
+      );
+    },
   });
   const deactivateMutation = useMutation({
     mutationFn: () =>
@@ -48,12 +64,13 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
       ),
     onSuccess: async packageResult => {
       await synchronizePackage();
-      await recordAudit({
-        action: 'PACKAGE_DEACTIVATED',
-        entityType: 'PACKAGE',
-        entityId: packageResult.id,
-        metadata: { packageName: packageResult.name },
-      });
+      await recordAudit(
+        adminAuditEvents.packageChanged(
+          packageResult.id,
+          'deactivated',
+          packageResult.name,
+        ),
+      );
     },
   });
 

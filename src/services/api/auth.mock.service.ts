@@ -21,6 +21,7 @@ function mockSession(role: Role, identifier: string): AuthSession {
     phone: identifier.includes('@') ? '+923000000000' : identifier,
     email: identifier.includes('@') ? identifier : undefined,
     role,
+    adminRole: isAdmin ? 'ADMIN' : undefined,
     status: 'active',
     subscriptions: [],
     createdAt: new Date(0).toISOString(),
@@ -44,7 +45,10 @@ export const mockAuthService: AuthenticationService = {
   async login(input: LoginInput): Promise<AuthSession> {
     await mockDelay();
     if (input.password.length < 8) {
-      throw new ValidationError('Mock passwords must be at least 8 characters', 422);
+      throw new ValidationError(
+        'Mock passwords must be at least 8 characters',
+        422,
+      );
     }
     return mockSession(input.mockRole ?? 'customer', input.identifier);
   },
