@@ -24,6 +24,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
 import { subscriptionsService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
@@ -44,6 +45,7 @@ function displayDate(value: string): string {
 
 export default function SubscriptionDetailScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const subscriptionId = route.params.id;
   const subscriptionQuery = useQuery({
     queryKey: queryKeys.adminSubscriptionDetail(subscriptionId),
@@ -65,7 +67,18 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
         'subscriptions',
         () => subscriptionsService.suspendSubscription(subscriptionId),
       ),
-    onSuccess: synchronizeSubscription,
+    onSuccess: async subscription => {
+      await synchronizeSubscription();
+      await recordAudit({
+        action: 'SUBSCRIPTION_SUSPENDED',
+        entityType: 'SUBSCRIPTION',
+        entityId: subscription.id,
+        metadata: {
+          customerId: subscription.customer.id,
+          packageId: subscription.package.id,
+        },
+      });
+    },
   });
   const cancelMutation = useMutation({
     mutationFn: () =>
@@ -75,7 +88,18 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
         'subscriptions',
         () => subscriptionsService.cancelSubscription(subscriptionId),
       ),
-    onSuccess: synchronizeSubscription,
+    onSuccess: async subscription => {
+      await synchronizeSubscription();
+      await recordAudit({
+        action: 'SUBSCRIPTION_CANCELLED',
+        entityType: 'SUBSCRIPTION',
+        entityId: subscription.id,
+        metadata: {
+          customerId: subscription.customer.id,
+          packageId: subscription.package.id,
+        },
+      });
+    },
   });
 
   const confirm = (

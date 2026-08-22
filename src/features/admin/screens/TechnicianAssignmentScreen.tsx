@@ -22,6 +22,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService, techniciansService } from '@/services/api';
 import { invalidateTechnicianAssignment, queryKeys } from '@/services/query';
@@ -38,6 +39,7 @@ export default function TechnicianAssignmentScreen({
 }: Props) {
   const complaintId = route.params.complaintId;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const complaintQuery = useQuery({
     queryKey: queryKeys.adminComplaintDetail(complaintId),
@@ -69,8 +71,21 @@ export default function TechnicianAssignmentScreen({
               }),
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (assignment, technicianId) => {
+      const previousTechnicianId = complaintQuery.data?.technician?.id;
       await invalidateTechnicianAssignment(queryClient);
+      if (previousTechnicianId) {
+        await recordAudit({
+          action: 'COMPLAINT_TECHNICIAN_REASSIGNED',
+          entityType: 'COMPLAINT',
+          entityId: complaintId,
+          metadata: {
+            previousTechnicianId,
+            technicianId,
+            workOrderId: assignment.workOrder.id,
+          },
+        });
+      }
       navigation.goBack();
     },
   });

@@ -76,6 +76,13 @@ export default function More() {
           title="Roles & permissions"
           onPress={() => {}}
         />
+        <View style={ui.divider} />
+        <Row
+          icon="time-outline"
+          title="Admin audit trail"
+          subtitle="Review protected administrative actions"
+          onPress={() => navigation.navigate('AuditTrail')}
+        />
       </Card>
       <Button
         title="Sign out"

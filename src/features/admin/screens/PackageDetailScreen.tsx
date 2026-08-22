@@ -19,6 +19,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
 import { packagesService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
@@ -29,6 +30,7 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'PackageDetail'>;
 export default function PackageDetailScreen({ navigation, route }: Props) {
   const packageId = route.params.id;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const packageQuery = useQuery({
     queryKey: queryKeys.adminPackageDetail(packageId),
     queryFn: () => packagesService.getById(packageId),
@@ -49,7 +51,15 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
         'packages',
         () => packagesService.deactivate(packageId),
       ),
-    onSuccess: synchronizePackage,
+    onSuccess: async packageResult => {
+      await synchronizePackage();
+      await recordAudit({
+        action: 'PACKAGE_DEACTIVATED',
+        entityType: 'PACKAGE',
+        entityId: packageResult.id,
+        metadata: { packageName: packageResult.name },
+      });
+    },
   });
 
   if (packageQuery.isPending) {

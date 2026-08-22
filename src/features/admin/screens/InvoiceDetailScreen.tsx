@@ -16,6 +16,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import {
   BillingActionPanel,
   BillingMockNotice,
@@ -48,6 +49,7 @@ function billingPeriod(start: string, end: string): string {
 export default function InvoiceDetailScreen({ navigation, route }: Props) {
   const invoiceId = route.params.id;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const invoiceQuery = useQuery({
     queryKey: queryKeys.adminInvoiceDetail(invoiceId),
     queryFn: () => adminBillingService.getInvoiceById(invoiceId),
@@ -69,7 +71,19 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
             method,
           }),
       ),
-    onSuccess: invalidateBilling,
+    onSuccess: async payment => {
+      await invalidateBilling();
+      await recordAudit({
+        action: 'PAYMENT_RECORDED',
+        entityType: 'PAYMENT',
+        entityId: payment.id,
+        metadata: {
+          invoiceId: payment.invoiceId,
+          amount: payment.amount,
+          method: payment.method,
+        },
+      });
+    },
   });
   const markPaidMutation = useMutation({
     mutationFn: () =>
@@ -89,7 +103,19 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
         'billing',
         () => adminBillingService.cancelInvoice(invoiceId),
       ),
-    onSuccess: invalidateBilling,
+    onSuccess: async invoice => {
+      await invalidateBilling();
+      await recordAudit({
+        action: 'INVOICE_CANCELLED',
+        entityType: 'INVOICE',
+        entityId: invoice.id,
+        metadata: {
+          invoiceNumber: invoice.invoiceNumber,
+          customerId: invoice.customer.id,
+          amount: invoice.amount,
+        },
+      });
+    },
   });
 
   const choosePaymentMethod = () => {

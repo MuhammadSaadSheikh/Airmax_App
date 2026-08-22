@@ -89,8 +89,9 @@ describe('Phase 3H.1 admin security controls', () => {
     const event = createAdminAuditEvent(
       {
         actorId: 'admin-1',
-        action: 'package.deactivate',
-        entity: 'package',
+        actorName: 'Admin One',
+        action: 'PACKAGE_DEACTIVATED',
+        entityType: 'PACKAGE',
         entityId: 'premium',
         metadata,
       },
@@ -99,10 +100,11 @@ describe('Phase 3H.1 admin security controls', () => {
     metadata.previousStatus = 'changed';
 
     expect(event).toEqual({
-      id: 'audit:admin-1:package.deactivate:package:premium:2026-08-22T10:00:00.000Z',
+      id: 'audit:admin-1:PACKAGE_DEACTIVATED:PACKAGE:premium:2026-08-22T10:00:00.000Z',
       actorId: 'admin-1',
-      action: 'package.deactivate',
-      entity: 'package',
+      actorName: 'Admin One',
+      action: 'PACKAGE_DEACTIVATED',
+      entityType: 'PACKAGE',
       entityId: 'premium',
       timestamp: '2026-08-22T10:00:00.000Z',
       metadata: { previousStatus: 'active', destructive: true },

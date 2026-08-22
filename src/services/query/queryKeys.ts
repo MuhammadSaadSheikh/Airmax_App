@@ -44,6 +44,14 @@ export const queryKeys = {
     ['admin-billing', 'payments', 'detail', id] as const,
   adminBillingSummary: ['admin-billing', 'summary'] as const,
   adminDashboard: ['admin-dashboard'] as const,
+  adminAudit: ['admin-audit'] as const,
+  adminAuditList: (
+    filters: import('@/services/api/audit.models').AuditFilters,
+  ) => ['admin-audit', 'list', filters] as const,
+  adminEntityHistory: (
+    entityType: import('@/services/api/audit.models').AuditEntityType,
+    id: string,
+  ) => ['admin-audit', 'entity', entityType, id] as const,
   adminReports: ['admin-reports'] as const,
   adminFinancialReport: (filters: ReportFilters) =>
     ['admin-reports', 'financial', filters] as const,

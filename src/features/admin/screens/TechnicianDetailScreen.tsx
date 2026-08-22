@@ -22,6 +22,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService, techniciansService } from '@/services/api';
 import type { TechnicianStatus } from '@/services/api/technicians.models';
@@ -37,6 +38,7 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'TechnicianDetail'>;
 export default function TechnicianDetailScreen({ navigation, route }: Props) {
   const id = route.params.id;
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const detailQuery = useQuery({
     queryKey: queryKeys.adminTechnicianDetail(id),
     queryFn: () => techniciansService.getTechnicianById(id),
@@ -81,12 +83,29 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
         },
       );
     },
-    onSuccess: assignment =>
-      invalidateTechnicianWorkOrder(
+    onSuccess: async (assignment, variables) => {
+      await invalidateTechnicianWorkOrder(
         queryClient,
         assignment.technicianId,
         assignment.complaintId,
-      ),
+      );
+      const auditAction = {
+        accept: 'WORK_ORDER_ACCEPTED',
+        start: 'WORK_ORDER_STARTED',
+        complete: 'WORK_ORDER_COMPLETED',
+        cancel: 'WORK_ORDER_CANCELLED',
+      } as const;
+      await recordAudit({
+        action: auditAction[variables.action],
+        entityType: 'WORK_ORDER',
+        entityId: assignment.workOrder.id,
+        metadata: {
+          complaintId: assignment.complaintId,
+          technicianId: assignment.technicianId,
+          status: assignment.workOrder.status,
+        },
+      });
+    },
   });
 
   if (

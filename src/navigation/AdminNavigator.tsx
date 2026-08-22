@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminComplaintsScreen from '@/features/admin/screens/AdminComplaintsScreen';
+import AdminAuditScreen from '@/features/admin/screens/AdminAuditScreen';
 import AdminHomeScreen from '@/features/admin/screens/AdminHomeScreen';
 import AdminMoreScreen from '@/features/admin/screens/AdminMoreScreen';
 import AdminPackagesScreen from '@/features/admin/screens/AdminPackagesScreen';
@@ -81,6 +82,7 @@ export function AdminNavigator() {
       />
       <Stack.Screen name="ServiceAreas" component={ServiceAreasScreen} />
       <Stack.Screen name="Reports" component={AdminReportsScreen} />
+      <Stack.Screen name="AuditTrail" component={AdminAuditScreen} />
       <Stack.Screen name="FinancialReport" component={FinancialReportScreen} />
       <Stack.Screen name="CustomerReport" component={CustomerReportScreen} />
       <Stack.Screen name="ComplaintReport" component={ComplaintReportScreen} />

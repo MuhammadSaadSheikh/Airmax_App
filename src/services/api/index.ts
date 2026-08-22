@@ -1,3 +1,5 @@
+export * from './audit.service';
+export type * from './audit.models';
 export * from './billing.service';
 export type * from './billing.models';
 export * from './auth.mapper';

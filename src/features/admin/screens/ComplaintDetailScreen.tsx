@@ -24,6 +24,7 @@ import {
   createAdminConfirmation,
   runProtectedAdminAction,
 } from '@/features/admin/security';
+import { useAdminAudit } from '@/features/admin/security/useAdminAudit';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService } from '@/services/api';
 import type { AdminComplaintStatus } from '@/services/api/complaints.models';
@@ -38,6 +39,7 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'ComplaintDetail'>;
 
 export default function ComplaintDetailScreen({ route }: Props) {
   const queryClient = useQueryClient();
+  const recordAudit = useAdminAudit();
   const complaintId = route.params.id;
   const complaintQuery = useQuery({
     queryKey: queryKeys.adminComplaintDetail(complaintId),
@@ -61,7 +63,18 @@ export default function ComplaintDetailScreen({ route }: Props) {
         () => complaintsService.assignTechnician({ complaintId, technicianId }),
       );
     },
-    onSuccess: synchronizeComplaint,
+    onSuccess: async (complaint, technicianId) => {
+      const previousTechnicianId = complaintQuery.data?.technician?.id;
+      await synchronizeComplaint();
+      if (previousTechnicianId) {
+        await recordAudit({
+          action: 'COMPLAINT_TECHNICIAN_REASSIGNED',
+          entityType: 'COMPLAINT',
+          entityId: complaint.id,
+          metadata: { previousTechnicianId, technicianId },
+        });
+      }
+    },
   });
   const statusMutation = useMutation({
     mutationFn: (status: AdminComplaintStatus) =>
