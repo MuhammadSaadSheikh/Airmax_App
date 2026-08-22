@@ -69,3 +69,20 @@ export async function invalidateTechnicianStatus(
     ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
   );
 }
+
+export async function invalidateTechnicianWorkOrder(
+  queryClient: QueryClient,
+  technicianId: string,
+  complaintId: string,
+): Promise<void> {
+  await Promise.all(
+    [
+      queryKeys.adminTechnicians,
+      queryKeys.adminTechnicianDetail(technicianId),
+      queryKeys.adminTechnicianWorkload(technicianId),
+      queryKeys.adminComplaintDetail(complaintId),
+      queryKeys.adminComplaintList,
+      queryKeys.adminDashboard,
+    ].map(queryKey => queryClient.invalidateQueries({ queryKey })),
+  );
+}

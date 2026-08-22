@@ -8,6 +8,7 @@ import { mockComplaintRepository } from './complaints.mock.repository';
 import { mockCustomerRepository } from './customers.mock.repository';
 import { mockPackageRepository } from './packages.mock.repository';
 import { mockSubscriptionRepository } from './subscriptions.mock.repository';
+import { mockTechnicianRepository } from './technicians.mock.repository';
 
 export type MockSystemSnapshot = {
   customers: CustomerDetailDto[];
@@ -131,6 +132,7 @@ export const mockSystemRepository = {
     mockCustomerRepository.reset();
     mockBillingRepository.reset();
     mockComplaintRepository.reset();
+    mockTechnicianRepository.reset();
     validateMockSystem();
   },
 

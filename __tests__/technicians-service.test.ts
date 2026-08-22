@@ -25,6 +25,7 @@ describe('techniciansService', () => {
     ]);
     expect(technicians[0]?.workload).toEqual({
       activeJobs: 0,
+      availableCapacity: 1,
       completedJobs: 1,
     });
   });
@@ -225,5 +226,189 @@ describe('techniciansService', () => {
         }),
       ]),
     );
+  });
+
+  it('accepts an assigned work order and records history', async () => {
+    const assigned = await techniciansService.assignComplaint({
+      complaintId: 'complaint-2054',
+      technicianId: 'tech-ali',
+    });
+
+    const accepted = await techniciansService.acceptWorkOrder(
+      assigned.workOrder.id,
+    );
+
+    expect(accepted.workOrder.status).toBe('ACCEPTED');
+    await expect(
+      techniciansService.getTechnicianHistory('tech-ali'),
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'WORK_ORDER_ACCEPTED' }),
+      ]),
+    );
+  });
+
+  it('starts an accepted work order and synchronizes the complaint', async () => {
+    const assigned = await techniciansService.assignComplaint({
+      complaintId: 'complaint-2054',
+      technicianId: 'tech-ali',
+    });
+    await techniciansService.acceptWorkOrder(assigned.workOrder.id);
+
+    const started = await techniciansService.startWorkOrder(
+      assigned.workOrder.id,
+    );
+
+    expect(started.workOrder.status).toBe('IN_PROGRESS');
+    await expect(
+      complaintsService.getById('complaint-2054'),
+    ).resolves.toMatchObject({ status: 'in_progress' });
+  });
+
+  it('completes in-progress work, resolves its complaint and releases capacity', async () => {
+    const assigned = await techniciansService.assignComplaint({
+      complaintId: 'complaint-2054',
+      technicianId: 'tech-ali',
+    });
+    await techniciansService.acceptWorkOrder(assigned.workOrder.id);
+    await techniciansService.startWorkOrder(assigned.workOrder.id);
+
+    const completed = await techniciansService.completeWorkOrder(
+      assigned.workOrder.id,
+    );
+    const workload = await techniciansService.getTechnicianWorkload('tech-ali');
+
+    expect(completed.workOrder.status).toBe('COMPLETED');
+    expect(completed.workOrder.completedAt).not.toBeNull();
+    expect(workload).toMatchObject({
+      capacity: 1,
+      activeJobs: 0,
+      availableCapacity: 1,
+      completedJobs: 2,
+    });
+    await expect(
+      complaintsService.getById('complaint-2054'),
+    ).resolves.toMatchObject({ status: 'resolved' });
+    await expect(
+      techniciansService.getTechnicianById('tech-ali'),
+    ).resolves.toMatchObject({ status: 'AVAILABLE' });
+  });
+
+  it.each(['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'] as const)(
+    'cancels a work order from %s and prevents continuation',
+    async status => {
+      const assigned = await techniciansService.assignComplaint({
+        complaintId: 'complaint-2054',
+        technicianId: 'tech-ali',
+      });
+      if (status === 'ACCEPTED' || status === 'IN_PROGRESS') {
+        await techniciansService.acceptWorkOrder(assigned.workOrder.id);
+      }
+      if (status === 'IN_PROGRESS') {
+        await techniciansService.startWorkOrder(assigned.workOrder.id);
+      }
+
+      const cancelled = await techniciansService.cancelWorkOrder(
+        assigned.workOrder.id,
+      );
+
+      expect(cancelled.workOrder.status).toBe('CANCELLED');
+      await expect(
+        techniciansService.acceptWorkOrder(assigned.workOrder.id),
+      ).rejects.toThrow('Cancelled work orders cannot continue');
+      const history = await techniciansService.getTechnicianHistory('tech-ali');
+      expect(history).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ action: 'WORK_ORDER_CANCELLED' }),
+        ]),
+      );
+    },
+  );
+
+  it('rejects skipped, repeated and completed work-order transitions', async () => {
+    const assigned = await techniciansService.assignComplaint({
+      complaintId: 'complaint-2054',
+      technicianId: 'tech-ali',
+    });
+
+    await expect(
+      techniciansService.startWorkOrder(assigned.workOrder.id),
+    ).rejects.toThrow('Invalid work order transition');
+    await techniciansService.acceptWorkOrder(assigned.workOrder.id);
+    await expect(
+      techniciansService.completeWorkOrder(assigned.workOrder.id),
+    ).rejects.toThrow('Invalid work order transition');
+    await expect(
+      techniciansService.acceptWorkOrder(assigned.workOrder.id),
+    ).rejects.toThrow('Invalid work order transition');
+    await expect(
+      techniciansService.cancelWorkOrder('work-order-0002'),
+    ).rejects.toThrow('Completed work orders are immutable');
+  });
+
+  it('derives workload from assignments and rejects capacity overflow', async () => {
+    await techniciansService.assignComplaint({
+      complaintId: 'complaint-2054',
+      technicianId: 'tech-ali',
+    });
+
+    const workload = await techniciansService.getTechnicianWorkload('tech-ali');
+    expect(workload.activeJobs).toBe(
+      workload.assignments.filter(item =>
+        ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'].includes(item.workOrder.status),
+      ).length,
+    );
+    expect(workload).toMatchObject({
+      capacity: 1,
+      activeJobs: 1,
+      availableCapacity: 0,
+    });
+    await expect(
+      techniciansService.assignComplaint({
+        complaintId: 'complaint-2053',
+        technicianId: 'tech-ali',
+      }),
+    ).rejects.toThrow('Technician capacity exceeded');
+  });
+
+  it('completes active work when its complaint is resolved directly', async () => {
+    await complaintsService.updateStatus({
+      complaintId: 'complaint-2052',
+      status: 'resolved',
+    });
+
+    const workload =
+      await techniciansService.getTechnicianWorkload('tech-usman');
+    expect(workload.activeJobs).toBe(0);
+    expect(workload.completedJobs).toBe(1);
+    expect(workload.assignments[0]?.workOrder.status).toBe('COMPLETED');
+    await expect(
+      techniciansService.getTechnicianHistory('tech-usman'),
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'WORK_ORDER_COMPLETED' }),
+      ]),
+    );
+  });
+
+  it('preserves completed work and history when complaint state is reopened', async () => {
+    await complaintsService.updateStatus({
+      complaintId: 'complaint-2052',
+      status: 'resolved',
+    });
+    const historyBefore =
+      await techniciansService.getTechnicianHistory('tech-usman');
+
+    mockComplaintRepository.reset();
+
+    await expect(
+      complaintsService.getById('complaint-2052'),
+    ).resolves.toMatchObject({ status: 'in_progress' });
+    const workload =
+      await techniciansService.getTechnicianWorkload('tech-usman');
+    const historyAfter =
+      await techniciansService.getTechnicianHistory('tech-usman');
+    expect(workload.assignments[0]?.workOrder.status).toBe('COMPLETED');
+    expect(historyAfter).toEqual(historyBefore);
   });
 });

@@ -20,6 +20,7 @@ export const mockTechnicians: TechnicianDto[] = [
       { id: 'skill-router', name: 'Router Setup' },
       { id: 'skill-troubleshooting', name: 'Troubleshooting' },
     ],
+    capacity: 1,
     joinedAt: '2024-02-12T08:00:00.000Z',
   },
   {
@@ -32,6 +33,7 @@ export const mockTechnicians: TechnicianDto[] = [
       { id: 'skill-troubleshooting', name: 'Troubleshooting' },
       { id: 'skill-splicing', name: 'Fiber Splicing' },
     ],
+    capacity: 2,
     joinedAt: '2023-09-04T08:00:00.000Z',
   },
   {
@@ -41,6 +43,7 @@ export const mockTechnicians: TechnicianDto[] = [
     status: 'OFFLINE',
     area: { id: 'area-karachi-south', name: 'Karachi South', city: 'Karachi' },
     skills: [{ id: 'skill-router', name: 'Router Setup' }],
+    capacity: 1,
     joinedAt: '2025-01-20T08:00:00.000Z',
   },
 ];

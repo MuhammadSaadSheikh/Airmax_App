@@ -22,7 +22,11 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService } from '@/services/api';
 import type { AdminComplaintStatus } from '@/services/api/complaints.models';
-import { invalidateAdminMutation, queryKeys } from '@/services/query';
+import {
+  invalidateAdminMutation,
+  invalidateTechnicianWorkOrder,
+  queryKeys,
+} from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'ComplaintDetail'>;
@@ -50,7 +54,17 @@ export default function ComplaintDetailScreen({ route }: Props) {
   const statusMutation = useMutation({
     mutationFn: (status: AdminComplaintStatus) =>
       complaintsService.updateStatus({ complaintId, status }),
-    onSuccess: synchronizeComplaint,
+    onSuccess: async (_, status) => {
+      await synchronizeComplaint();
+      const technicianId = complaintQuery.data?.technician?.id;
+      if (status === 'resolved' && technicianId) {
+        await invalidateTechnicianWorkOrder(
+          queryClient,
+          technicianId,
+          complaintId,
+        );
+      }
+    },
   });
   const replyMutation = useMutation({
     mutationFn: (reply: string) =>

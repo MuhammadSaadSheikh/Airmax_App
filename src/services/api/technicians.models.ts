@@ -21,6 +21,7 @@ export type TechnicianDto = {
   status: TechnicianStatus;
   area: TechnicianAreaDto;
   skills: TechnicianSkillDto[];
+  capacity: number;
   joinedAt: string;
 };
 
@@ -74,7 +75,9 @@ export type TechnicianAssignment = {
 
 export type TechnicianWorkload = {
   technicianId: string;
+  capacity: number;
   activeJobs: number;
+  availableCapacity: number;
   completedJobs: number;
   assignments: TechnicianAssignment[];
 };
@@ -86,8 +89,12 @@ export type AdminTechnician = {
   status: TechnicianStatus;
   area: TechnicianArea;
   skills: TechnicianSkill[];
+  capacity: number;
   joinedAt: string;
-  workload: Pick<TechnicianWorkload, 'activeJobs' | 'completedJobs'>;
+  workload: Pick<
+    TechnicianWorkload,
+    'activeJobs' | 'availableCapacity' | 'completedJobs'
+  >;
 };
 
 export type TechnicianHistoryAction =
@@ -95,6 +102,8 @@ export type TechnicianHistoryAction =
   | 'REASSIGNED_FROM'
   | 'REASSIGNED_TO'
   | 'STATUS_CHANGED'
+  | 'WORK_ORDER_ACCEPTED'
+  | 'WORK_ORDER_STARTED'
   | 'WORK_ORDER_COMPLETED'
   | 'WORK_ORDER_CANCELLED';
 

@@ -30,6 +30,7 @@ export function mapTechnicianAssignment(
 
 export function mapTechnicianWorkload(
   technicianId: string,
+  capacity: number,
   assignments: TechnicianAssignmentDto[],
   workOrders: TechnicianWorkOrderDto[],
 ): TechnicianWorkload {
@@ -40,11 +41,14 @@ export function mapTechnicianWorkload(
     if (!workOrder) throw new Error('Assignment work order not found');
     return mapTechnicianAssignment(assignment, workOrder);
   });
+  const activeJobs = mapped.filter(item =>
+    ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'].includes(item.workOrder.status),
+  ).length;
   return {
     technicianId,
-    activeJobs: mapped.filter(item =>
-      ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'].includes(item.workOrder.status),
-    ).length,
+    capacity,
+    activeJobs,
+    availableCapacity: Math.max(0, capacity - activeJobs),
     completedJobs: mapped.filter(item => item.workOrder.status === 'COMPLETED')
       .length,
     assignments: mapped,
@@ -62,9 +66,11 @@ export function mapTechnician(
     status: technician.status,
     area: { ...technician.area },
     skills: technician.skills.map(skill => ({ ...skill })),
+    capacity: technician.capacity,
     joinedAt: technician.joinedAt,
     workload: {
       activeJobs: workload.activeJobs,
+      availableCapacity: workload.availableCapacity,
       completedJobs: workload.completedJobs,
     },
   };

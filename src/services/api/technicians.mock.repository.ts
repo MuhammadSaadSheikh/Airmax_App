@@ -73,6 +73,16 @@ function technicianById(id: string): TechnicianDto {
   return techniciansState[technicianIndex(id)]!;
 }
 
+function workOrderIndex(id: string): number {
+  const index = workOrdersState.findIndex(item => item.id === id);
+  if (index < 0) throw new Error('Work order not found');
+  return index;
+}
+
+function workOrderById(id: string): TechnicianWorkOrderDto {
+  return workOrdersState[workOrderIndex(id)]!;
+}
+
 function workOrderForAssignment(
   assignment: TechnicianAssignmentDto,
 ): TechnicianWorkOrderDto {
@@ -112,8 +122,53 @@ function assertReceivesWork(technician: TechnicianDto): void {
   if (technician.status === 'ON_LEAVE') {
     throw new Error('Technician on leave cannot receive work');
   }
-  if (technician.status === 'BUSY' || activeCount(technician.id) > 0) {
+  if (activeCount(technician.id) >= technician.capacity) {
+    throw new Error('Technician capacity exceeded');
+  }
+  if (technician.status === 'BUSY') {
     throw new Error('Busy technician cannot receive new work');
+  }
+}
+
+function assertTransition(
+  workOrder: TechnicianWorkOrderDto,
+  status: WorkOrderStatus,
+): void {
+  if (workOrder.status === 'COMPLETED') {
+    throw new Error('Completed work orders are immutable');
+  }
+  if (workOrder.status === 'CANCELLED') {
+    throw new Error('Cancelled work orders cannot continue');
+  }
+  const nextStatus: Partial<Record<WorkOrderStatus, WorkOrderStatus>> = {
+    ASSIGNED: 'ACCEPTED',
+    ACCEPTED: 'IN_PROGRESS',
+    IN_PROGRESS: 'COMPLETED',
+  };
+  const cancellationAllowed =
+    status === 'CANCELLED' && activeStatuses.includes(workOrder.status);
+  if (!cancellationAllowed && nextStatus[workOrder.status] !== status) {
+    throw new Error(
+      `Invalid work order transition from ${workOrder.status} to ${status}`,
+    );
+  }
+}
+
+function historyForTransition(status: WorkOrderStatus): {
+  action: TechnicianHistoryAction;
+  note: string;
+} {
+  switch (status) {
+    case 'ACCEPTED':
+      return { action: 'WORK_ORDER_ACCEPTED', note: 'Work order accepted' };
+    case 'IN_PROGRESS':
+      return { action: 'WORK_ORDER_STARTED', note: 'Work order started' };
+    case 'COMPLETED':
+      return { action: 'WORK_ORDER_COMPLETED', note: 'Work order completed' };
+    case 'CANCELLED':
+      return { action: 'WORK_ORDER_CANCELLED', note: 'Work order cancelled' };
+    case 'ASSIGNED':
+      throw new Error('Assigned is not a transition target');
   }
 }
 
@@ -222,6 +277,20 @@ export const mockTechnicianRepository = {
       .map(cloneWorkOrder);
   },
 
+  getWorkOrderById(id: string): TechnicianWorkOrderDto | undefined {
+    const workOrder = workOrdersState.find(item => item.id === id);
+    return workOrder ? cloneWorkOrder(workOrder) : undefined;
+  },
+
+  getActiveWorkOrderForComplaint(
+    complaintId: string,
+  ): TechnicianWorkOrderDto | undefined {
+    const assignment = activeAssignmentForComplaint(complaintId);
+    return assignment
+      ? cloneWorkOrder(workOrderForAssignment(assignment))
+      : undefined;
+  },
+
   getHistory(id: string): TechnicianHistory[] {
     technicianById(id);
     return historyState
@@ -301,6 +370,63 @@ export const mockTechnicianRepository = {
       workOrder.id,
     );
     return cloneAssignment(assignment);
+  },
+
+  validateWorkOrderTransition(id: string, status: WorkOrderStatus): void {
+    assertTransition(workOrderById(id), status);
+  },
+
+  transitionWorkOrder(
+    id: string,
+    status: WorkOrderStatus,
+  ): TechnicianWorkOrderDto {
+    const index = workOrderIndex(id);
+    const workOrder = workOrdersState[index]!;
+    assertTransition(workOrder, status);
+    const changedAt = timestamp();
+    const terminal = status === 'COMPLETED' || status === 'CANCELLED';
+    const updated: TechnicianWorkOrderDto = {
+      ...workOrder,
+      status,
+      updatedAt: changedAt,
+      completedAt: status === 'COMPLETED' ? changedAt : null,
+    };
+    workOrdersState[index] = updated;
+    if (terminal) {
+      const assignment = assignmentsState.find(
+        item => item.id === workOrder.assignmentId,
+      );
+      if (!assignment) throw new Error('Work order assignment not found');
+      assignment.endedAt = changedAt;
+    }
+    const history = historyForTransition(status);
+    addHistory(
+      workOrder.technicianId,
+      history.action,
+      history.note,
+      changedAt,
+      workOrder.complaintId,
+      workOrder.id,
+    );
+    setStatusAfterWorkChange(workOrder.technicianId);
+    return cloneWorkOrder(updated);
+  },
+
+  synchronizeResolvedComplaint(
+    complaintId: string,
+  ): TechnicianWorkOrderDto | undefined {
+    let workOrder = this.getActiveWorkOrderForComplaint(complaintId);
+    if (!workOrder) return undefined;
+    if (workOrder.status === 'ASSIGNED') {
+      workOrder = this.transitionWorkOrder(workOrder.id, 'ACCEPTED');
+    }
+    if (workOrder.status === 'ACCEPTED') {
+      workOrder = this.transitionWorkOrder(workOrder.id, 'IN_PROGRESS');
+    }
+    if (workOrder.status === 'IN_PROGRESS') {
+      workOrder = this.transitionWorkOrder(workOrder.id, 'COMPLETED');
+    }
+    return cloneWorkOrder(workOrder);
   },
 
   updateStatus(input: UpdateTechnicianStatusInput): TechnicianDto {

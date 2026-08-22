@@ -17,11 +17,22 @@ import type {
 } from './technicians.models';
 
 function workloadFor(id: string): TechnicianWorkload {
+  const technician = mockTechnicianRepository.getTechnicianById(id);
+  if (!technician) throw new Error('Technician not found');
   return mapTechnicianWorkload(
     id,
+    technician.capacity,
     mockTechnicianRepository.getAssignments(id),
     mockTechnicianRepository.getWorkOrders(id),
   );
+}
+
+function mappedWorkOrder(id: string): TechnicianAssignment {
+  const assignment = mockTechnicianRepository
+    .snapshot()
+    .assignments.find(item => item.workOrderId === id);
+  if (!assignment) throw new Error('Work order assignment not found');
+  return mappedAssignment(assignment.id);
 }
 
 function mappedAssignment(id: string): TechnicianAssignment {
@@ -99,6 +110,59 @@ export const techniciansService = {
     await assertAssignableComplaint(input.complaintId);
     await complaintsService.assignTechnician(input);
     return mappedAssignment(mockTechnicianRepository.reassign(input).id);
+  },
+
+  async acceptWorkOrder(workOrderId: string): Promise<TechnicianAssignment> {
+    mockTechnicianRepository.transitionWorkOrder(workOrderId, 'ACCEPTED');
+    return mappedWorkOrder(workOrderId);
+  },
+
+  async startWorkOrder(workOrderId: string): Promise<TechnicianAssignment> {
+    mockTechnicianRepository.validateWorkOrderTransition(
+      workOrderId,
+      'IN_PROGRESS',
+    );
+    const workOrder = mockTechnicianRepository.getWorkOrderById(workOrderId);
+    if (!workOrder) throw new Error('Work order not found');
+    const complaint = await complaintsService.getById(workOrder.complaintId);
+    if (complaint.status === 'assigned') {
+      await complaintsService.updateStatus({
+        complaintId: workOrder.complaintId,
+        status: 'in_progress',
+      });
+    } else if (complaint.status !== 'in_progress') {
+      throw new Error('Complaint must be assigned before work can start');
+    }
+    mockTechnicianRepository.transitionWorkOrder(workOrderId, 'IN_PROGRESS');
+    return mappedWorkOrder(workOrderId);
+  },
+
+  async completeWorkOrder(workOrderId: string): Promise<TechnicianAssignment> {
+    mockTechnicianRepository.validateWorkOrderTransition(
+      workOrderId,
+      'COMPLETED',
+    );
+    const workOrder = mockTechnicianRepository.getWorkOrderById(workOrderId);
+    if (!workOrder) throw new Error('Work order not found');
+    const complaint = await complaintsService.getById(workOrder.complaintId);
+    if (complaint.status === 'in_progress') {
+      await complaintsService.updateStatus({
+        complaintId: workOrder.complaintId,
+        status: 'resolved',
+      });
+    } else if (complaint.status !== 'resolved') {
+      throw new Error('Complaint must be in progress before work can complete');
+    }
+    const synchronized = mockTechnicianRepository.getWorkOrderById(workOrderId);
+    if (synchronized?.status !== 'COMPLETED') {
+      mockTechnicianRepository.transitionWorkOrder(workOrderId, 'COMPLETED');
+    }
+    return mappedWorkOrder(workOrderId);
+  },
+
+  async cancelWorkOrder(workOrderId: string): Promise<TechnicianAssignment> {
+    mockTechnicianRepository.transitionWorkOrder(workOrderId, 'CANCELLED');
+    return mappedWorkOrder(workOrderId);
   },
 
   async updateTechnicianStatus(

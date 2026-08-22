@@ -6,6 +6,7 @@ import {
   mapTechnician,
 } from './complaints.mapper';
 import { mockComplaintRepository } from './complaints.mock.repository';
+import { mockTechnicianRepository } from './technicians.mock.repository';
 import type {
   AdminComplaint,
   AdminComplaintStatus,
@@ -111,7 +112,11 @@ export const complaintsService = {
   ): Promise<AdminComplaint> {
     if (environment.useMockApi) {
       await mockDelay(500);
-      return mapComplaint(mockComplaintRepository.updateStatus(input));
+      const updated = mapComplaint(mockComplaintRepository.updateStatus(input));
+      if (updated.status === 'resolved') {
+        mockTechnicianRepository.synchronizeResolvedComplaint(updated.id);
+      }
+      return updated;
     }
 
     const existing = await complaintsService.getById(input.complaintId);

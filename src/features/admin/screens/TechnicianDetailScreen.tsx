@@ -20,7 +20,11 @@ import {
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService, techniciansService } from '@/services/api';
 import type { TechnicianStatus } from '@/services/api/technicians.models';
-import { invalidateTechnicianStatus, queryKeys } from '@/services/query';
+import {
+  invalidateTechnicianStatus,
+  invalidateTechnicianWorkOrder,
+  queryKeys,
+} from '@/services/query';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'TechnicianDetail'>;
@@ -48,6 +52,29 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
     mutationFn: (status: TechnicianStatus) =>
       techniciansService.updateTechnicianStatus({ id, status }),
     onSuccess: () => invalidateTechnicianStatus(queryClient, id),
+  });
+  const lifecycleMutation = useMutation({
+    mutationFn: ({
+      action,
+      workOrderId,
+    }: {
+      action: 'accept' | 'start' | 'complete' | 'cancel';
+      workOrderId: string;
+    }) => {
+      if (action === 'accept')
+        return techniciansService.acceptWorkOrder(workOrderId);
+      if (action === 'start')
+        return techniciansService.startWorkOrder(workOrderId);
+      if (action === 'complete')
+        return techniciansService.completeWorkOrder(workOrderId);
+      return techniciansService.cancelWorkOrder(workOrderId);
+    },
+    onSuccess: assignment =>
+      invalidateTechnicianWorkOrder(
+        queryClient,
+        assignment.technicianId,
+        assignment.complaintId,
+      ),
   });
 
   if (
@@ -181,6 +208,71 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
       </View>
       <SectionTitle title="Workload" />
       <TechnicianWorkloadCard workload={workloadQuery.data} />
+      {activeAssignment ? (
+        <>
+          <SectionTitle title="Work order lifecycle" />
+          <View style={styles.actions}>
+            {activeAssignment.workOrder.status === 'ASSIGNED' ? (
+              <Button
+                title="Accept work order"
+                icon="checkmark-circle-outline"
+                loading={lifecycleMutation.isPending}
+                onPress={() =>
+                  lifecycleMutation.mutate({
+                    action: 'accept',
+                    workOrderId: activeAssignment.workOrder.id,
+                  })
+                }
+              />
+            ) : null}
+            {activeAssignment.workOrder.status === 'ACCEPTED' ? (
+              <Button
+                title="Start work"
+                icon="play-circle-outline"
+                loading={lifecycleMutation.isPending}
+                onPress={() =>
+                  lifecycleMutation.mutate({
+                    action: 'start',
+                    workOrderId: activeAssignment.workOrder.id,
+                  })
+                }
+              />
+            ) : null}
+            {activeAssignment.workOrder.status === 'IN_PROGRESS' ? (
+              <Button
+                title="Complete work order"
+                icon="checkmark-done-outline"
+                loading={lifecycleMutation.isPending}
+                onPress={() =>
+                  lifecycleMutation.mutate({
+                    action: 'complete',
+                    workOrderId: activeAssignment.workOrder.id,
+                  })
+                }
+              />
+            ) : null}
+            <Button
+              title="Cancel work order"
+              icon="close-circle-outline"
+              variant="danger"
+              loading={lifecycleMutation.isPending}
+              onPress={() =>
+                lifecycleMutation.mutate({
+                  action: 'cancel',
+                  workOrderId: activeAssignment.workOrder.id,
+                })
+              }
+            />
+          </View>
+          {lifecycleMutation.error ? (
+            <AppText accessibilityRole="alert" style={styles.error}>
+              {lifecycleMutation.error instanceof Error
+                ? lifecycleMutation.error.message
+                : 'Work order could not be updated.'}
+            </AppText>
+          ) : null}
+        </>
+      ) : null}
       <SectionTitle title="History" />
       <TechnicianHistoryTimeline history={historyQuery.data} />
     </AppScreen>

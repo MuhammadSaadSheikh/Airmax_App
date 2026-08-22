@@ -19,6 +19,10 @@ export function TechnicianWorkloadCard({
           <AppText style={styles.value}>{workload.completedJobs}</AppText>
           <AppText style={styles.label}>Completed</AppText>
         </View>
+        <View style={styles.metric}>
+          <AppText style={styles.value}>{workload.availableCapacity}</AppText>
+          <AppText style={styles.label}>Capacity left</AppText>
+        </View>
       </View>
       {workload.assignments.length === 0 ? (
         <AppText style={styles.empty}>No work orders recorded.</AppText>
