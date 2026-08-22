@@ -19,6 +19,11 @@ import {
   ComplaintReplyForm,
   ComplaintTimeline,
 } from '@/features/admin/components';
+import {
+  adminActionPermissions,
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService } from '@/services/api';
 import type { AdminComplaintStatus } from '@/services/api/complaints.models';
@@ -47,8 +52,15 @@ export default function ComplaintDetailScreen({ route }: Props) {
     invalidateAdminMutation(queryClient, 'complaint');
 
   const assignMutation = useMutation({
-    mutationFn: (technicianId: string) =>
-      complaintsService.assignTechnician({ complaintId, technicianId }),
+    mutationFn: (technicianId: string) => {
+      const reassigning = Boolean(complaintQuery.data?.technician);
+      return runProtectedAdminAction(
+        !reassigning || adminActionPermissions.reassignComplaint(),
+        'reassign complaint',
+        'complaints',
+        () => complaintsService.assignTechnician({ complaintId, technicianId }),
+      );
+    },
     onSuccess: synchronizeComplaint,
   });
   const statusMutation = useMutation({
@@ -78,16 +90,15 @@ export default function ComplaintDetailScreen({ route }: Props) {
     );
     if (!technician || technician.id === complaintQuery.data?.technician?.id)
       return;
-    Alert.alert(
-      complaintQuery.data?.technician
-        ? 'Reassign technician'
-        : 'Assign technician',
-      `Assign ${technician.name} to this complaint?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Assign', onPress: () => assignMutation.mutate(technicianId) },
-      ],
-    );
+    const reassigning = Boolean(complaintQuery.data?.technician);
+    const confirmation = createAdminConfirmation({
+      actionName: reassigning ? 'Reassign technician' : 'Assign technician',
+      affectedEntity: `complaint ${complaintId} and technician ${technician.name}`,
+      confirmLabel: reassigning ? 'Reassign' : 'Assign',
+      destructive: reassigning,
+      onConfirm: () => assignMutation.mutate(technicianId),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
   };
 
   const confirmStatus = (status: AdminComplaintStatus) => {

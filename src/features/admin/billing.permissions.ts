@@ -1,3 +1,5 @@
+import { adminActionPermissions, canView } from '@/features/admin/security';
+
 export type BillingPermissions = {
   canViewBilling: boolean;
   canManagePayments: boolean;
@@ -5,7 +7,7 @@ export type BillingPermissions = {
 };
 
 export const billingPermissions: BillingPermissions = {
-  canViewBilling: true,
-  canManagePayments: true,
-  canCancelInvoice: true,
+  canViewBilling: canView('billing'),
+  canManagePayments: adminActionPermissions.managePayment(),
+  canCancelInvoice: adminActionPermissions.cancelInvoice(),
 };

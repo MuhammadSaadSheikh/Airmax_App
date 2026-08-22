@@ -19,6 +19,11 @@ import {
   SubscriptionStatusBadge,
   SubscriptionTimeline,
 } from '@/features/admin/components';
+import {
+  adminActionPermissions,
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
 import type { AdminStackParamList } from '@/navigation';
 import { subscriptionsService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
@@ -53,11 +58,23 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
     onSuccess: synchronizeSubscription,
   });
   const suspendMutation = useMutation({
-    mutationFn: () => subscriptionsService.suspendSubscription(subscriptionId),
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.suspendSubscription(),
+        'suspend subscription',
+        'subscriptions',
+        () => subscriptionsService.suspendSubscription(subscriptionId),
+      ),
     onSuccess: synchronizeSubscription,
   });
   const cancelMutation = useMutation({
-    mutationFn: () => subscriptionsService.cancelSubscription(subscriptionId),
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.cancelSubscription(),
+        'cancel subscription',
+        'subscriptions',
+        () => subscriptionsService.cancelSubscription(subscriptionId),
+      ),
     onSuccess: synchronizeSubscription,
   });
 
@@ -66,21 +83,18 @@ export default function SubscriptionDetailScreen({ navigation, route }: Props) {
     message: string,
     action: 'activate' | 'suspend' | 'cancel',
   ) => {
-    Alert.alert(title, message, [
-      { text: 'Back', style: 'cancel' },
-      {
-        text: action === 'cancel' ? 'Cancel subscription' : title,
-        style:
-          action === 'cancel' || action === 'suspend'
-            ? 'destructive'
-            : 'default',
-        onPress: () => {
-          if (action === 'activate') activateMutation.mutate();
-          if (action === 'suspend') suspendMutation.mutate();
-          if (action === 'cancel') cancelMutation.mutate();
-        },
+    const confirmation = createAdminConfirmation({
+      actionName: title,
+      affectedEntity: `subscription ${subscriptionId}: ${message}`,
+      confirmLabel: action === 'cancel' ? 'Cancel subscription' : title,
+      destructive: action === 'cancel' || action === 'suspend',
+      onConfirm: () => {
+        if (action === 'activate') activateMutation.mutate();
+        if (action === 'suspend') suspendMutation.mutate();
+        if (action === 'cancel') cancelMutation.mutate();
       },
-    ]);
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
   };
 
   if (subscriptionQuery.isPending) {

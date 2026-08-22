@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import {
   AppHeader,
   AppScreen,
@@ -17,6 +17,11 @@ import {
   TechnicianSkillCard,
   TechnicianWorkloadCard,
 } from '@/features/admin/components';
+import {
+  adminActionPermissions,
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService, techniciansService } from '@/services/api';
 import type { TechnicianStatus } from '@/services/api/technicians.models';
@@ -61,13 +66,20 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
       action: 'accept' | 'start' | 'complete' | 'cancel';
       workOrderId: string;
     }) => {
-      if (action === 'accept')
-        return techniciansService.acceptWorkOrder(workOrderId);
-      if (action === 'start')
-        return techniciansService.startWorkOrder(workOrderId);
-      if (action === 'complete')
-        return techniciansService.completeWorkOrder(workOrderId);
-      return techniciansService.cancelWorkOrder(workOrderId);
+      return runProtectedAdminAction(
+        adminActionPermissions.changeWorkOrder(),
+        `${action} work order`,
+        'technicians',
+        () => {
+          if (action === 'accept')
+            return techniciansService.acceptWorkOrder(workOrderId);
+          if (action === 'start')
+            return techniciansService.startWorkOrder(workOrderId);
+          if (action === 'complete')
+            return techniciansService.completeWorkOrder(workOrderId);
+          return techniciansService.cancelWorkOrder(workOrderId);
+        },
+      );
     },
     onSuccess: assignment =>
       invalidateTechnicianWorkOrder(
@@ -118,6 +130,25 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
   const activeAssignment = workloadQuery.data.assignments.find(item =>
     ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'].includes(item.workOrder.status),
   );
+  const confirmLifecycle = (
+    lifecycleAction: 'accept' | 'start' | 'complete' | 'cancel',
+    label: string,
+  ) => {
+    if (!activeAssignment) return;
+    const confirmation = createAdminConfirmation({
+      actionName: label,
+      affectedEntity: `work order ${activeAssignment.workOrder.id} for complaint ${activeAssignment.complaintId}`,
+      confirmLabel: label,
+      destructive:
+        lifecycleAction === 'cancel' || lifecycleAction === 'complete',
+      onConfirm: () =>
+        lifecycleMutation.mutate({
+          action: lifecycleAction,
+          workOrderId: activeAssignment.workOrder.id,
+        }),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
+  };
   const action =
     technician.status === 'AVAILABLE'
       ? {
@@ -217,12 +248,7 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
                 title="Accept work order"
                 icon="checkmark-circle-outline"
                 loading={lifecycleMutation.isPending}
-                onPress={() =>
-                  lifecycleMutation.mutate({
-                    action: 'accept',
-                    workOrderId: activeAssignment.workOrder.id,
-                  })
-                }
+                onPress={() => confirmLifecycle('accept', 'Accept work order')}
               />
             ) : null}
             {activeAssignment.workOrder.status === 'ACCEPTED' ? (
@@ -230,12 +256,7 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
                 title="Start work"
                 icon="play-circle-outline"
                 loading={lifecycleMutation.isPending}
-                onPress={() =>
-                  lifecycleMutation.mutate({
-                    action: 'start',
-                    workOrderId: activeAssignment.workOrder.id,
-                  })
-                }
+                onPress={() => confirmLifecycle('start', 'Start work order')}
               />
             ) : null}
             {activeAssignment.workOrder.status === 'IN_PROGRESS' ? (
@@ -244,10 +265,7 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
                 icon="checkmark-done-outline"
                 loading={lifecycleMutation.isPending}
                 onPress={() =>
-                  lifecycleMutation.mutate({
-                    action: 'complete',
-                    workOrderId: activeAssignment.workOrder.id,
-                  })
+                  confirmLifecycle('complete', 'Complete work order')
                 }
               />
             ) : null}
@@ -256,12 +274,7 @@ export default function TechnicianDetailScreen({ navigation, route }: Props) {
               icon="close-circle-outline"
               variant="danger"
               loading={lifecycleMutation.isPending}
-              onPress={() =>
-                lifecycleMutation.mutate({
-                  action: 'cancel',
-                  workOrderId: activeAssignment.workOrder.id,
-                })
-              }
+              onPress={() => confirmLifecycle('cancel', 'Cancel work order')}
             />
           </View>
           {lifecycleMutation.error ? (

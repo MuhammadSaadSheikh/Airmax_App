@@ -13,6 +13,10 @@ import {
 import { environment } from '@/config/environment';
 import { billingPermissions } from '@/features/admin/billing.permissions';
 import {
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
+import {
   BillingActionPanel,
   BillingMockNotice,
   InvoiceCustomerCard,
@@ -54,19 +58,37 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
 
   const recordMutation = useMutation({
     mutationFn: (method: PaymentMethod) =>
-      adminBillingService.recordPayment({
-        invoiceId,
-        amount: invoiceQuery.data!.amount,
-        method,
-      }),
+      runProtectedAdminAction(
+        billingPermissions.canManagePayments,
+        'record payment',
+        'billing',
+        () =>
+          adminBillingService.recordPayment({
+            invoiceId,
+            amount: invoiceQuery.data!.amount,
+            method,
+          }),
+      ),
     onSuccess: invalidateBilling,
   });
   const markPaidMutation = useMutation({
-    mutationFn: () => adminBillingService.markInvoicePaid(invoiceId),
+    mutationFn: () =>
+      runProtectedAdminAction(
+        billingPermissions.canManagePayments,
+        'mark invoice paid',
+        'billing',
+        () => adminBillingService.markInvoicePaid(invoiceId),
+      ),
     onSuccess: invalidateBilling,
   });
   const cancelMutation = useMutation({
-    mutationFn: () => adminBillingService.cancelInvoice(invoiceId),
+    mutationFn: () =>
+      runProtectedAdminAction(
+        billingPermissions.canCancelInvoice,
+        'cancel invoice',
+        'billing',
+        () => adminBillingService.cancelInvoice(invoiceId),
+      ),
     onSuccess: invalidateBilling,
   });
 
@@ -81,31 +103,48 @@ export default function InvoiceDetailScreen({ navigation, route }: Props) {
     Alert.alert('Record payment', 'Select the received payment method.', [
       ...methods.map(method => ({
         text: method.label,
-        onPress: () => recordMutation.mutate(method.value),
+        onPress: () => {
+          const confirmation = createAdminConfirmation({
+            actionName: `Record ${method.label} payment`,
+            affectedEntity:
+              invoiceQuery.data?.invoiceNumber ?? `invoice ${invoiceId}`,
+            confirmLabel: 'Record payment',
+            destructive: false,
+            onConfirm: () => recordMutation.mutate(method.value),
+          });
+          Alert.alert(
+            confirmation.title,
+            confirmation.message,
+            confirmation.buttons,
+          );
+        },
       })),
       { text: 'Back', style: 'cancel' as const },
     ]);
   };
 
-  const confirmMarkPaid = () =>
-    Alert.alert(
-      'Mark invoice paid',
-      'Mark this invoice paid without recording a payment transaction?',
-      [
-        { text: 'Back', style: 'cancel' },
-        { text: 'Mark paid', onPress: () => markPaidMutation.mutate() },
-      ],
-    );
+  const confirmMarkPaid = () => {
+    const confirmation = createAdminConfirmation({
+      actionName: 'Mark invoice paid manually',
+      affectedEntity:
+        invoiceQuery.data?.invoiceNumber ?? `invoice ${invoiceId}`,
+      confirmLabel: 'Mark paid',
+      destructive: false,
+      onConfirm: () => markPaidMutation.mutate(),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
+  };
 
-  const confirmCancel = () =>
-    Alert.alert('Cancel invoice', 'Cancel this pending invoice?', [
-      { text: 'Back', style: 'cancel' },
-      {
-        text: 'Cancel invoice',
-        style: 'destructive',
-        onPress: () => cancelMutation.mutate(),
-      },
-    ]);
+  const confirmCancel = () => {
+    const confirmation = createAdminConfirmation({
+      actionName: 'Cancel invoice',
+      affectedEntity:
+        invoiceQuery.data?.invoiceNumber ?? `invoice ${invoiceId}`,
+      confirmLabel: 'Cancel invoice',
+      onConfirm: () => cancelMutation.mutate(),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
+  };
 
   if (invoiceQuery.isPending) {
     return (

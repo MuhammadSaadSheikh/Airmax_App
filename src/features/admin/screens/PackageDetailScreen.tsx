@@ -14,6 +14,11 @@ import {
   PackageMockNotice,
   PackageProfileHeader,
 } from '@/features/admin/components';
+import {
+  adminActionPermissions,
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
 import type { AdminStackParamList } from '@/navigation';
 import { packagesService } from '@/services/api';
 import { invalidateAdminMutation, queryKeys } from '@/services/query';
@@ -37,7 +42,13 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
     onSuccess: synchronizePackage,
   });
   const deactivateMutation = useMutation({
-    mutationFn: () => packagesService.deactivate(packageId),
+    mutationFn: () =>
+      runProtectedAdminAction(
+        adminActionPermissions.deactivatePackage(),
+        'deactivate package',
+        'packages',
+        () => packagesService.deactivate(packageId),
+      ),
     onSuccess: synchronizePackage,
   });
 
@@ -71,23 +82,15 @@ export default function PackageDetailScreen({ navigation, route }: Props) {
   const loading = activateMutation.isPending || deactivateMutation.isPending;
   const confirmStatusChange = () => {
     const deactivating = packageItem.status === 'active';
-    Alert.alert(
-      deactivating ? 'Deactivate package' : 'Activate package',
-      deactivating
-        ? 'Existing subscriptions remain active, but this package will no longer be available for new assignments.'
-        : 'Make this package available for new admin customer assignments?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: deactivating ? 'Deactivate' : 'Activate',
-          style: deactivating ? 'destructive' : 'default',
-          onPress: () =>
-            deactivating
-              ? deactivateMutation.mutate()
-              : activateMutation.mutate(),
-        },
-      ],
-    );
+    const confirmation = createAdminConfirmation({
+      actionName: deactivating ? 'Deactivate package' : 'Activate package',
+      affectedEntity: `${packageItem.name} (${packageItem.id})`,
+      confirmLabel: deactivating ? 'Deactivate' : 'Activate',
+      destructive: deactivating,
+      onConfirm: () =>
+        deactivating ? deactivateMutation.mutate() : activateMutation.mutate(),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
   };
 
   return (

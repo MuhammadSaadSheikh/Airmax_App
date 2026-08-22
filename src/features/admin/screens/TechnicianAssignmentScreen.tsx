@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import {
   AppHeader,
   AppScreen,
@@ -17,6 +17,11 @@ import {
   TechnicianAssignmentCard,
   TechnicianMockNotice,
 } from '@/features/admin/components';
+import {
+  adminActionPermissions,
+  createAdminConfirmation,
+  runProtectedAdminAction,
+} from '@/features/admin/security';
 import type { AdminStackParamList } from '@/navigation';
 import { complaintsService, techniciansService } from '@/services/api';
 import { invalidateTechnicianAssignment, queryKeys } from '@/services/query';
@@ -46,10 +51,24 @@ export default function TechnicianAssignmentScreen({
     queryFn: () => techniciansService.getAvailableTechnicians(),
   });
   const assignmentMutation = useMutation({
-    mutationFn: async (technicianId: string) =>
-      complaintQuery.data?.technician
-        ? techniciansService.reassignComplaint({ complaintId, technicianId })
-        : techniciansService.assignComplaint({ complaintId, technicianId }),
+    mutationFn: async (technicianId: string) => {
+      const reassigning = Boolean(complaintQuery.data?.technician);
+      return runProtectedAdminAction(
+        !reassigning || adminActionPermissions.reassignComplaint(),
+        'reassign complaint',
+        'complaints',
+        () =>
+          reassigning
+            ? techniciansService.reassignComplaint({
+                complaintId,
+                technicianId,
+              })
+            : techniciansService.assignComplaint({
+                complaintId,
+                technicianId,
+              }),
+      );
+    },
     onSuccess: async () => {
       await invalidateTechnicianAssignment(queryClient);
       navigation.goBack();
@@ -85,6 +104,22 @@ export default function TechnicianAssignmentScreen({
   }
 
   const complaint = complaintQuery.data;
+  const confirmAssignment = () => {
+    if (!selectedId) return;
+    const technician = techniciansQuery.data.find(
+      item => item.id === selectedId,
+    );
+    if (!technician) return;
+    const reassigning = Boolean(complaint.technician);
+    const confirmation = createAdminConfirmation({
+      actionName: reassigning ? 'Reassign complaint' : 'Assign complaint',
+      affectedEntity: `ticket #${complaint.ticketNumber} and technician ${technician.name}`,
+      confirmLabel: reassigning ? 'Reassign' : 'Assign',
+      destructive: reassigning,
+      onConfirm: () => assignmentMutation.mutate(selectedId),
+    });
+    Alert.alert(confirmation.title, confirmation.message, confirmation.buttons);
+  };
   return (
     <AppScreen contentContainerStyle={styles.content}>
       <AppHeader
@@ -148,9 +183,7 @@ export default function TechnicianAssignmentScreen({
         icon="checkmark-circle-outline"
         disabled={!selectedId}
         loading={assignmentMutation.isPending}
-        onPress={() => {
-          if (selectedId) assignmentMutation.mutate(selectedId);
-        }}
+        onPress={confirmAssignment}
       />
       {assignmentMutation.error ? (
         <AppText accessibilityRole="alert" style={styles.error}>
