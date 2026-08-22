@@ -1,32 +1,44 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
 import {
   ReportBreakdownCard,
   ReportDataSourceNotice,
+  ReportExportAction,
   ReportFilterBar,
+  ReportFilterChips,
   ReportSkeleton,
   ReportSummaryGrid,
   type ReportMetric,
 } from '@/features/admin/components';
-import {
-  reportFiltersForPreset,
-  type ReportRangePreset,
-} from '@/features/admin/reports.filters';
+import { useReportFilters } from '@/features/admin/hooks/useReportFilters';
+import { prepareReportCsvExport } from '@/services/api/reports.export';
 import { reportsService } from '@/services/api/reports.service';
 import { queryKeys } from '@/services/query';
 import { colors, spacing } from '@/theme';
 
 export default function CustomerReportScreen() {
-  const [period, setPeriod] = useState<ReportRangePreset>('current_month');
-  const filters = useMemo(() => reportFiltersForPreset(period), [period]);
+  const controls = useReportFilters();
+  const [customerStatus, setCustomerStatus] = useState<string>();
+  const filters = useMemo(
+    () => ({ ...controls.dateFilters, customerStatus }),
+    [controls.dateFilters, customerStatus],
+  );
   const query = useQuery({
     queryKey: queryKeys.adminCustomerReport(filters),
     queryFn: () => reportsService.getFoundationAnalytics(filters),
   });
   const data = query.data;
   const customers = data?.customers;
+  const exportReport = () => {
+    if (!data) return;
+    const prepared = prepareReportCsvExport('customer', data);
+    Alert.alert(
+      'CSV export prepared',
+      `${prepared.fileName}\n${prepared.rowCount} rows ready for a future file adapter.`,
+    );
+  };
   const metrics: ReportMetric[] = customers
     ? [
         {
@@ -51,8 +63,17 @@ export default function CustomerReportScreen() {
         title="Customer report"
         subtitle="Customer growth and account status"
         showBack
+        action={<ReportExportAction disabled={!data} onPress={exportReport} />}
       />
-      <ReportFilterBar value={period} onChange={setPeriod} />
+      <ReportFilterBar {...controls.filterBarProps} />
+      {data ? (
+        <ReportFilterChips
+          label="Customer status"
+          options={data.filterOptions.customerStatuses}
+          value={customerStatus}
+          onChange={setCustomerStatus}
+        />
+      ) : null}
       {query.isPending ? (
         <ReportSkeleton />
       ) : query.isError ? (

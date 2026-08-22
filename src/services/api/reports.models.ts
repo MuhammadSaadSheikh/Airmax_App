@@ -19,6 +19,19 @@ export type ReportFilters = {
   from?: string;
   to?: string;
   timezone?: string;
+  packageId?: string;
+  customerStatus?: string;
+  complaintCategory?: string;
+  technicianAreaId?: string;
+};
+
+export type ReportFilterOption = { id: string; label: string };
+
+export type ReportFilterOptions = {
+  packages: ReportFilterOption[];
+  customerStatuses: ReportFilterOption[];
+  complaintCategories: ReportFilterOption[];
+  technicianAreas: ReportFilterOption[];
 };
 
 export type ReportMetadata = ReportDateRange & {
@@ -100,7 +113,8 @@ export type ReportMetrics = {
   technicians: TechnicianReportMetrics;
 };
 
-export type ReportsFoundationAnalytics = ReportMetadata & ReportMetrics;
+export type ReportsFoundationAnalytics = ReportMetadata &
+  ReportMetrics & { filterOptions: ReportFilterOptions };
 
 export type DashboardSummary = {
   totalUsers: number;

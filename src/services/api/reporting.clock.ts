@@ -3,6 +3,10 @@ import type {
   ReportFilters,
   ReportMetadata,
 } from './reports.models';
+import {
+  normalizeReportingTimezone,
+  resolveTimezoneAwareRange,
+} from './reporting.timezone';
 
 export type ReportingClock = {
   now(): string;
@@ -18,27 +22,11 @@ export function createFixedReportingClock(timestamp: string): ReportingClock {
   return { now: () => timestamp };
 }
 
-function validTimestamp(value: string | undefined): value is string {
-  return typeof value === 'string' && Number.isFinite(Date.parse(value));
-}
-
 export function resolveReportDateRange(
   filters: ReportFilters,
   clock: ReportingClock,
 ): ReportDateRange {
-  const now = clock.now();
-  if (!validTimestamp(now)) throw new Error('Invalid reporting clock value');
-  const nowTimestamp = Date.parse(now);
-  const nowDate = new Date(nowTimestamp);
-  const defaultFrom = new Date(
-    Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), 1),
-  ).toISOString();
-  const from = validTimestamp(filters.from) ? filters.from : defaultFrom;
-  const to = validTimestamp(filters.to) ? filters.to : now;
-  if (Date.parse(from) > Date.parse(to)) {
-    throw new Error('Report start date must not be after end date');
-  }
-  return { from, to };
+  return resolveTimezoneAwareRange(filters, clock.now());
 }
 
 export function createReportMetadata(
@@ -50,7 +38,7 @@ export function createReportMetadata(
   const range = resolveReportDateRange(filters, { now: () => generatedAt });
   return {
     ...range,
-    timezone: filters.timezone?.trim() || 'Asia/Karachi',
+    timezone: normalizeReportingTimezone(filters.timezone),
     currency: 'PKR',
     generatedAt,
     asOf: generatedAt,

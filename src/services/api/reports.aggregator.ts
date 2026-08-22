@@ -6,24 +6,30 @@ import type {
   MoneyMetric,
   ReportBreakdownItem,
   ReportDateRange,
+  ReportFilterOptions,
+  ReportFilters,
   ReportMetrics,
   SubscriptionReportMetrics,
   TechnicianReportMetrics,
 } from './reports.models';
 
 export type ReportingCustomerFact = {
+  id?: string;
   role: string;
   status: string;
   createdAt: string;
 };
 
 export type ReportingSubscriptionFact = {
+  userId?: string;
   status: string;
   packageId: string;
   history: Array<{ status: string; createdAt: string }>;
 };
 
 export type ReportingInvoiceFact = {
+  id?: string;
+  customerId?: string;
   status: string;
   amount: number | string;
   billingPeriodStart: string;
@@ -32,6 +38,7 @@ export type ReportingInvoiceFact = {
 };
 
 export type ReportingPaymentFact = {
+  invoiceId?: string;
   status: string;
   amount: number | string;
   createdAt: string;
@@ -39,6 +46,7 @@ export type ReportingPaymentFact = {
 };
 
 export type ReportingComplaintFact = {
+  userId?: string;
   status: string;
   category: string;
   createdAt: string;
@@ -46,16 +54,20 @@ export type ReportingComplaintFact = {
 };
 
 export type ReportingTechnicianFact = {
+  id?: string;
+  area?: { id: string; name: string };
   capacity: number;
 };
 
 export type ReportingWorkOrderFact = {
+  technicianId?: string;
   status: string;
   completedAt: string | null;
   updatedAt?: string;
 };
 
 export type ReportingSnapshotFacts = {
+  packages?: Array<{ id: string; name: string }>;
   customers: ReportingCustomerFact[];
   subscriptions: ReportingSubscriptionFact[];
   invoices: ReportingInvoiceFact[];
@@ -64,6 +76,111 @@ export type ReportingSnapshotFacts = {
   technicians: ReportingTechnicianFact[];
   workOrders: ReportingWorkOrderFact[];
 };
+
+function optionLabel(id: string): string {
+  return id
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function uniqueOptions(
+  values: Array<{ id: string; label?: string }>,
+): Array<{ id: string; label: string }> {
+  const options = new Map<string, string>();
+  values.forEach(item => {
+    const id = item.id.trim();
+    if (id) options.set(id, item.label?.trim() || optionLabel(id));
+  });
+  return [...options.entries()]
+    .map(([id, label]) => ({ id, label }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function aggregateReportFilterOptions(
+  snapshot: ReportingSnapshotFacts,
+): ReportFilterOptions {
+  return {
+    packages: uniqueOptions(
+      snapshot.packages?.map(item => ({ id: item.id, label: item.name })) ??
+        snapshot.subscriptions.map(item => ({ id: item.packageId })),
+    ),
+    customerStatuses: uniqueOptions(
+      snapshot.customers
+        .filter(item => item.role === 'CUSTOMER')
+        .map(item => ({ id: item.status })),
+    ),
+    complaintCategories: uniqueOptions(
+      snapshot.complaints.map(item => ({ id: item.category })),
+    ),
+    technicianAreas: uniqueOptions(
+      snapshot.technicians.flatMap(item =>
+        item.area ? [{ id: item.area.id, label: item.area.name }] : [],
+      ),
+    ),
+  };
+}
+
+export function filterReportingSnapshot(
+  snapshot: ReportingSnapshotFacts,
+  filters: ReportFilters,
+): ReportingSnapshotFacts {
+  const customers = filters.customerStatus
+    ? snapshot.customers.filter(item => item.status === filters.customerStatus)
+    : snapshot.customers;
+  const customerIds = new Set(customers.map(item => item.id).filter(Boolean));
+  const subscriptions = snapshot.subscriptions.filter(item => {
+    const packageMatches =
+      !filters.packageId || item.packageId === filters.packageId;
+    const customerMatches =
+      !filters.customerStatus || !item.userId || customerIds.has(item.userId);
+    return packageMatches && customerMatches;
+  });
+  const invoices = snapshot.invoices.filter(item => {
+    const packageMatches =
+      !filters.packageId || item.subscription?.packageId === filters.packageId;
+    const customerMatches =
+      !filters.customerStatus ||
+      !item.customerId ||
+      customerIds.has(item.customerId);
+    return packageMatches && customerMatches;
+  });
+  const invoiceIds = new Set(invoices.map(item => item.id).filter(Boolean));
+  const technicians = filters.technicianAreaId
+    ? snapshot.technicians.filter(
+        item => item.area?.id === filters.technicianAreaId,
+      )
+    : snapshot.technicians;
+  const technicianIds = new Set(
+    technicians.map(item => item.id).filter(Boolean),
+  );
+
+  return {
+    packages: snapshot.packages,
+    customers,
+    subscriptions,
+    invoices,
+    payments:
+      filters.packageId || filters.customerStatus
+        ? snapshot.payments.filter(
+            item => !item.invoiceId || invoiceIds.has(item.invoiceId),
+          )
+        : snapshot.payments,
+    complaints: snapshot.complaints.filter(item => {
+      const categoryMatches =
+        !filters.complaintCategory ||
+        item.category === filters.complaintCategory;
+      const customerMatches =
+        !filters.customerStatus || !item.userId || customerIds.has(item.userId);
+      return categoryMatches && customerMatches;
+    }),
+    technicians,
+    workOrders: filters.technicianAreaId
+      ? snapshot.workOrders.filter(
+          item => !item.technicianId || technicianIds.has(item.technicianId),
+        )
+      : snapshot.workOrders,
+  };
+}
 
 const activeWorkOrderStatuses = new Set([
   'ASSIGNED',
@@ -316,19 +433,21 @@ export function aggregateTechnicianMetrics(
 export function aggregateReportMetrics(
   snapshot: ReportingSnapshotFacts,
   range: ReportDateRange,
+  filters: ReportFilters = {},
 ): ReportMetrics {
+  const filtered = filterReportingSnapshot(snapshot, filters);
   return {
-    customers: aggregateCustomerMetrics(snapshot.customers, range),
-    subscriptions: aggregateSubscriptionMetrics(snapshot.subscriptions, range),
+    customers: aggregateCustomerMetrics(filtered.customers, range),
+    subscriptions: aggregateSubscriptionMetrics(filtered.subscriptions, range),
     financial: aggregateFinancialMetrics(
-      snapshot.invoices,
-      snapshot.payments,
+      filtered.invoices,
+      filtered.payments,
       range,
     ),
-    complaints: aggregateComplaintMetrics(snapshot.complaints, range),
+    complaints: aggregateComplaintMetrics(filtered.complaints, range),
     technicians: aggregateTechnicianMetrics(
-      snapshot.technicians,
-      snapshot.workOrders,
+      filtered.technicians,
+      filtered.workOrders,
       range,
     ),
   };

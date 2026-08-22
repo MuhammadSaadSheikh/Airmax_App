@@ -77,6 +77,9 @@ jest.mock('@/features/admin/components', () => {
   return {
     ReportFilterBar: (props: object) =>
       React.createElement(View, { testID: 'report-filter', ...props }),
+    ReportFilterChips: ({ label }: { label: string }) =>
+      React.createElement(Text, null, label),
+    ReportExportAction: () => React.createElement(Text, null, 'Export CSV'),
     ReportSkeleton: () => React.createElement(Text, null, 'Loading report'),
     ReportSummaryGrid: ({
       metrics,
@@ -120,6 +123,12 @@ const report = {
   generatedAt: '2026-08-22T10:00:00.000Z',
   asOf: '2026-08-22T10:00:00.000Z',
   source: 'mock' as const,
+  filterOptions: {
+    packages: [{ id: 'premium', label: 'Premium' }],
+    customerStatuses: [{ id: 'ACTIVE', label: 'Active' }],
+    complaintCategories: [{ id: 'Connectivity', label: 'Connectivity' }],
+    technicianAreas: [{ id: 'central', label: 'Karachi Central' }],
+  },
   customers: {
     totalCustomers: 12,
     newCustomers: 3,

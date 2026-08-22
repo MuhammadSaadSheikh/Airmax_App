@@ -1,6 +1,9 @@
 import { environment } from '@/config/environment';
 import { apiRequest, mockDelay } from './client';
-import { aggregateReportMetrics } from './reports.aggregator';
+import {
+  aggregateReportFilterOptions,
+  aggregateReportMetrics,
+} from './reports.aggregator';
 import { mapReportsFoundation, mapReportsSummary } from './reports.mapper';
 import {
   createReportMetadata,
@@ -116,8 +119,13 @@ export function createReportsService(
     if (environment.useMockApi) {
       await mockDelay();
       const metadata = createReportMetadata(filters, clock, 'mock');
-      const metrics = aggregateReportMetrics(repository.snapshot(), metadata);
-      return mapReportsFoundation(metrics, metadata);
+      const snapshot = repository.snapshot();
+      const metrics = aggregateReportMetrics(snapshot, metadata, filters);
+      return mapReportsFoundation(
+        metrics,
+        metadata,
+        aggregateReportFilterOptions(snapshot),
+      );
     }
 
     const query = new URLSearchParams(

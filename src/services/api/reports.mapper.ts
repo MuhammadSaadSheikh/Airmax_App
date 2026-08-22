@@ -2,6 +2,7 @@ import type {
   DashboardSummary,
   ReportMetadata,
   ReportMetrics,
+  ReportFilterOptions,
   ReportsFoundationAnalytics,
   ReportsAnalyticsResponse,
   ReportsNumericValue,
@@ -19,9 +20,25 @@ function nonNegative(value: number): number {
 export function mapReportsFoundation(
   metrics: ReportMetrics,
   metadata: ReportMetadata,
+  filterOptions: ReportFilterOptions = {
+    packages: [],
+    customerStatuses: [],
+    complaintCategories: [],
+    technicianAreas: [],
+  },
 ): ReportsFoundationAnalytics {
   return {
     ...metadata,
+    filterOptions: {
+      packages: filterOptions.packages.map(item => ({ ...item })),
+      customerStatuses: filterOptions.customerStatuses.map(item => ({
+        ...item,
+      })),
+      complaintCategories: filterOptions.complaintCategories.map(item => ({
+        ...item,
+      })),
+      technicianAreas: filterOptions.technicianAreas.map(item => ({ ...item })),
+    },
     customers: {
       totalCustomers: nonNegative(metrics.customers.totalCustomers),
       newCustomers: nonNegative(metrics.customers.newCustomers),

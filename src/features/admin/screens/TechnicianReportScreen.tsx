@@ -1,32 +1,44 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { AppHeader, AppScreen, EmptyState, ErrorState } from '@/components';
 import {
   ReportDataSourceNotice,
+  ReportExportAction,
   ReportFilterBar,
+  ReportFilterChips,
   ReportSkeleton,
   ReportSummaryGrid,
   ReportTrendCard,
   type ReportMetric,
 } from '@/features/admin/components';
-import {
-  reportFiltersForPreset,
-  type ReportRangePreset,
-} from '@/features/admin/reports.filters';
+import { useReportFilters } from '@/features/admin/hooks/useReportFilters';
+import { prepareReportCsvExport } from '@/services/api/reports.export';
 import { reportsService } from '@/services/api/reports.service';
 import { queryKeys } from '@/services/query';
 import { colors, spacing } from '@/theme';
 
 export default function TechnicianReportScreen() {
-  const [period, setPeriod] = useState<ReportRangePreset>('current_month');
-  const filters = useMemo(() => reportFiltersForPreset(period), [period]);
+  const controls = useReportFilters();
+  const [technicianAreaId, setTechnicianAreaId] = useState<string>();
+  const filters = useMemo(
+    () => ({ ...controls.dateFilters, technicianAreaId }),
+    [controls.dateFilters, technicianAreaId],
+  );
   const query = useQuery({
     queryKey: queryKeys.adminTechnicianReport(filters),
     queryFn: () => reportsService.getFoundationAnalytics(filters),
   });
   const data = query.data;
   const technicians = data?.technicians;
+  const exportReport = () => {
+    if (!data) return;
+    const prepared = prepareReportCsvExport('technician', data);
+    Alert.alert(
+      'CSV export prepared',
+      `${prepared.fileName}\n${prepared.rowCount} rows ready for a future file adapter.`,
+    );
+  };
   const metrics: ReportMetric[] = technicians
     ? [
         {
@@ -72,8 +84,17 @@ export default function TechnicianReportScreen() {
         title="Technician report"
         subtitle="Workload, utilization and job outcomes"
         showBack
+        action={<ReportExportAction disabled={!data} onPress={exportReport} />}
       />
-      <ReportFilterBar value={period} onChange={setPeriod} />
+      <ReportFilterBar {...controls.filterBarProps} />
+      {data ? (
+        <ReportFilterChips
+          label="Technician area"
+          options={data.filterOptions.technicianAreas}
+          value={technicianAreaId}
+          onChange={setTechnicianAreaId}
+        />
+      ) : null}
       {query.isPending ? (
         <ReportSkeleton />
       ) : query.isError ? (
