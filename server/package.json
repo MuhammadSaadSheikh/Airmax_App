@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
+    "lint": "../node_modules/.bin/eslint src",
+    "format:check": "../node_modules/.bin/prettier --check src/app.module.ts src/main.ts src/common/http src/common/pagination src/config/infrastructure.config.ts src/health test/backend-foundation.test.js README.md package.json eslint.config.js",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",

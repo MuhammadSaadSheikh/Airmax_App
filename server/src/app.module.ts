@@ -1,7 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpFoundationModule } from './common/http/http-foundation.module';
+import { RequestIdMiddleware } from './common/http/request-id.middleware';
+import { validateInfrastructureConfig } from './config/infrastructure.config';
+import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -17,12 +21,31 @@ import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: validateInfrastructureConfig,
+    }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     JwtModule.register({ global: true }),
-    PrismaModule, RedisModule, AuthModule, UsersModule, PackagesModule, SubscriptionsModule,
-    PaymentsModule, ComplaintsModule, TechniciansModule, NotificationsModule,
-    ReportsModule, MikroTikModule,
+    HttpFoundationModule,
+    PrismaModule,
+    RedisModule,
+    HealthModule,
+    AuthModule,
+    UsersModule,
+    PackagesModule,
+    SubscriptionsModule,
+    PaymentsModule,
+    ComplaintsModule,
+    TechniciansModule,
+    NotificationsModule,
+    ReportsModule,
+    MikroTikModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
