@@ -12,13 +12,18 @@ const { join } = require('path') as {
 const root = join(__dirname, '..');
 
 describe('native release configuration', () => {
-  it('does not sign Android release builds with the debug key', () => {
+  it('keeps local aggregate releases separate from production signing', () => {
     const gradle = readFileSync(join(root, 'android/app/build.gradle'), 'utf8');
-    const releaseBlock = gradle.match(/release \{([\s\S]*?)\n        \}/)?.[1];
-    expect(releaseBlock).toBeDefined();
-    expect(releaseBlock).not.toContain('signingConfigs.debug');
+    expect(gradle).toContain('signingConfigs.localRelease');
+    expect(gradle).toContain('tasks.named("assembleRelease")');
+    expect(gradle).toContain('"assembleMockRelease"');
+    expect(gradle).toContain('"assembleDevelopmentLiveRelease"');
+    expect(gradle).toContain('"assembleStagingRelease"');
     expect(gradle).toContain('AIRMAX_ANDROID_KEYSTORE_FILE');
     expect(gradle).toContain('ProductionRelease');
+    expect(gradle).toContain(
+      'if (buildsProductionRelease && !releaseSigningConfigured)',
+    );
   });
 
   it('keeps iOS local networking out of the production plist', () => {
