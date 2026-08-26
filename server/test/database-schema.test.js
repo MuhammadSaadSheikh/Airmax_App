@@ -12,6 +12,13 @@ const migration = readFileSync(
   ),
   'utf8',
 );
+const fieldServiceAmendment = readFileSync(
+  join(
+    root,
+    'prisma/migrations/20260826010000_phase_43d_assignment_actor/migration.sql',
+  ),
+  'utf8',
+);
 
 function block(kind, name) {
   const match = schema.match(
@@ -120,6 +127,20 @@ test('operational ownership uses assignment and restrictive history foreign keys
     assert.match(block('model', model), /onDelete: Restrict/);
   }
   assert.match(block('model', 'AuditLog'), /onDelete: SetNull/);
+});
+
+test('field-service amendment preserves legacy status and nullable actor history', () => {
+  const statuses = block('enum', 'TechnicianStatus');
+  for (const status of ['AVAILABLE', 'BUSY', 'OFFLINE', 'ON_LEAVE', 'INACTIVE'])
+    assert.match(statuses, new RegExp(`\\b${status}\\b`));
+  const assignment = block('model', 'TechnicianAssignment');
+  assert.match(assignment, /assignedById\s+String\?\s+@db\.Uuid/);
+  assert.match(assignment, /onDelete: SetNull/);
+  assert.match(assignment, /@@index\(\[assignedById, assignedAt\]\)/);
+  assert.match(fieldServiceAmendment, /ADD VALUE IF NOT EXISTS 'ON_LEAVE'/);
+  assert.match(fieldServiceAmendment, /ADD COLUMN "assignedById" UUID/);
+  assert.match(fieldServiceAmendment, /ON DELETE SET NULL/);
+  assert.doesNotMatch(fieldServiceAmendment, /UPDATE\s+"Technician"/);
 });
 
 test('migration is clean-install-only and creates database foreign keys', () => {

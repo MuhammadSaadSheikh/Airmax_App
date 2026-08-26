@@ -107,6 +107,7 @@ enum TechnicianStatus {
   AVAILABLE
   BUSY
   OFFLINE
+  ON_LEAVE
   INACTIVE
 }
 
@@ -134,23 +135,24 @@ enum WorkOrderHistoryType {
 }
 
 model User {
-  id                  String                @id @default(uuid()) @db.Uuid
-  name                String
-  phone               String                @unique
-  email               String?               @unique
-  passwordHash        String
-  role                Role                  @default(CUSTOMER)
-  status              UserStatus            @default(PENDING)
-  customer            Customer?
-  refreshTokens       RefreshToken[]
-  notifications       Notification[]
-  subscriptionHistory SubscriptionHistory[] @relation("SubscriptionHistoryActor")
-  invoiceEvents       InvoiceEvent[]        @relation("InvoiceEventActor")
-  complaintHistory    ComplaintHistory[]    @relation("ComplaintHistoryActor")
-  workOrderHistory    WorkOrderHistory[]    @relation("WorkOrderHistoryActor")
-  auditLogs           AuditLog[]            @relation("AuditActor")
-  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime              @updatedAt @db.Timestamptz(3)
+  id                           String                 @id @default(uuid()) @db.Uuid
+  name                         String
+  phone                        String                 @unique
+  email                        String?                @unique
+  passwordHash                 String
+  role                         Role                   @default(CUSTOMER)
+  status                       UserStatus             @default(PENDING)
+  customer                     Customer?
+  refreshTokens                RefreshToken[]
+  notifications                Notification[]
+  subscriptionHistory          SubscriptionHistory[]  @relation("SubscriptionHistoryActor")
+  invoiceEvents                InvoiceEvent[]         @relation("InvoiceEventActor")
+  complaintHistory             ComplaintHistory[]     @relation("ComplaintHistoryActor")
+  technicianAssignmentsCreated TechnicianAssignment[] @relation("TechnicianAssignmentActor")
+  workOrderHistory             WorkOrderHistory[]     @relation("WorkOrderHistoryActor")
+  auditLogs                    AuditLog[]             @relation("AuditActor")
+  createdAt                    DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime               @updatedAt @db.Timestamptz(3)
 
   @@index([role, status])
 }
@@ -420,6 +422,7 @@ model TechnicianAssignment {
   id           String                     @id @default(uuid()) @db.Uuid
   complaintId  String                     @db.Uuid
   technicianId String                     @db.Uuid
+  assignedById String?                    @db.Uuid
   status       TechnicianAssignmentStatus @default(ASSIGNED)
   assignedAt   DateTime                   @default(now()) @db.Timestamptz(3)
   acceptedAt   DateTime?                  @db.Timestamptz(3)
@@ -428,12 +431,14 @@ model TechnicianAssignment {
   notes        String?
   complaint    Complaint                  @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   technician   Technician                 @relation(fields: [technicianId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignedBy   User?                      @relation("TechnicianAssignmentActor", fields: [assignedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
   workOrder    WorkOrder?
   createdAt    DateTime                   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime                   @updatedAt @db.Timestamptz(3)
 
   @@index([complaintId, status])
   @@index([technicianId, status])
+  @@index([assignedById, assignedAt])
 }
 
 model WorkOrder {

@@ -31,6 +31,29 @@ Package and subscription backend operations now use `Customer -> Subscription ->
 
 Billing now uses `Customer -> Subscription -> Invoice -> Payment -> PaymentAttempt`; it does not backfill transitional financial records. Existing `Invoice.userId` and `Payment.userId` values require an approved `User.id -> Customer.id` mapping. Legacy invoice statuses `DRAFT`, `UNPAID`, `VOID`, and `REFUNDED` have no automatic mapping to the frozen invoice contract and must be reconciled case by case. Missing customer/package/price/billing-period snapshots must come from trusted historical evidence, never the current catalogue by assumption. Payment status, idempotency, external references, attempts, failures, and refund history must be inventoried before backfill. Missing attempts or invoice events must not be fabricated.
 
+## Phase 4.3D complaint and field-service boundary
+
+The additive `20260826010000_phase_43d_assignment_actor` amendment introduces
+`ON_LEAVE` without renaming or migrating `INACTIVE`. Both values remain valid and
+semantically distinct. Before importing historical technician data, operations
+must reconcile whether each legacy inactive record means temporarily on leave or
+truly inactive; the migration intentionally makes no such business decision.
+
+`TechnicianAssignment.assignedById` is nullable so historical rows can remain
+intact when their actor is unknown. Its user relation uses `ON DELETE SET NULL`
+to preserve assignment history. Phase 4.3D application services require an
+authenticated admin actor for every newly created assignment. Historical NULL
+actors must be reconciled only from trustworthy audit evidence and must never be
+guessed.
+
+No production data migration is included. A deployment-specific plan must map
+legacy `User` complaint ownership to verified `Customer.id` values, reconcile old
+technician identifiers without treating technicians as user accounts, and map
+legacy complaint statuses to the production lifecycle. Missing assignment,
+work-order, field-visit, resolution, or actor history must not be invented. Any
+technician-account linkage in an older deployment remains a reconciliation input,
+not a reason to change the independent production `Technician` entity.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.

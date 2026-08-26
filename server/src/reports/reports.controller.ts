@@ -1,1 +1,18 @@
-import{Controller,Get,UseGuards}from'@nestjs/common';import{InvoiceStatus,Role,UserStatus}from'@prisma/client';import{Roles}from'../common/decorators/roles.decorator';import{JwtAuthGuard}from'../common/guards/jwt-auth.guard';import{RolesGuard}from'../common/guards/roles.guard';import{PrismaService}from'../prisma/prisma.service';@Controller('reports')@UseGuards(JwtAuthGuard,RolesGuard)@Roles(Role.ADMIN)export class ReportsController{constructor(private prisma:PrismaService){}@Get('analytics')async analytics(){const[customers,activeConnections,openComplaints,revenue,pending]=await Promise.all([this.prisma.user.count({where:{role:Role.CUSTOMER}}),this.prisma.user.count({where:{status:UserStatus.ACTIVE}}),this.prisma.complaint.count({where:{status:{notIn:['RESOLVED','CLOSED']}}}),this.prisma.invoice.aggregate({_sum:{amount:true},where:{status:InvoiceStatus.PAID}}),this.prisma.invoice.aggregate({_sum:{amount:true},where:{status:{in:[InvoiceStatus.UNPAID,InvoiceStatus.OVERDUE]}}})]);return{customers,activeConnections,openComplaints,revenue:revenue._sum.amount??0,pending:pending._sum.amount??0}}}
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { Roles } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { ReportsService } from './reports.service';
+
+@Controller('reports')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+export class ReportsController {
+  constructor(private readonly reports: ReportsService) {}
+
+  @Get('analytics')
+  analytics() {
+    return this.reports.getAnalytics();
+  }
+}

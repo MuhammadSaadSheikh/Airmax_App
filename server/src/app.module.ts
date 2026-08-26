@@ -16,6 +16,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { TechniciansModule } from './technicians/technicians.module';
+import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { MikroTikModule } from './integrations/mikrotik/mikrotik.module';
@@ -43,6 +44,7 @@ import { RedisModule } from './redis/redis.module';
     PaymentsModule,
     ComplaintsModule,
     TechniciansModule,
+    WorkOrdersModule,
     NotificationsModule,
     ReportsModule,
     MikroTikModule,
