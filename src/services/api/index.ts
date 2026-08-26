@@ -7,6 +7,8 @@ export type * from './auth.models';
 export * from './auth.service';
 export * from './client';
 export * from './errors';
+export * from './apiConfig';
+export type * from './apiTypes';
 export * from './customers.service';
 export type * from './customers.models';
 export * from './complaints.service';
