@@ -98,6 +98,8 @@ export const packageService: PackageService = {
     return {
       package: mapPackage(subscription.package),
       subscription: {
+        id: subscription.id,
+        customerId: customer.id,
         packageId: subscription.packageId,
         activationDate: subscription.startsAt,
         expiryDate: subscription.expiresAt,

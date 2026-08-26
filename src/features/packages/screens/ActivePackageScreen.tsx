@@ -5,39 +5,90 @@ import {
   Badge,
   Button,
   Card,
+  ErrorState,
   Header,
   IconTile,
+  LoadingState,
   Screen,
   ui,
 } from '@/components';
 import { colors, money } from '@/theme';
+import { useCustomerProfile } from '@/services/customer';
+import { authenticatedPackageService } from '@/services/package';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/query';
 export default function ActivePackage() {
   const navigation = useCustomerNavigation();
+  const customerQuery = useCustomerProfile();
+  const customerId = customerQuery.data?.id;
+  const currentQuery = useQuery({
+    queryKey: queryKeys.currentPackage(customerId ?? 'pending'),
+    queryFn: () => authenticatedPackageService.getCurrentPackage(customerId!),
+    enabled: Boolean(customerId),
+  });
+  if (customerQuery.isPending || currentQuery.isPending) {
+    return (
+      <Screen>
+        <Header title="Active package" subtitle="Your current internet plan" />
+        <LoadingState message="Loading your active package…" />
+      </Screen>
+    );
+  }
+  if (customerQuery.isError || currentQuery.isError || !currentQuery.data) {
+    return (
+      <Screen>
+        <Header title="Active package" subtitle="Your current internet plan" />
+        <ErrorState
+          title="Active package unavailable"
+          message="We couldn’t load your current subscription."
+          retry={() => {
+            void customerQuery.refetch();
+            void currentQuery.refetch();
+          }}
+        />
+      </Screen>
+    );
+  }
+  const current = currentQuery.data;
   return (
     <Screen>
       <Header title="Active package" subtitle="Your current internet plan" />
       <Card style={styles.hero}>
-        <Badge label="Active" tone="success" />
-        <Text style={styles.name}>Premium</Text>
+        <Badge
+          label={current.subscription.status}
+          tone={
+            current.subscription.status === 'active' ? 'success' : 'warning'
+          }
+        />
+        <Text style={styles.name}>{current.package.name}</Text>
         <View style={styles.speedRow}>
-          <Text style={styles.speed}>100</Text>
+          <Text style={styles.speed}>{current.package.speed}</Text>
           <Text style={styles.mbps}>Mbps</Text>
         </View>
-        <Text style={ui.body}>
-          Unlimited high-speed internet designed for 4K streaming, gaming, and
-          connected homes.
-        </Text>
+        <Text style={ui.body}>{current.package.description}</Text>
       </Card>
       <Text style={ui.sectionTitle}>Plan details</Text>
       <Card>
-        <Detail icon="flash-outline" label="Speed" value="100 Mbps" />
+        <Detail
+          icon="flash-outline"
+          label="Speed"
+          value={`${current.package.speed} Mbps`}
+        />
         <Detail
           icon="calendar-outline"
           label="Activated"
-          value="15 July 2026"
+          value={formatDate(current.subscription.activationDate)}
         />
-        <Detail icon="time-outline" label="Expires" value="15 August 2026" />
-        <Detail icon="cash-outline" label="Monthly fee" value={money(3500)} />
+        <Detail
+          icon="time-outline"
+          label="Expires"
+          value={formatDate(current.subscription.expiryDate)}
+        />
+        <Detail
+          icon="cash-outline"
+          label="Plan fee"
+          value={money(current.package.price)}
+        />
         <Detail
           icon="checkmark-circle-outline"
           label="Payment"
@@ -60,6 +111,16 @@ export default function ActivePackage() {
       />
     </Screen>
   );
+}
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
 }
 function Detail({
   icon,

@@ -80,6 +80,12 @@ export const queryKeys = {
   packageDetail: (id: string) => ['package-detail', id] as const,
   packageDetails: ['package-detail'] as const,
   packageComparison: ['package-comparison'] as const,
+  customerSubscriptionsRoot: ['customer-subscriptions'] as const,
+  customerSubscriptions: (customerId: string) =>
+    ['customer-subscriptions', customerId] as const,
+  customerSubscriptionDetails: ['customer-subscription-detail'] as const,
+  customerSubscriptionDetail: (id: string) =>
+    ['customer-subscription-detail', id] as const,
   currentBill: (connectionId: string) =>
     ['current-bill', connectionId] as const,
   currentBills: ['current-bill'] as const,

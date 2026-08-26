@@ -15,29 +15,31 @@ import {
   RecommendedPlanCard,
 } from '@/features/packages/components';
 import { useCustomerNavigation } from '@/navigation';
-import { packageService, type InternetPackage } from '@/services/packages';
+import type { InternetPackage } from '@/services/packages';
+import { authenticatedPackageService } from '@/services/package';
+import { useCustomerProfile } from '@/services/customer';
 import { queryKeys } from '@/services/query';
-import { useAuthStore } from '@/store/auth.store';
 import { animation, colors, spacing, typography } from '@/theme';
 
 export default function PackagesScreen() {
   const navigation = useCustomerNavigation();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const customerQuery = useCustomerProfile();
+  const customerId = customerQuery.data?.id;
   const packagesQuery = useQuery({
     queryKey: queryKeys.packageMarketplace,
-    queryFn: packageService.getPackages,
+    queryFn: authenticatedPackageService.getPackages,
     staleTime: 60_000,
   });
   const currentQuery = useQuery({
-    queryKey: queryKeys.currentPackage(connectionId),
-    queryFn: () => packageService.getCurrentPackage(connectionId),
+    queryKey: queryKeys.currentPackage(customerId ?? 'pending'),
+    queryFn: () => authenticatedPackageService.getCurrentPackage(customerId!),
+    enabled: Boolean(customerId),
     staleTime: 60_000,
   });
   const recommendationQuery = useQuery({
-    queryKey: queryKeys.packageRecommendation(connectionId),
-    queryFn: () => packageService.getRecommendations(connectionId),
+    queryKey: queryKeys.packageRecommendation(customerId ?? 'pending'),
+    queryFn: () => authenticatedPackageService.getRecommendations(customerId!),
+    enabled: Boolean(customerId),
     staleTime: 60_000,
   });
 
@@ -145,6 +147,7 @@ export default function PackagesScreen() {
 
   if (
     packagesQuery.isPending ||
+    customerQuery.isPending ||
     currentQuery.isPending ||
     recommendationQuery.isPending
   ) {
@@ -157,6 +160,7 @@ export default function PackagesScreen() {
   }
   if (
     packagesQuery.isError ||
+    customerQuery.isError ||
     currentQuery.isError ||
     recommendationQuery.isError
   ) {
@@ -168,6 +172,7 @@ export default function PackagesScreen() {
           message="We couldn't load the package marketplace."
           retry={() => {
             void packagesQuery.refetch();
+            void customerQuery.refetch();
             void currentQuery.refetch();
             void recommendationQuery.refetch();
           }}

@@ -1,5 +1,5 @@
 export type PackageCategory = 'basic' | 'premium' | 'ultra';
-export type BillingCycle = 'monthly' | 'quarterly' | 'yearly';
+export type BillingCycle = 'monthly' | 'quarterly' | 'semi-annual' | 'yearly';
 
 export interface PackageFaq {
   question: string;
@@ -22,10 +22,12 @@ export interface InternetPackage {
 }
 
 export interface CurrentSubscription {
+  id: string;
+  customerId: string;
   packageId: string;
   activationDate: string;
   expiryDate: string;
-  status: 'active' | 'expiring' | 'expired';
+  status: 'pending' | 'active' | 'expiring' | 'suspended' | 'expired';
   remainingDays: number;
 }
 
