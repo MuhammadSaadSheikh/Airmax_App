@@ -24,6 +24,7 @@ import {
 import { useCustomerNavigation } from '@/navigation';
 import { mockNetworkService } from '@/services/network';
 import { notificationService } from '@/services/notifications/notificationService';
+import { useCustomerProfile } from '@/services/customer';
 import { queryKeys } from '@/services/query/queryKeys';
 import { useAuthStore } from '@/store/auth.store';
 import { animation, colors, radius, spacing, typography } from '@/theme';
@@ -31,7 +32,10 @@ import { animation, colors, radius, spacing, typography } from '@/theme';
 export default function CustomerHomeScreen() {
   const navigation = useCustomerNavigation();
   const user = useAuthStore(state => state.user);
-  const connectionId = user?.connectionId ?? 'unknown';
+  const customerQuery = useCustomerProfile();
+  const connectionId =
+    customerQuery.data?.connectionId ?? user?.connectionId ?? 'unknown';
+  const customerName = customerQuery.data?.name ?? user?.name;
 
   const dashboardQuery = useQuery({
     queryKey: queryKeys.customerDashboard(connectionId),
@@ -101,7 +105,7 @@ export default function CustomerHomeScreen() {
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppHeader
-        title={`Hello, ${user?.name.split(' ')[0] ?? 'Customer'}`}
+        title={`Hello, ${customerName?.split(' ')[0] ?? 'Customer'}`}
         subtitle={`Connection ${connectionId}`}
         action={
           <Pressable

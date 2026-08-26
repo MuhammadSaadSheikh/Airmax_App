@@ -1,57 +1,84 @@
 import { AppText as Text } from '@/components/foundation/AppText';
 import { useCustomerNavigation } from '@/navigation';
 import { Alert, StyleSheet, View } from 'react-native';
-import { Button, Card, Header, Row, Screen, ui } from '@/components';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Header,
+  LoadingState,
+  Row,
+  Screen,
+  ui,
+} from '@/components';
 import { colors } from '@/theme';
 import { useAuthStore } from '@/store/auth.store';
-import { useCurrentUser } from '@/services/auth/useCurrentUser';
+import { useCustomerProfile } from '@/services/customer';
 export default function Profile() {
   const navigation = useCustomerNavigation();
-  const sessionUser = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
-  const profileQuery = useCurrentUser();
-  const user = profileQuery.data ?? sessionUser;
-  if (!user) return null;
+  const profileQuery = useCustomerProfile();
+  if (profileQuery.isPending) {
+    return (
+      <Screen>
+        <Header title="Profile" subtitle="Your account and connection" />
+        <LoadingState message="Loading your customer profile…" />
+      </Screen>
+    );
+  }
+  if (profileQuery.isError) {
+    return (
+      <Screen>
+        <Header title="Profile" subtitle="Your account and connection" />
+        <ErrorState
+          title="Profile unavailable"
+          message="We couldn’t load your customer profile."
+          retry={() => void profileQuery.refetch()}
+        />
+      </Screen>
+    );
+  }
+  const customer = profileQuery.data;
   return (
     <Screen>
       <Header title="Profile" subtitle="Your account and connection" />
       <View style={styles.avatar}>
         <Text style={styles.initials}>
-          {user.name
+          {customer.name
             .split(' ')
             .map(n => n[0])
             .join('')
             .slice(0, 2)}
         </Text>
       </View>
-      <Text style={styles.name}>{user.name}</Text>
+      <Text style={styles.name}>{customer.name}</Text>
       <Text style={styles.connection}>
-        {user.connectionId ?? 'No connection ID'}
+        {customer.connectionId ?? 'No connection ID'}
       </Text>
       <Card style={{ marginTop: 22 }}>
         <Row
           icon="person-outline"
           title="Personal details"
-          subtitle={`${user.phone} · ${user.email ?? 'No email'}`}
+          subtitle={`${customer.phone} · ${customer.email ?? 'No email'}`}
           onPress={() => navigation.navigate('EditProfile')}
         />
         <View style={ui.divider} />
         <Row
           icon="location-outline"
           title="Service address"
-          subtitle={user.address ?? 'Not available'}
+          subtitle={customer.address ?? 'Not available'}
         />
         <View style={ui.divider} />
         <Row
           icon="wifi-outline"
           title="Router"
-          subtitle={profileQuery.data?.router ?? 'Not available'}
+          subtitle={customer.router ?? 'Not available'}
         />
         <View style={ui.divider} />
         <Row
           icon="calendar-outline"
           title="Installed"
-          subtitle={profileQuery.data?.installationDate ?? 'Not available'}
+          subtitle={customer.installationDate ?? 'Not available'}
         />
       </Card>
       <Text style={ui.sectionTitle}>Settings</Text>

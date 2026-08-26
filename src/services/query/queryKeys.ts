@@ -2,6 +2,10 @@ import type { ReportFilters } from '@/services/api/reports.models';
 
 export const queryKeys = {
   currentUser: ['current-user'] as const,
+  customerProfiles: ['customer-profile'] as const,
+  customerProfile: ['customer-profile', 'me'] as const,
+  customerDetails: ['customer-details'] as const,
+  customerDetail: (id: string) => ['customer-details', id] as const,
   packages: ['packages'] as const,
   bills: ['bills'] as const,
   adminCustomers: ['admin-customers'] as const,

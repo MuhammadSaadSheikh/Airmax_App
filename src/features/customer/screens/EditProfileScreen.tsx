@@ -1,21 +1,53 @@
 import { useCustomerNavigation } from '@/navigation';
-import { Alert } from 'react-native';
-import { Button, Header, Input, Screen } from '@/components';
-import { useAuthStore } from '@/store/auth.store';
+import { Alert, StyleSheet } from 'react-native';
+import {
+  AppText,
+  Button,
+  ErrorState,
+  Header,
+  Input,
+  LoadingState,
+  Screen,
+} from '@/components';
 import { useState } from 'react';
-import { useCurrentUser } from '@/services/auth/useCurrentUser';
-import { environment } from '@/config/environment';
-import { queryClient, queryKeys } from '@/services/query';
-import type { CurrentUser } from '@/services/api/auth.models';
+import {
+  useCustomerProfile,
+  useUpdateCustomerProfile,
+} from '@/services/customer';
+import type { CustomerProfile } from '@/services/api/customer/customer.models';
+import { colors, spacing, typography } from '@/theme';
 export default function EditProfile() {
+  const customerQuery = useCustomerProfile();
+
+  if (customerQuery.isPending) {
+    return (
+      <Screen>
+        <Header title="Personal details" />
+        <LoadingState message="Loading your customer profile…" />
+      </Screen>
+    );
+  }
+  if (customerQuery.isError) {
+    return (
+      <Screen>
+        <Header title="Personal details" />
+        <ErrorState
+          title="Profile unavailable"
+          message="We couldn’t load your customer profile."
+          retry={() => void customerQuery.refetch()}
+        />
+      </Screen>
+    );
+  }
+  return <EditProfileForm customer={customerQuery.data} />;
+}
+
+function EditProfileForm({ customer }: { customer: CustomerProfile }) {
   const navigation = useCustomerNavigation();
-  const sessionUser = useAuthStore(state => state.user);
-  const profileQuery = useCurrentUser();
-  const user = profileQuery.data ?? sessionUser;
-  const [name, setName] = useState(user?.name ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [address, setAddress] = useState(user?.address ?? '');
+  const updateMutation = useUpdateCustomerProfile();
+  const [name, setName] = useState(customer.name);
+  const [address, setAddress] = useState(customer.address ?? '');
+
   return (
     <Screen>
       <Header
@@ -31,14 +63,14 @@ export default function EditProfile() {
       <Input
         label="Phone number"
         icon="call-outline"
-        value={phone}
-        onChangeText={setPhone}
+        value={customer.phone}
+        editable={false}
       />
       <Input
         label="Email"
         icon="mail-outline"
-        value={email}
-        onChangeText={setEmail}
+        value={customer.email ?? ''}
+        editable={false}
         autoCapitalize="none"
       />
       <Input
@@ -49,29 +81,50 @@ export default function EditProfile() {
         multiline
       />
       <Input
-        label="New password (optional)"
+        label="Password"
         icon="lock-closed-outline"
+        value=""
+        placeholder="Managed through account security"
+        editable={false}
         secureTextEntry
       />
+      {updateMutation.isError ? (
+        <AppText accessibilityRole="alert" style={styles.error}>
+          {updateMutation.error instanceof Error
+            ? updateMutation.error.message
+            : 'Your customer profile could not be updated.'}
+        </AppText>
+      ) : null}
       <Button
         title="Save changes"
+        loading={updateMutation.isPending}
+        disabled={!name.trim()}
         onPress={() => {
-          if (!environment.useMockApi) {
-            Alert.alert(
-              'Profile updates unavailable',
-              'The current backend does not expose a secure profile update endpoint.',
-            );
-            return;
-          }
-          queryClient.setQueryData<CurrentUser>(
-            queryKeys.currentUser,
-            current =>
-              current ? { ...current, name, phone, email, address } : undefined,
+          updateMutation.mutate(
+            {
+              customerId: customer.id,
+              input: {
+                name: name.trim(),
+                address: address.trim() || null,
+              },
+            },
+            {
+              onSuccess: () => {
+                Alert.alert('Profile updated');
+                navigation.goBack();
+              },
+            },
           );
-          Alert.alert('Profile updated');
-          navigation.goBack();
         }}
       />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  error: {
+    ...typography.small,
+    color: colors.danger,
+    marginBottom: spacing.sm,
+  },
+});
