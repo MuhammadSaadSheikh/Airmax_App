@@ -11,16 +11,32 @@ enum Role {
   ADMIN
   CUSTOMER
 }
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
   PENDING
   DISABLED
 }
+
+enum CustomerStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
 enum PackageStatus {
   ACTIVE
   INACTIVE
 }
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
 enum SubscriptionStatus {
   PENDING
   ACTIVE
@@ -28,14 +44,49 @@ enum SubscriptionStatus {
   SUSPENDED
   CANCELLED
 }
+
+enum SubscriptionHistoryType {
+  CREATED
+  STATUS_CHANGED
+  PACKAGE_CHANGED
+  CANCELLED
+}
+
 enum InvoiceStatus {
-  DRAFT
-  UNPAID
+  GENERATED
+  PENDING
   PAID
   OVERDUE
-  VOID
+  CANCELLED
+}
+
+enum InvoiceEventType {
+  GENERATED
+  MARKED_PAID
+  CANCELLED
+  STATUS_CHANGED
+}
+
+enum PaymentStatus {
+  SUCCESS
+  FAILED
+  PENDING
   REFUNDED
 }
+
+enum PaymentAttemptStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
 enum ComplaintStatus {
   PENDING
   ASSIGNED
@@ -43,163 +94,432 @@ enum ComplaintStatus {
   RESOLVED
   CLOSED
 }
+
+enum ComplaintHistoryType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNMENT_CHANGED
+  REPLY_ADDED
+  NOTE_ADDED
+}
+
 enum TechnicianStatus {
   AVAILABLE
   BUSY
   OFFLINE
+  INACTIVE
+}
+
+enum TechnicianAssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderStatus {
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderHistoryType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNMENT_CHANGED
+  NOTE_ADDED
 }
 
 model User {
-  id String @id @default(uuid()) @db.Uuid
-  name String
-  phone String @unique
-  email String? @unique
-  passwordHash String
-  role Role @default(CUSTOMER)
-  status UserStatus @default(PENDING)
-  address String?
-  cnic String? @unique
-  connectionId String? @unique
-  installationDate DateTime?
-  routerDetails Json?
-  subscriptions Subscription[]
-  invoices Invoice[]
-  payments Payment[]
-  complaints Complaint[]
-  notifications Notification[]
-  refreshTokens RefreshToken[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String                @id @default(uuid()) @db.Uuid
+  name                String
+  phone               String                @unique
+  email               String?               @unique
+  passwordHash        String
+  role                Role                  @default(CUSTOMER)
+  status              UserStatus            @default(PENDING)
+  customer            Customer?
+  refreshTokens       RefreshToken[]
+  notifications       Notification[]
+  subscriptionHistory SubscriptionHistory[] @relation("SubscriptionHistoryActor")
+  invoiceEvents       InvoiceEvent[]        @relation("InvoiceEventActor")
+  complaintHistory    ComplaintHistory[]    @relation("ComplaintHistoryActor")
+  workOrderHistory    WorkOrderHistory[]    @relation("WorkOrderHistoryActor")
+  auditLogs           AuditLog[]            @relation("AuditActor")
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime              @updatedAt @db.Timestamptz(3)
+
   @@index([role, status])
 }
 
+model Customer {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @unique @db.Uuid
+  accountNumber    String         @unique
+  name             String
+  status           CustomerStatus @default(ACTIVE)
+  billingAddress   String?
+  serviceAddress   String?
+  cnic             String?        @unique
+  connectionId     String?        @unique
+  installationDate DateTime?      @db.Timestamptz(3)
+  routerDetails    Json?
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  subscriptions    Subscription[]
+  invoices         Invoice[]
+  payments         Payment[]
+  complaints       Complaint[]
+  workOrders       WorkOrder[]
+  createdAt        DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@index([status])
+}
+
 model Package {
-  id String @id @default(uuid()) @db.Uuid
-  name String
-  speedMbps Int
-  price Decimal @db.Decimal(12,2)
-  durationDays Int @default(30)
-  description String?
-  features String[]
-  status PackageStatus @default(ACTIVE)
-  subscriptions Subscription[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                         String                @id @default(uuid()) @db.Uuid
+  name                       String                @unique
+  description                String?
+  speedMbps                  Int
+  price                      Decimal               @db.Decimal(12, 2)
+  billingPeriod              BillingPeriod
+  features                   String[]
+  status                     PackageStatus         @default(ACTIVE)
+  subscriptions              Subscription[]
+  previousSubscriptionEvents SubscriptionHistory[] @relation("PreviousPackage")
+  currentSubscriptionEvents  SubscriptionHistory[] @relation("CurrentPackage")
+  createdAt                  DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@index([status])
 }
 
 model Subscription {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  packageId String @db.Uuid
-  status SubscriptionStatus @default(PENDING)
-  startsAt DateTime
-  expiresAt DateTime
-  pppoeUsername String? @unique
-  user User @relation(fields:[userId], references:[id])
-  package Package @relation(fields:[packageId], references:[id])
-  invoices Invoice[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([userId, status])
+  id            String                @id @default(uuid()) @db.Uuid
+  customerId    String                @db.Uuid
+  packageId     String                @db.Uuid
+  status        SubscriptionStatus    @default(PENDING)
+  startsAt      DateTime              @db.Timestamptz(3)
+  endsAt        DateTime?             @db.Timestamptz(3)
+  cancelledAt   DateTime?             @db.Timestamptz(3)
+  pppoeUsername String?               @unique
+  customer      Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  package       Package               @relation(fields: [packageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  history       SubscriptionHistory[]
+  invoices      Invoice[]
+  createdAt     DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@index([customerId, status])
+  @@index([packageId])
+  @@index([status])
+}
+
+model SubscriptionHistory {
+  id                String                  @id @default(uuid()) @db.Uuid
+  subscriptionId    String                  @db.Uuid
+  type              SubscriptionHistoryType
+  actorId           String?                 @db.Uuid
+  previousStatus    SubscriptionStatus?
+  currentStatus     SubscriptionStatus?
+  previousPackageId String?                 @db.Uuid
+  currentPackageId  String?                 @db.Uuid
+  packageName       String?
+  packageSpeedMbps  Int?
+  packagePrice      Decimal?                @db.Decimal(12, 2)
+  billingPeriod     BillingPeriod?
+  metadata          Json?
+  occurredAt        DateTime                @default(now()) @db.Timestamptz(3)
+  subscription      Subscription            @relation(fields: [subscriptionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor             User?                   @relation("SubscriptionHistoryActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  previousPackage   Package?                @relation("PreviousPackage", fields: [previousPackageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  currentPackage    Package?                @relation("CurrentPackage", fields: [currentPackageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([subscriptionId, occurredAt])
+  @@index([actorId, occurredAt])
 }
 
 model Invoice {
-  id String @id @default(uuid()) @db.Uuid
-  number String @unique
-  userId String @db.Uuid
-  subscriptionId String? @db.Uuid
-  amount Decimal @db.Decimal(12,2)
-  status InvoiceStatus @default(UNPAID)
-  dueAt DateTime
-  paidAt DateTime?
-  user User @relation(fields:[userId], references:[id])
-  subscription Subscription? @relation(fields:[subscriptionId], references:[id])
-  payments Payment[]
-  createdAt DateTime @default(now())
-  @@index([userId, dueAt])
+  id                    String         @id @default(uuid()) @db.Uuid
+  number                String         @unique
+  customerId            String         @db.Uuid
+  subscriptionId        String         @db.Uuid
+  customerNameSnapshot  String
+  customerPhoneSnapshot String?
+  packageNameSnapshot   String
+  packageSpeedSnapshot  Int
+  amount                Decimal        @db.Decimal(12, 2)
+  billingPeriod         BillingPeriod
+  periodStart           DateTime       @db.Timestamptz(3)
+  periodEnd             DateTime       @db.Timestamptz(3)
+  dueAt                 DateTime       @db.Timestamptz(3)
+  status                InvoiceStatus  @default(GENERATED)
+  paidAt                DateTime?      @db.Timestamptz(3)
+  cancelledAt           DateTime?      @db.Timestamptz(3)
+  customer              Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  subscription          Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  events                InvoiceEvent[]
+  payments              Payment[]
+  createdAt             DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@index([customerId, status])
+  @@index([subscriptionId])
+  @@index([status, dueAt])
+  @@index([periodStart, periodEnd])
+}
+
+model InvoiceEvent {
+  id             String           @id @default(uuid()) @db.Uuid
+  invoiceId      String           @db.Uuid
+  type           InvoiceEventType
+  actorId        String?          @db.Uuid
+  previousStatus InvoiceStatus?
+  currentStatus  InvoiceStatus?
+  metadata       Json?
+  occurredAt     DateTime         @default(now()) @db.Timestamptz(3)
+  invoice        Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor          User?            @relation("InvoiceEventActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([invoiceId, occurredAt])
+  @@index([actorId, occurredAt])
 }
 
 model Payment {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  invoiceId String @db.Uuid
-  amount Decimal @db.Decimal(12,2)
-  method String
-  providerReference String @unique
-  idempotencyKey String @unique
-  verifiedAt DateTime?
-  user User @relation(fields:[userId], references:[id])
-  invoice Invoice @relation(fields:[invoiceId], references:[id])
-  createdAt DateTime @default(now())
+  id                String           @id @default(uuid()) @db.Uuid
+  invoiceId         String           @db.Uuid
+  customerId        String           @db.Uuid
+  amount            Decimal          @db.Decimal(12, 2)
+  method            String
+  status            PaymentStatus    @default(PENDING)
+  externalReference String?          @unique
+  idempotencyKey    String           @unique
+  processedAt       DateTime?        @db.Timestamptz(3)
+  refundedAt        DateTime?        @db.Timestamptz(3)
+  invoice           Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  customer          Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attempts          PaymentAttempt[]
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+
+  @@index([invoiceId])
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
 }
 
-model ServiceArea {
-  id String @id @default(uuid()) @db.Uuid
-  city String
-  name String
-  active Boolean @default(true)
-  technicians Technician[]
-  @@unique([city, name])
-}
+model PaymentAttempt {
+  id                String               @id @default(uuid()) @db.Uuid
+  paymentId         String               @db.Uuid
+  status            PaymentAttemptStatus
+  provider          String?
+  providerReference String?
+  failureReason     String?
+  metadata          Json?
+  attemptedAt       DateTime             @default(now()) @db.Timestamptz(3)
+  payment           Payment              @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-model Technician {
-  id String @id @default(uuid()) @db.Uuid
-  name String
-  phone String @unique
-  areaId String? @db.Uuid
-  status TechnicianStatus @default(AVAILABLE)
-  area ServiceArea? @relation(fields:[areaId], references:[id])
-  complaints Complaint[]
+  @@index([paymentId, attemptedAt])
+  @@index([provider, providerReference])
 }
 
 model Complaint {
-  id String @id @default(uuid()) @db.Uuid
-  ticketNumber Int @unique @default(autoincrement())
-  userId String @db.Uuid
-  category String
-  description String
+  id            String                 @id @default(uuid()) @db.Uuid
+  ticketNumber  Int                    @unique @default(autoincrement())
+  customerId    String                 @db.Uuid
+  category      String
+  priority      ComplaintPriority      @default(MEDIUM)
+  status        ComplaintStatus        @default(PENDING)
+  description   String
   attachmentUrl String?
-  status ComplaintStatus @default(PENDING)
-  technicianId String? @db.Uuid
-  adminReply String?
-  user User @relation(fields:[userId], references:[id])
-  technician Technician? @relation(fields:[technicianId], references:[id])
-  events ComplaintEvent[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  resolvedAt DateTime?
-  @@index([userId, status])
+  resolvedAt    DateTime?              @db.Timestamptz(3)
+  closedAt      DateTime?              @db.Timestamptz(3)
+  customer      Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  history       ComplaintHistory[]
+  assignments   TechnicianAssignment[]
+  workOrders    WorkOrder[]
+  createdAt     DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime               @updatedAt @db.Timestamptz(3)
+
+  @@index([customerId, status])
+  @@index([status, priority, createdAt])
+  @@index([createdAt])
+}
+
+model ComplaintHistory {
+  id             String               @id @default(uuid()) @db.Uuid
+  complaintId    String               @db.Uuid
+  type           ComplaintHistoryType
+  actorId        String?              @db.Uuid
+  previousStatus ComplaintStatus?
+  currentStatus  ComplaintStatus?
+  message        String?
+  metadata       Json?
+  occurredAt     DateTime             @default(now()) @db.Timestamptz(3)
+  complaint      Complaint            @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor          User?                @relation("ComplaintHistoryActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([complaintId, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model ServiceArea {
+  id          String       @id @default(uuid()) @db.Uuid
+  city        String
+  name        String
+  active      Boolean      @default(true)
+  technicians Technician[]
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@unique([city, name])
+  @@index([active])
+}
+
+model Technician {
+  id             String                 @id @default(uuid()) @db.Uuid
+  employeeNumber String                 @unique
+  name           String
+  phone          String                 @unique
+  serviceAreaId  String?                @db.Uuid
+  status         TechnicianStatus       @default(AVAILABLE)
+  serviceArea    ServiceArea?           @relation(fields: [serviceAreaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  skills         TechnicianSkill[]
+  assignments    TechnicianAssignment[]
+  workOrders     WorkOrder[]
+  createdAt      DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime               @updatedAt @db.Timestamptz(3)
+
+  @@index([status, serviceAreaId])
+}
+
+model Skill {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String            @unique
+  description String?
+  active      Boolean           @default(true)
+  technicians TechnicianSkill[]
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
+}
+
+model TechnicianSkill {
+  technicianId String     @db.Uuid
+  skillId      String     @db.Uuid
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@id([technicianId, skillId])
+  @@index([skillId])
+}
+
+model TechnicianAssignment {
+  id           String                     @id @default(uuid()) @db.Uuid
+  complaintId  String                     @db.Uuid
+  technicianId String                     @db.Uuid
+  status       TechnicianAssignmentStatus @default(ASSIGNED)
+  assignedAt   DateTime                   @default(now()) @db.Timestamptz(3)
+  acceptedAt   DateTime?                  @db.Timestamptz(3)
+  completedAt  DateTime?                  @db.Timestamptz(3)
+  cancelledAt  DateTime?                  @db.Timestamptz(3)
+  notes        String?
+  complaint    Complaint                  @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  technician   Technician                 @relation(fields: [technicianId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  workOrder    WorkOrder?
+  createdAt    DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                   @updatedAt @db.Timestamptz(3)
+
+  @@index([complaintId, status])
   @@index([technicianId, status])
 }
 
-model ComplaintEvent {
-  id String @id @default(uuid()) @db.Uuid
-  complaintId String @db.Uuid
-  status ComplaintStatus
-  note String?
-  actorId String @db.Uuid
-  complaint Complaint @relation(fields:[complaintId], references:[id], onDelete:Cascade)
-  createdAt DateTime @default(now())
+model WorkOrder {
+  id           String               @id @default(uuid()) @db.Uuid
+  number       String               @unique
+  complaintId  String               @db.Uuid
+  customerId   String               @db.Uuid
+  technicianId String               @db.Uuid
+  assignmentId String               @unique @db.Uuid
+  status       WorkOrderStatus      @default(ASSIGNED)
+  assignedAt   DateTime             @db.Timestamptz(3)
+  acceptedAt   DateTime?            @db.Timestamptz(3)
+  startedAt    DateTime?            @db.Timestamptz(3)
+  completedAt  DateTime?            @db.Timestamptz(3)
+  cancelledAt  DateTime?            @db.Timestamptz(3)
+  notes        String?
+  complaint    Complaint            @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  technician   Technician           @relation(fields: [technicianId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignment   TechnicianAssignment @relation(fields: [assignmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  history      WorkOrderHistory[]
+  createdAt    DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @db.Timestamptz(3)
+
+  @@index([complaintId])
+  @@index([technicianId, status])
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
 }
 
+model WorkOrderHistory {
+  id             String               @id @default(uuid()) @db.Uuid
+  workOrderId    String               @db.Uuid
+  type           WorkOrderHistoryType
+  actorId        String?              @db.Uuid
+  previousStatus WorkOrderStatus?
+  currentStatus  WorkOrderStatus?
+  note           String?
+  metadata       Json?
+  occurredAt     DateTime             @default(now()) @db.Timestamptz(3)
+  workOrder      WorkOrder            @relation(fields: [workOrderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor          User?                @relation("WorkOrderHistoryActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workOrderId, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  requestId  String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([requestId])
+}
+
+// Identity-adjacent Phase 4.1 models are retained for authentication compatibility.
 model Notification {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  title String
-  message String
-  data Json?
-  readAt DateTime?
-  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String
+  message   String
+  data      Json?
+  readAt    DateTime? @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
   @@index([userId, createdAt])
 }
 
 model RefreshToken {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  tokenHash String @unique
-  expiresAt DateTime
-  revokedAt DateTime?
-  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, expiresAt])
 }

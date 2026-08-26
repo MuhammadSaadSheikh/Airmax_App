@@ -9,8 +9,11 @@
     "format:check": "../node_modules/.bin/prettier --check src/app.module.ts src/main.ts src/common/http src/common/pagination src/config/infrastructure.config.ts src/health test/backend-foundation.test.js README.md package.json eslint.config.js",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
+    "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "test:database": "node --test test/database-schema.test.js",
     "test": "npm run build && node --test test/*.test.js"
   },
   "dependencies": {
