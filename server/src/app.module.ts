@@ -12,6 +12,7 @@ import { UsersModule } from './users/users.module';
 import { CustomersModule } from './customers/customers.module';
 import { PackagesModule } from './packages/packages.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { TechniciansModule } from './technicians/technicians.module';
@@ -38,6 +39,7 @@ import { RedisModule } from './redis/redis.module';
     CustomersModule,
     PackagesModule,
     SubscriptionsModule,
+    InvoicesModule,
     PaymentsModule,
     ComplaintsModule,
     TechniciansModule,

@@ -27,6 +27,10 @@ The identity and customer backend now reads business profiles from `Customer`; i
 
 Package and subscription backend operations now use `Customer -> Subscription -> Package` and write subscription lifecycle history. They do not backfill transitional records. Existing `Subscription.userId` values require an approved mapping from `User.id` to `Customer.id`; `expiresAt` requires an explicit `endsAt` policy; and legacy package `durationDays` values require business-approved `BillingPeriod` mapping. Package IDs must be reconciled before subscription foreign keys are moved. Missing creation, activation, cancellation, and package-change events cannot be invented silently. Package-change backfills must capture immutable previous/current name, speed, price, and billing-period facts from a trusted historical source rather than today’s catalogue values.
 
+## Phase 4.3C billing and payment boundary
+
+Billing now uses `Customer -> Subscription -> Invoice -> Payment -> PaymentAttempt`; it does not backfill transitional financial records. Existing `Invoice.userId` and `Payment.userId` values require an approved `User.id -> Customer.id` mapping. Legacy invoice statuses `DRAFT`, `UNPAID`, `VOID`, and `REFUNDED` have no automatic mapping to the frozen invoice contract and must be reconciled case by case. Missing customer/package/price/billing-period snapshots must come from trusted historical evidence, never the current catalogue by assumption. Payment status, idempotency, external references, attempts, failures, and refund history must be inventoried before backfill. Missing attempts or invoice events must not be fabricated.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.

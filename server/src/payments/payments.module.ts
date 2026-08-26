@@ -1,1 +1,15 @@
-import{Module}from'@nestjs/common';import{JwtAuthGuard}from'../common/guards/jwt-auth.guard';import{RolesGuard}from'../common/guards/roles.guard';import{PaymentsController}from'./payments.controller';import{PaymentsService}from'./payments.service';@Module({controllers:[PaymentsController],providers:[PaymentsService,JwtAuthGuard,RolesGuard]})export class PaymentsModule{}
+import { Module } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import {
+  InvoicePaymentsController,
+  PaymentsController,
+} from './payments.controller';
+import { PaymentsRepository } from './payments.repository';
+import { PaymentsService } from './payments.service';
+
+@Module({
+  controllers: [PaymentsController, InvoicePaymentsController],
+  providers: [PaymentsService, PaymentsRepository, JwtAuthGuard, RolesGuard],
+})
+export class PaymentsModule {}
