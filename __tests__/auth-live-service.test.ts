@@ -80,7 +80,7 @@ describe('live auth service', () => {
         password: 'password123',
         mockRole: 'admin',
       }),
-    ).rejects.toThrow('Invalid credentials');
+    ).rejects.toThrow('Invalid email, phone number, or password.');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -123,7 +123,10 @@ describe('live auth service', () => {
       } as Response);
 
       await expect(
-        authService.login({ identifier: 'user@example.test', password: 'password' }),
+        authService.login({
+          identifier: 'user@example.test',
+          password: 'password',
+        }),
       ).rejects.toThrow(`Account is ${status.toLowerCase()}`);
     },
   );

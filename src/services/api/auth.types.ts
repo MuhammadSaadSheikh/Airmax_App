@@ -3,10 +3,13 @@ import type {
   CurrentUser,
   LoginInput,
   OtpChallenge,
+  RegisterInput,
+  RegistrationResult,
 } from './auth.models';
 
 export interface AuthenticationService {
   login(input: LoginInput): Promise<AuthSession>;
+  register(input: RegisterInput): Promise<RegistrationResult>;
   requestOtp(phone: string): Promise<OtpChallenge>;
   verifyOtp(
     phone: string,

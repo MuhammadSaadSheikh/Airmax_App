@@ -6,6 +6,8 @@ import type {
   CurrentUser,
   LoginInput,
   OtpChallenge,
+  RegisterInput,
+  RegistrationResult,
 } from './auth.models';
 import type { AuthenticationService } from './auth.types';
 
@@ -51,6 +53,26 @@ export const mockAuthService: AuthenticationService = {
       );
     }
     return mockSession(input.mockRole ?? 'customer', input.identifier);
+  },
+
+  async register(input: RegisterInput): Promise<RegistrationResult> {
+    await mockDelay();
+    if (input.password.length < 8) {
+      throw new ValidationError(
+        'Mock passwords must be at least 8 characters',
+        422,
+      );
+    }
+    return {
+      user: {
+        id: `pending-${Date.now()}`,
+        name: input.name,
+        phone: input.phone,
+        email: input.email,
+        role: 'customer',
+        status: 'pending',
+      },
+    };
   },
 
   async requestOtp(phone: string): Promise<OtpChallenge> {

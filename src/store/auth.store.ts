@@ -3,6 +3,8 @@ import { authService } from '@/services/api/auth.service';
 import type {
   LoginInput,
   OtpChallenge,
+  RegisterInput,
+  RegistrationResult,
   SessionUser,
 } from '@/services/api/auth.models';
 import {
@@ -25,8 +27,13 @@ type AuthState = {
   error: string | null;
   bootstrap: () => Promise<void>;
   login: (input: LoginInput) => Promise<void>;
+  register: (input: RegisterInput) => Promise<RegistrationResult>;
   requestOtp: (phone: string) => Promise<OtpChallenge>;
-  verifyOtp: (phone: string, challengeId: string, code: string) => Promise<void>;
+  verifyOtp: (
+    phone: string,
+    challengeId: string,
+    code: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   acceptSession: (user: SessionUser) => void;
   expireSession: () => void;
@@ -77,6 +84,18 @@ export const useAuthStore = create<AuthState>(set => ({
     }
   },
 
+  register: async input => {
+    set({ status: 'authenticating', user: null, error: null });
+    try {
+      const registration = await authService.register(input);
+      set({ status: 'anonymous', user: null, error: null });
+      return registration;
+    } catch (error) {
+      set({ status: 'anonymous', user: null, error: messageFrom(error) });
+      throw error;
+    }
+  },
+
   requestOtp: phone => authService.requestOtp(phone),
 
   verifyOtp: async (phone, challengeId, code) => {
@@ -94,13 +113,13 @@ export const useAuthStore = create<AuthState>(set => ({
 
   logout: async () => {
     const refreshToken = await getRefreshToken().catch(() => null);
-    // Local logout is authoritative and completes before any network work.
+    if (refreshToken) {
+      await authService.logout(refreshToken).catch(() => undefined);
+    }
+    // Local logout remains authoritative even when server revocation is unavailable.
     await clearSession().catch(() => undefined);
     await clearQueries();
     set({ status: 'anonymous', user: null, error: null });
-    if (refreshToken) {
-      void authService.logout(refreshToken).catch(() => undefined);
-    }
   },
 
   acceptSession: user => set({ status: 'authenticated', user, error: null }),

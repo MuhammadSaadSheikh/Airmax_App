@@ -53,15 +53,15 @@ describe('logout cleanup', () => {
     });
   });
 
-  it('clears all local auth state before best-effort server revocation', async () => {
+  it('requests server revocation before clearing all local auth state', async () => {
     await useAuthStore.getState().logout();
 
     expect(mockLogoutRequest).toHaveBeenCalledWith('stored-refresh');
     expect(mockClearSession).toHaveBeenCalled();
     expect(mockCancelQueries).toHaveBeenCalled();
     expect(mockClearQueries).toHaveBeenCalled();
-    expect(mockClearSession.mock.invocationCallOrder[0]).toBeLessThan(
-      mockLogoutRequest.mock.invocationCallOrder[0]!,
+    expect(mockLogoutRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      mockClearSession.mock.invocationCallOrder[0]!,
     );
     expect(useAuthStore.getState()).toMatchObject({
       status: 'anonymous',
