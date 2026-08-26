@@ -16,7 +16,7 @@ export class UsersService {
             OR: [
               { name: { contains: search, mode: 'insensitive' } },
               { phone: { contains: search } },
-              { connectionId: { contains: search } },
+              { email: { contains: search, mode: 'insensitive' } },
             ],
           }
         : undefined,
@@ -27,8 +27,6 @@ export class UsersService {
         email: true,
         role: true,
         status: true,
-        address: true,
-        connectionId: true,
         createdAt: true,
       },
       take: 100,

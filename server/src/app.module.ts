@@ -9,6 +9,7 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { CustomersModule } from './customers/customers.module';
 import { PackagesModule } from './packages/packages.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -34,6 +35,7 @@ import { RedisModule } from './redis/redis.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    CustomersModule,
     PackagesModule,
     SubscriptionsModule,
     PaymentsModule,

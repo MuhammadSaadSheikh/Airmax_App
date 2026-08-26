@@ -19,6 +19,10 @@ Before adopting an existing database, inventory and reconcile:
 
 After reconciliation is approved, produce a deployment-specific expand/backfill/validate/contract migration and only then use `prisma migrate resolve --applied` where the live schema is proven equivalent. Never mark this baseline applied merely to bypass the guard.
 
+## Phase 4.3A backend boundary
+
+The identity and customer backend now reads business profiles from `Customer`; it does not backfill transitional data. Existing `User.address`, `User.cnic`, `User.connectionId`, `User.installationDate`, and `User.routerDetails` values must be inventoried and copied into an explicitly matched `Customer` only after duplicate user/customer, CNIC, connection ID, and account-number conflicts are resolved. Authentication continues to use `User.id`, phone/email, password hash, role, status, and refresh tokens. JWT subjects remain `User.id`.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.
