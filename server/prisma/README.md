@@ -23,6 +23,10 @@ After reconciliation is approved, produce a deployment-specific expand/backfill/
 
 The identity and customer backend now reads business profiles from `Customer`; it does not backfill transitional data. Existing `User.address`, `User.cnic`, `User.connectionId`, `User.installationDate`, and `User.routerDetails` values must be inventoried and copied into an explicitly matched `Customer` only after duplicate user/customer, CNIC, connection ID, and account-number conflicts are resolved. Authentication continues to use `User.id`, phone/email, password hash, role, status, and refresh tokens. JWT subjects remain `User.id`.
 
+## Phase 4.3B package and subscription boundary
+
+Package and subscription backend operations now use `Customer -> Subscription -> Package` and write subscription lifecycle history. They do not backfill transitional records. Existing `Subscription.userId` values require an approved mapping from `User.id` to `Customer.id`; `expiresAt` requires an explicit `endsAt` policy; and legacy package `durationDays` values require business-approved `BillingPeriod` mapping. Package IDs must be reconciled before subscription foreign keys are moved. Missing creation, activation, cancellation, and package-change events cannot be invented silently. Package-change backfills must capture immutable previous/current name, speed, price, and billing-period facts from a trusted historical source rather than today’s catalogue values.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.
