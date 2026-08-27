@@ -97,6 +97,8 @@ export const queryKeys = {
   paymentHistories: ['payment-history'] as const,
   paymentHistory: (connectionId: string) =>
     ['payment-history', connectionId] as const,
+  paymentDetails: ['payment-detail'] as const,
+  paymentDetail: (id: string) => ['payment-detail', id] as const,
   paymentMethods: (connectionId: string) =>
     ['payment-methods', connectionId] as const,
   supportComplaints: (connectionId: string) =>

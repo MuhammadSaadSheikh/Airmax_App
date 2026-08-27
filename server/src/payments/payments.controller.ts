@@ -17,13 +17,27 @@ import {
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { CreatePaymentDto, RefundPaymentDto } from './dto/payment.dto';
+import {
+  ConfirmPaymentDto,
+  CreatePaymentDto,
+  InitiatePaymentDto,
+  RefundPaymentDto,
+} from './dto/payment.dto';
 import { PaymentsService } from './payments.service';
 
 @Controller('payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
+  @Post('initiate')
+  @Roles(Role.CUSTOMER)
+  initiate(
+    @Body() input: InitiatePaymentDto,
+    @Headers('idempotency-key') key: string | undefined,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.payments.initiatePayment(input, key, actor);
+  }
   @Get(':id') getById(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @CurrentUser() actor: AuthUser,
@@ -38,6 +52,15 @@ export class PaymentsController {
     @CurrentUser() actor: AuthUser,
   ) {
     return this.payments.createPayment(input, key, actor);
+  }
+  @Post(':id/confirm')
+  @Roles(Role.ADMIN)
+  confirm(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() input: ConfirmPaymentDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.payments.confirmPayment(id, input, actor);
   }
   @Patch(':id/refund')
   @Roles(Role.ADMIN)

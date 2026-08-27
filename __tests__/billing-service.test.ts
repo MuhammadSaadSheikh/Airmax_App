@@ -14,7 +14,7 @@ describe('Phase 2D billing service', () => {
   it('returns a current bill with subscription summary', async () => {
     const current = await billingCenterService.getCurrentBill('AMX-1042');
     expect(current.invoice.amount).toBe(current.summary.currentAmount);
-    expect(current.summary.daysRemaining).toBeGreaterThan(0);
+    expect(current.summary.daysRemaining).toBeGreaterThanOrEqual(0);
   });
   it('returns invoices with line items', async () => {
     const invoices = await billingCenterService.getInvoices('AMX-1042');

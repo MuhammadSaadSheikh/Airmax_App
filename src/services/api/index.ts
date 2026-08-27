@@ -15,6 +15,8 @@ export * from './customer/customer.service';
 export type * from './customer/customer.models';
 export * from './package/package.service';
 export * from './subscription/subscription.service';
+export { invoiceApiService } from './invoice/invoice.service';
+export { paymentApiService } from './payment/payment.service';
 export * from './complaints.service';
 export type * from './complaints.models';
 export * from './installations.service';

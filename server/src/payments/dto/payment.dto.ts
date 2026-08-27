@@ -2,6 +2,7 @@ import { PaymentAttemptStatus, PaymentStatus, Prisma } from '@prisma/client';
 import {
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -9,6 +10,24 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+
+export class InitiatePaymentDto {
+  @IsUUID('4') invoiceId!: string;
+  @IsString() @MinLength(1) @MaxLength(64) paymentMethod!: string;
+  @IsOptional() @IsObject() providerMetadata?: Prisma.InputJsonObject;
+}
+
+export class ConfirmPaymentDto {
+  @IsString() @MinLength(1) @MaxLength(255) providerReference!: string;
+  @IsIn([PaymentAttemptStatus.SUCCESS, PaymentAttemptStatus.FAILED])
+  result!: PaymentAttemptStatus;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) provider?: string;
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  failureReason?: string;
+}
 
 export class CreatePaymentDto {
   @IsUUID('4') invoiceId!: string;

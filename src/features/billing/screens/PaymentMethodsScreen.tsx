@@ -1,4 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -13,59 +12,46 @@ import {
 } from '@/components';
 import { PaymentMethodCard } from '@/features/billing/components';
 import { useCustomerNavigation } from '@/navigation';
-import { billingCenterService } from '@/services/billing';
-import { invalidateAdminMutation, queryKeys } from '@/services/query';
-import { useAuthStore } from '@/store/auth.store';
+import {
+  useCurrentBill,
+  useInitiatePayment,
+  usePaymentMethods,
+} from '@/services/billing';
+import { useCustomerProfile } from '@/services/customer/customerQueries';
 import { colors, money, spacing, typography } from '@/theme';
 
 export default function PaymentMethodsScreen() {
   const navigation = useCustomerNavigation();
-  const queryClient = useQueryClient();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const profileQuery = useCustomerProfile();
+  const customerId = profileQuery.data?.id;
   const [selectedId, setSelectedId] = useState<string>();
-  const billQuery = useQuery({
-    queryKey: queryKeys.currentBill(connectionId),
-    queryFn: () => billingCenterService.getCurrentBill(connectionId),
-  });
-  const methodsQuery = useQuery({
-    queryKey: queryKeys.paymentMethods(connectionId),
-    queryFn: () => billingCenterService.getPaymentMethods(connectionId),
-  });
+  const billQuery = useCurrentBill(customerId);
+  const methodsQuery = usePaymentMethods(customerId);
   const selected =
     selectedId ?? methodsQuery.data?.find(method => method.isDefault)?.id;
-  const mutation = useMutation({
-    mutationFn: () =>
-      billingCenterService.processPayment(
-        billQuery.data!.invoice.id,
-        selected!,
-      ),
-    onSuccess: receipt => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.currentBill(connectionId),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.invoices(connectionId),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.paymentHistory(connectionId),
-      });
-      void invalidateAdminMutation(queryClient, 'billing');
-      navigation.replace('PaymentSuccess', { receipt });
-    },
-  });
+  const mutation = useInitiatePayment(
+    customerId,
+    profileQuery.data?.connectionId,
+  );
   const pay = useCallback(() => {
-    if (selected && billQuery.data) mutation.mutate();
-  }, [billQuery.data, mutation, selected]);
-  if (billQuery.isPending || methodsQuery.isPending)
+    if (selected && billQuery.data) {
+      mutation.mutate(
+        { invoiceId: billQuery.data.invoice.id, methodId: selected },
+        {
+          onSuccess: receipt =>
+            navigation.replace('PaymentSuccess', { receipt }),
+        },
+      );
+    }
+  }, [billQuery.data, mutation, navigation, selected]);
+  if (profileQuery.isPending || billQuery.isPending || methodsQuery.isPending)
     return (
       <AppScreen>
         <AppHeader title="Payment center" showBack />
         <SkeletonCard lines={6} />
       </AppScreen>
     );
-  if (billQuery.isError || methodsQuery.isError)
+  if (profileQuery.isError || billQuery.isError || methodsQuery.isError)
     return (
       <AppScreen>
         <AppHeader title="Payment center" showBack />
@@ -73,6 +59,7 @@ export default function PaymentMethodsScreen() {
           title="Payment methods unavailable"
           message="We couldn't prepare the secure payment flow."
           retry={() => {
+            void profileQuery.refetch();
             void billQuery.refetch();
             void methodsQuery.refetch();
           }}
@@ -130,7 +117,7 @@ export default function PaymentMethodsScreen() {
       </View>
       {mutation.isError ? (
         <AppText accessibilityLiveRegion="assertive" style={styles.error}>
-          Payment could not be completed. Please try again.
+          Payment could not be initiated. Please try again.
         </AppText>
       ) : null}
       <PrimaryButton

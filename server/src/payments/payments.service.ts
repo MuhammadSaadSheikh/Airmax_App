@@ -5,10 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InvoiceStatus, PaymentStatus, Prisma, Role } from '@prisma/client';
+import {
+  InvoiceStatus,
+  PaymentAttemptStatus,
+  PaymentStatus,
+  Prisma,
+  Role,
+} from '@prisma/client';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import {
+  ConfirmPaymentDto,
   CreatePaymentDto,
+  InitiatePaymentDto,
   type PaymentRecord,
   PaymentResponseDto,
   RefundPaymentDto,
@@ -18,6 +26,109 @@ import { PaymentsRepository } from './payments.repository';
 @Injectable()
 export class PaymentsService {
   constructor(private readonly payments: PaymentsRepository) {}
+
+  async initiatePayment(
+    input: InitiatePaymentDto,
+    idempotencyKey: string | undefined,
+    actor: AuthUser,
+  ) {
+    this.assertCustomer(actor);
+    const key = this.validateIdempotencyKey(idempotencyKey);
+    const customer = await this.payments.findCustomerByUserId(actor.sub);
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    const prior = await this.payments.findByIdempotencyKey(key);
+    if (prior) {
+      this.assertCanView(prior.customer.userId, actor);
+      this.assertSameInitiation(prior, input);
+      return new PaymentResponseDto(prior);
+    }
+    try {
+      const result = await this.payments.initiateCustomerPayment({
+        invoiceId: input.invoiceId,
+        customerUserId: actor.sub,
+        method: input.paymentMethod,
+        idempotencyKey: key,
+        providerMetadata: input.providerMetadata,
+      });
+      if (result.kind === 'missing') {
+        throw new NotFoundException('Invoice not found');
+      }
+      if (result.kind === 'forbidden') {
+        throw new ForbiddenException('Invoice access denied');
+      }
+      if (result.kind === 'invalid_subscription') {
+        throw new ConflictException(
+          'Invoice subscription ownership is no longer valid',
+        );
+      }
+      if (result.kind === 'invoice_not_payable') {
+        throw new ConflictException(
+          `Invoice in ${result.status} status cannot receive payment`,
+        );
+      }
+      if (result.kind === 'active_attempt') {
+        throw new ConflictException(
+          'Invoice already has an active payment attempt',
+        );
+      }
+      if (result.kind === 'idempotent') {
+        this.assertCanView(result.payment.customer.userId, actor);
+        this.assertSameInitiation(result.payment, input);
+      }
+      return new PaymentResponseDto(result.payment);
+    } catch (error) {
+      if (this.isUniqueConflict(error)) {
+        const concurrent = await this.payments.findByIdempotencyKey(key);
+        if (concurrent) {
+          this.assertCanView(concurrent.customer.userId, actor);
+          this.assertSameInitiation(concurrent, input);
+          return new PaymentResponseDto(concurrent);
+        }
+      }
+      this.rethrowUniqueConflict(error);
+    }
+  }
+
+  async confirmPayment(id: string, input: ConfirmPaymentDto, actor: AuthUser) {
+    this.assertAdmin(actor);
+    if (
+      input.result !== PaymentAttemptStatus.SUCCESS &&
+      input.result !== PaymentAttemptStatus.FAILED
+    ) {
+      throw new BadRequestException('Payment confirmation result is invalid');
+    }
+    if (input.result === PaymentAttemptStatus.FAILED && !input.failureReason) {
+      throw new BadRequestException(
+        'Failed payment confirmation requires a safe failure reason',
+      );
+    }
+    try {
+      const result = await this.payments.confirmCustomerPayment({
+        id,
+        actorId: actor.sub,
+        result: input.result,
+        provider: input.provider,
+        providerReference: input.providerReference,
+        failureReason: input.failureReason,
+      });
+      if (result.kind === 'missing') {
+        throw new NotFoundException('Payment not found');
+      }
+      if (result.kind === 'invoice_missing') {
+        throw new NotFoundException('Invoice not found');
+      }
+      if (result.kind === 'payment_changed') {
+        throw new ConflictException('Payment is no longer pending');
+      }
+      if (result.kind === 'invoice_changed') {
+        throw new ConflictException('Invoice is no longer payable');
+      }
+      return new PaymentResponseDto(result.payment);
+    } catch (error) {
+      this.rethrowUniqueConflict(error);
+    }
+  }
 
   async createPayment(
     input: CreatePaymentDto,
@@ -115,6 +226,11 @@ export class PaymentsService {
     if (actor.role !== Role.ADMIN)
       throw new ForbiddenException('Payment mutation denied');
   }
+  private assertCustomer(actor: AuthUser) {
+    if (actor.role !== Role.CUSTOMER) {
+      throw new ForbiddenException('Customer payment initiation denied');
+    }
+  }
   private assertCanView(userId: string, actor: AuthUser) {
     if (actor.role !== Role.ADMIN && actor.sub !== userId)
       throw new ForbiddenException('Payment access denied');
@@ -135,13 +251,31 @@ export class PaymentsService {
       );
     }
   }
-  private rethrowUniqueConflict(error: unknown): never {
+  private assertSameInitiation(
+    payment: PaymentRecord,
+    input: InitiatePaymentDto,
+  ) {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      payment.invoiceId !== input.invoiceId ||
+      payment.method !== input.paymentMethod
     ) {
+      throw new ConflictException(
+        'Idempotency key was used for a different payment',
+      );
+    }
+  }
+  private rethrowUniqueConflict(error: unknown): never {
+    if (this.isUniqueConflict(error)) {
       throw new ConflictException('Payment reference already exists');
     }
     throw error;
+  }
+  private isUniqueConflict(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
   }
 }

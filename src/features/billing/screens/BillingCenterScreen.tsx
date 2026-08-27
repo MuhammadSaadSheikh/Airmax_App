@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, View } from 'react-native';
 import {
   AppHeader,
@@ -15,27 +14,17 @@ import {
   InvoiceCard,
 } from '@/features/billing/components';
 import { useCustomerNavigation } from '@/navigation';
-import { billingCenterService } from '@/services/billing';
-import { queryKeys } from '@/services/query';
-import { useAuthStore } from '@/store/auth.store';
+import { useCurrentBill, useCustomerInvoices } from '@/services/billing';
+import { useCustomerProfile } from '@/services/customer/customerQueries';
 import { colors, spacing, typography } from '@/theme';
 
 export default function BillingCenterScreen() {
   const navigation = useCustomerNavigation();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
-  const billQuery = useQuery({
-    queryKey: queryKeys.currentBill(connectionId),
-    queryFn: () => billingCenterService.getCurrentBill(connectionId),
-    staleTime: 30_000,
-  });
-  const invoiceQuery = useQuery({
-    queryKey: queryKeys.invoices(connectionId),
-    queryFn: () => billingCenterService.getInvoices(connectionId),
-    staleTime: 30_000,
-  });
-  if (billQuery.isPending || invoiceQuery.isPending)
+  const profileQuery = useCustomerProfile();
+  const customerId = profileQuery.data?.id;
+  const billQuery = useCurrentBill(customerId);
+  const invoiceQuery = useCustomerInvoices(customerId);
+  if (profileQuery.isPending || billQuery.isPending || invoiceQuery.isPending)
     return (
       <AppScreen>
         <AppHeader
@@ -45,7 +34,7 @@ export default function BillingCenterScreen() {
         <BillingSkeleton />
       </AppScreen>
     );
-  if (billQuery.isError || invoiceQuery.isError)
+  if (profileQuery.isError || billQuery.isError || invoiceQuery.isError)
     return (
       <AppScreen>
         <AppHeader title="Billing center" />
@@ -53,6 +42,7 @@ export default function BillingCenterScreen() {
           title="Billing unavailable"
           message="We couldn't load your billing center."
           retry={() => {
+            void profileQuery.refetch();
             void billQuery.refetch();
             void invoiceQuery.refetch();
           }}
