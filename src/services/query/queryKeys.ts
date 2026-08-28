@@ -107,6 +107,12 @@ export const queryKeys = {
   supportComplaintDetailsRoot: ['support-complaint-detail'] as const,
   supportComplaintDetail: (connectionId: string, id: string) =>
     ['support-complaint-detail', connectionId, id] as const,
+  supportComplaintTechniciansRoot: ['support-complaint-technician'] as const,
+  supportComplaintTechnician: (id: string) =>
+    ['support-complaint-technician', id] as const,
+  customerWorkOrderDetails: ['customer-work-order-detail'] as const,
+  customerWorkOrderDetail: (id: string) =>
+    ['customer-work-order-detail', id] as const,
   notifications: (connectionId: string) =>
     ['notifications', connectionId] as const,
   notificationDetail: (id: string) => ['notification-detail', id] as const,

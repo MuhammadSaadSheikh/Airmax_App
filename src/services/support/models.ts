@@ -22,6 +22,7 @@ export interface Complaint {
   updatedAt: string;
   expectedResolution?: string;
   attachments?: ComplaintAttachment[];
+  workOrderId?: string;
 }
 
 export interface ComplaintTimeline {
@@ -44,11 +45,37 @@ export interface DiagnosticResult {
 }
 
 export interface TechnicianAssignment {
+  technicianId: string;
   technicianName: string;
-  status: 'assigned' | 'en_route' | 'working' | 'completed';
+  status: 'assigned' | 'en_route' | 'working' | 'completed' | 'cancelled';
   assignedAt: string;
   eta: string;
-  phone?: string;
+  skills: string[];
+  serviceArea: string | null;
+  workOrderId?: string;
+}
+
+export interface AssignedTechnician {
+  id: string;
+  name: string;
+  status: 'available' | 'busy' | 'offline' | 'on_leave' | 'inactive';
+  skills: string[];
+  serviceArea: { city: string; name: string } | null;
+}
+
+export interface WorkOrderTracking {
+  id: string;
+  complaintId: string;
+  status: 'assigned' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  technician: {
+    id: string;
+    name: string;
+    status: AssignedTechnician['status'];
+  };
+  assignedAt: string;
+  acceptedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 export interface SupportCategory {

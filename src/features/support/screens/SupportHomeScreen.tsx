@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { AppScreen, AppText, ErrorState, SkeletonCard } from '@/components';
@@ -10,21 +9,14 @@ import {
   SupportHeader,
 } from '@/features/support/components';
 import { useCustomerNavigation } from '@/navigation';
-import { queryKeys } from '@/services/query';
-import { supportService } from '@/services/support';
-import { useAuthStore } from '@/store/auth.store';
+import { useCustomerProfile } from '@/services/customer';
+import { useCustomerComplaints } from '@/services/support';
 import { colors, spacing, typography } from '@/theme';
 
 export default function SupportHomeScreen() {
   const navigation = useCustomerNavigation();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
-  const complaintsQuery = useQuery({
-    queryKey: queryKeys.supportComplaints(connectionId),
-    queryFn: () => supportService.getComplaints(connectionId),
-    staleTime: 30_000,
-  });
+  const customerQuery = useCustomerProfile();
+  const complaintsQuery = useCustomerComplaints(customerQuery.data?.id);
   const activeTickets =
     complaintsQuery.data?.filter(item => item.status !== 'resolved') ?? [];
   const openTicket = useCallback(
@@ -102,12 +94,17 @@ export default function SupportHomeScreen() {
           View all
         </AppText>
       </View>
-      {complaintsQuery.isPending ? <SkeletonCard lines={4} /> : null}
-      {complaintsQuery.isError ? (
+      {customerQuery.isPending || complaintsQuery.isPending ? (
+        <SkeletonCard lines={4} />
+      ) : null}
+      {customerQuery.isError || complaintsQuery.isError ? (
         <ErrorState
           title="Tickets unavailable"
           message="We couldn't load your support tickets."
-          retry={() => void complaintsQuery.refetch()}
+          retry={() => {
+            void customerQuery.refetch();
+            void complaintsQuery.refetch();
+          }}
         />
       ) : null}
       {activeTickets.slice(0, 2).map(complaint => (
@@ -117,7 +114,9 @@ export default function SupportHomeScreen() {
           onPress={() => openTicket(complaint.id)}
         />
       ))}
-      {!complaintsQuery.isPending && activeTickets.length === 0 ? (
+      {!customerQuery.isPending &&
+      !complaintsQuery.isPending &&
+      activeTickets.length === 0 ? (
         <AppText style={styles.empty}>
           You have no active support tickets.
         </AppText>

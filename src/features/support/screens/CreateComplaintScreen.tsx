@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -7,20 +6,22 @@ import {
   AppIcon,
   AppScreen,
   AppText,
+  ErrorState,
   PrimaryButton,
+  SkeletonCard,
   TextField,
   type AppIconName,
 } from '@/components';
 import { IssueCategoryCard } from '@/features/support/components';
 import { useCustomerNavigation } from '@/navigation';
-import { invalidateAdminMutation, queryKeys } from '@/services/query';
+import { environment } from '@/config/environment';
+import { useCustomerProfile } from '@/services/customer';
 import {
-  supportService,
+  useCreateComplaint,
   type AttachmentType,
   type ComplaintAttachment,
   type ComplaintCategory,
 } from '@/services/support';
-import { useAuthStore } from '@/store/auth.store';
 import { animation, colors, radius, spacing, typography } from '@/theme';
 
 const categories: { id: ComplaintCategory; name: string; icon: AppIconName }[] =
@@ -39,10 +40,8 @@ const attachmentIcons: Record<AttachmentType, AppIconName> = {
 
 export default function CreateComplaintScreen() {
   const navigation = useCustomerNavigation();
-  const queryClient = useQueryClient();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const customerQuery = useCustomerProfile();
+  const attachmentsEnabled = environment.useMockApi;
   const [category, setCategory] = useState<ComplaintCategory>('internet');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,29 +50,10 @@ export default function CreateComplaintScreen() {
     () => categories.find(item => item.id === category),
     [category],
   );
-
-  const mutation = useMutation({
-    mutationFn: () =>
-      supportService.createComplaint(connectionId, {
-        category,
-        title: title.trim(),
-        description: description.trim(),
-        attachments,
-      }),
-    onSuccess: complaint => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.supportComplaints(connectionId),
-      });
-      queryClient.setQueryData(
-        queryKeys.supportComplaintDetail(connectionId, complaint.id),
-        complaint,
-      );
-      void invalidateAdminMutation(queryClient, 'complaint');
-      navigation.replace('ComplaintDetail', { id: complaint.id });
-    },
-    onError: () =>
-      Alert.alert('Unable to submit', 'Please try again in a moment.'),
-  });
+  const mutation = useCreateComplaint(
+    customerQuery.data?.id,
+    customerQuery.data?.connectionId,
+  );
 
   const pickMedia = async (type: 'image' | 'video') => {
     const result = await launchImageLibrary({
@@ -113,6 +93,28 @@ export default function CreateComplaintScreen() {
   };
 
   const valid = title.trim().length >= 4 && description.trim().length >= 10;
+
+  if (customerQuery.isPending) {
+    return (
+      <AppScreen contentContainerStyle={styles.content}>
+        <AppHeader title="Create complaint" showBack />
+        <SkeletonCard lines={6} />
+      </AppScreen>
+    );
+  }
+
+  if (customerQuery.isError || !customerQuery.data) {
+    return (
+      <AppScreen contentContainerStyle={styles.content}>
+        <AppHeader title="Create complaint" showBack />
+        <ErrorState
+          title="Customer profile unavailable"
+          message="We couldn't verify your complaint ownership."
+          retry={() => void customerQuery.refetch()}
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen
@@ -162,13 +164,16 @@ export default function CreateComplaintScreen() {
               key={type}
               accessibilityRole="button"
               accessibilityLabel={`${attached ? 'Remove' : 'Add'} ${type} attachment`}
+              disabled={!attachmentsEnabled}
               onPress={() => {
+                if (!attachmentsEnabled) return;
                 if (type === 'voice') addVoiceNote();
                 else void pickMedia(type);
               }}
               style={({ pressed }) => [
                 styles.attachment,
                 attached && styles.attachmentActive,
+                !attachmentsEnabled && styles.attachmentDisabled,
                 pressed && styles.pressed,
               ]}
             >
@@ -182,15 +187,34 @@ export default function CreateComplaintScreen() {
         })}
       </View>
       <AppText style={styles.privacy}>
-        Don’t include passwords or payment card information. Media remains
-        attached only to this ticket.
+        {attachmentsEnabled
+          ? 'Don’t include passwords or payment card information. Media remains attached only to this ticket.'
+          : 'Attachments are unavailable in live mode until secure upload is supported. Your complaint text will still be submitted.'}
       </AppText>
       <PrimaryButton
         title="SUBMIT COMPLAINT"
         icon="send-outline"
         loading={mutation.isPending}
-        disabled={!valid}
-        onPress={() => mutation.mutate()}
+        disabled={!valid || mutation.isPending}
+        onPress={() =>
+          mutation.mutate(
+            {
+              category,
+              title: title.trim(),
+              description: description.trim(),
+              attachments: attachmentsEnabled ? attachments : undefined,
+            },
+            {
+              onSuccess: complaint =>
+                navigation.replace('ComplaintDetail', { id: complaint.id }),
+              onError: () =>
+                Alert.alert(
+                  'Unable to submit',
+                  'Please try again in a moment.',
+                ),
+            },
+          )
+        }
       />
     </AppScreen>
   );
@@ -221,6 +245,7 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     backgroundColor: colors.surfaceAccent,
   },
+  attachmentDisabled: { opacity: 0.45 },
   attachmentLabel: {
     ...typography.small,
     color: colors.textSecondary,

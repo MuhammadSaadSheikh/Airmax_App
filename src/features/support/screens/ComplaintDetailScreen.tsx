@@ -1,5 +1,4 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
 import { Alert, StyleSheet, View } from 'react-native';
 import {
   AppHeader,
@@ -17,24 +16,32 @@ import {
   TechnicianCard,
 } from '@/features/support/components';
 import type { CustomerStackParamList } from '@/navigation/types';
-import { queryKeys } from '@/services/query';
-import { supportService } from '@/services/support';
-import { useAuthStore } from '@/store/auth.store';
+import { mapTechnicianAssignment } from '@/services/api/technician/technician.mapper';
+import { useCustomerProfile } from '@/services/customer';
+import {
+  useComplaintDetail,
+  useComplaintTechnician,
+  useWorkOrderTracking,
+} from '@/services/support';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'ComplaintDetail'>;
 
 export default function ComplaintDetailScreen({ route }: Props) {
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
+  const customerQuery = useCustomerProfile();
+  const query = useComplaintDetail(customerQuery.data?.id, route.params.id);
+  const trackingEnabled =
+    Boolean(query.data) && query.data?.status !== 'submitted';
+  const technicianQuery = useComplaintTechnician(
+    route.params.id,
+    trackingEnabled,
   );
-  const query = useQuery({
-    queryKey: queryKeys.supportComplaintDetail(connectionId, route.params.id),
-    queryFn: () =>
-      supportService.getComplaintDetail(connectionId, route.params.id),
-  });
+  const workOrderQuery = useWorkOrderTracking(
+    query.data?.workOrderId,
+    trackingEnabled,
+  );
 
-  if (query.isPending) {
+  if (customerQuery.isPending || query.isPending) {
     return (
       <AppScreen contentContainerStyle={styles.content}>
         <AppHeader title="Complaint detail" showBack />
@@ -43,20 +50,36 @@ export default function ComplaintDetailScreen({ route }: Props) {
       </AppScreen>
     );
   }
-  if (query.isError || !query.data) {
+  if (customerQuery.isError || query.isError || !query.data) {
     return (
       <AppScreen>
         <AppHeader title="Complaint detail" showBack />
         <ErrorState
           title="Ticket not found"
           message="This complaint may no longer be available."
-          retry={() => void query.refetch()}
+          retry={() => {
+            void customerQuery.refetch();
+            void query.refetch();
+          }}
         />
       </AppScreen>
     );
   }
 
   const complaint = query.data;
+  const trackingLoading =
+    (trackingEnabled && technicianQuery.isPending) ||
+    (Boolean(complaint.workOrderId) && workOrderQuery.isPending);
+  const trackingError =
+    technicianQuery.isError ||
+    (Boolean(complaint.workOrderId) && workOrderQuery.isError);
+  const assignment = technicianQuery.data
+    ? mapTechnicianAssignment(
+        technicianQuery.data,
+        workOrderQuery.data,
+        complaint.updatedAt,
+      )
+    : undefined;
   return (
     <AppScreen contentContainerStyle={styles.content}>
       <AppHeader title="Complaint detail" subtitle={complaint.id} showBack />
@@ -83,10 +106,21 @@ export default function ComplaintDetailScreen({ route }: Props) {
       <Surface>
         <ComplaintTimeline items={complaint.timeline} />
       </Surface>
-      {complaint.technician ? (
+      {trackingLoading ? <SkeletonCard lines={4} /> : null}
+      {trackingError ? (
+        <ErrorState
+          title="Tracking unavailable"
+          message="We couldn't refresh the assigned technician or work order."
+          retry={() => {
+            void technicianQuery.refetch();
+            void workOrderQuery.refetch();
+          }}
+        />
+      ) : null}
+      {assignment ? (
         <>
           <AppText style={styles.sectionTitle}>Technician status</AppText>
-          <TechnicianCard assignment={complaint.technician} />
+          <TechnicianCard assignment={assignment} />
         </>
       ) : null}
       {complaint.resolution ? (

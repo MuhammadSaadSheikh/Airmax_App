@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,25 +10,18 @@ import {
 } from '@/components';
 import { ComplaintCard } from '@/features/support/components';
 import { useCustomerNavigation } from '@/navigation';
-import { queryKeys } from '@/services/query';
-import { supportService, type Complaint } from '@/services/support';
-import { useAuthStore } from '@/store/auth.store';
+import { useCustomerProfile } from '@/services/customer';
+import { useCustomerComplaints, type Complaint } from '@/services/support';
 import { spacing } from '@/theme';
 import { getScreenMetrics } from '@/utils/responsive';
 
 export default function ComplaintHistoryScreen() {
   const navigation = useCustomerNavigation();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const customerQuery = useCustomerProfile();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const metrics = getScreenMetrics(width, insets.bottom);
-  const query = useQuery({
-    queryKey: queryKeys.supportComplaints(connectionId),
-    queryFn: () => supportService.getComplaints(connectionId),
-    staleTime: 30_000,
-  });
+  const query = useCustomerComplaints(customerQuery.data?.id);
   const renderItem = useCallback(
     ({ item }: { item: Complaint }) => (
       <ComplaintCard
@@ -47,13 +39,16 @@ export default function ComplaintHistoryScreen() {
         subtitle="Track complaints and resolutions"
         showBack
       />
-      {query.isPending ? (
+      {customerQuery.isPending || query.isPending ? (
         <SupportSkeleton />
-      ) : query.isError ? (
+      ) : customerQuery.isError || query.isError ? (
         <ErrorState
           title="Tickets unavailable"
           message="We couldn't load your complaint history."
-          retry={() => void query.refetch()}
+          retry={() => {
+            void customerQuery.refetch();
+            void query.refetch();
+          }}
         />
       ) : (
         <FlatList

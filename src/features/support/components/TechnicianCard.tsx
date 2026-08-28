@@ -8,6 +8,10 @@ export function TechnicianCard({
 }: {
   assignment: TechnicianAssignment;
 }) {
+  const assignedDate = new Date(assignment.assignedAt);
+  const assignedLabel = Number.isNaN(assignedDate.getTime())
+    ? assignment.assignedAt
+    : assignedDate.toLocaleString('en-PK');
   return (
     <Surface
       style={styles.card}
@@ -19,9 +23,15 @@ export function TechnicianCard({
       <View style={styles.copy}>
         <AppText style={styles.label}>ASSIGNED TECHNICIAN</AppText>
         <AppText style={styles.name}>{assignment.technicianName}</AppText>
-        <AppText style={styles.detail}>
-          Assigned {assignment.assignedAt}
-        </AppText>
+        <AppText style={styles.detail}>Assigned {assignedLabel}</AppText>
+        {assignment.serviceArea ? (
+          <AppText style={styles.detail}>{assignment.serviceArea}</AppText>
+        ) : null}
+        {assignment.skills.length ? (
+          <AppText style={styles.detail}>
+            {assignment.skills.join(' · ')}
+          </AppText>
+        ) : null}
         <View style={styles.etaRow}>
           <AppIcon name="time-outline" size={15} color={colors.warning} />
           <AppText style={styles.eta}>{assignment.eta}</AppText>
