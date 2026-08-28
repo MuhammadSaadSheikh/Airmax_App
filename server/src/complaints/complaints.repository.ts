@@ -9,7 +9,10 @@ import {
   WorkOrderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { complaintInclude } from './dto/complaint.dto';
+import {
+  complaintInclude,
+  complaintTechnicianSelect,
+} from './dto/complaint.dto';
 
 const ACTIVE_ASSIGNMENTS = [
   TechnicianAssignmentStatus.ASSIGNED,
@@ -40,6 +43,13 @@ export class ComplaintsRepository {
       where: { customerId },
       include: complaintInclude,
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findTechnicianByComplaintId(id: string) {
+    return this.prisma.complaint.findUnique({
+      where: { id },
+      select: complaintTechnicianSelect,
     });
   }
 

@@ -54,6 +54,20 @@ work-order, field-visit, resolution, or actor history must not be invented. Any
 technician-account linkage in an older deployment remains a reconciliation input,
 not a reason to change the independent production `Technician` entity.
 
+## Phase 4.3D.2 mobile-readiness boundary
+
+`Complaint.title` is nullable at the database layer solely to preserve complaints
+created before titles were collected. Every new complaint created through the API
+requires a title between 3 and 150 characters. Legacy NULL titles must be
+reconciled only from a trusted historical source; descriptions are not silently
+promoted to titles and placeholder titles are not invented.
+
+The customer-safe technician lookup is scoped through
+`Complaint -> TechnicianAssignment -> Technician` and never opens the admin
+technician catalogue. Work-order reads are scoped through the related customer
+owner. Technician capacity, contact details, assignment actors, internal notes,
+and work-order history remain outside these customer contracts.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.

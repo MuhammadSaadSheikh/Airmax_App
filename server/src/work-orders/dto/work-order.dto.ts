@@ -57,3 +57,33 @@ export class WorkOrderResponseDto {
     Object.assign(this, record);
   }
 }
+
+export class WorkOrderReadResponseDto {
+  readonly id: string;
+  readonly complaintId: string;
+  readonly status: WorkOrderStatus;
+  readonly technician: {
+    id: string;
+    name: string;
+    status: WorkOrderRecord['technician']['status'];
+  };
+  readonly assignedAt: Date;
+  readonly acceptedAt: Date | null;
+  readonly startedAt: Date | null;
+  readonly completedAt: Date | null;
+
+  constructor(record: WorkOrderRecord) {
+    this.id = record.id;
+    this.complaintId = record.complaintId;
+    this.status = record.status;
+    this.technician = {
+      id: record.technician.id,
+      name: record.technician.name,
+      status: record.technician.status,
+    };
+    this.assignedAt = record.assignedAt;
+    this.acceptedAt = record.acceptedAt;
+    this.startedAt = record.startedAt;
+    this.completedAt = record.completedAt;
+  }
+}

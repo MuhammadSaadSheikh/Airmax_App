@@ -6,12 +6,28 @@ import {
 } from '@nestjs/common';
 import { Role, WorkOrderStatus } from '@prisma/client';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
-import { WorkOrderResponseDto } from './dto/work-order.dto';
+import {
+  WorkOrderReadResponseDto,
+  WorkOrderResponseDto,
+} from './dto/work-order.dto';
 import { WorkOrdersRepository } from './work-orders.repository';
 
 @Injectable()
 export class WorkOrdersService {
   constructor(private readonly workOrders: WorkOrdersRepository) {}
+
+  async getWorkOrderById(id: string, actor: AuthUser) {
+    const workOrder = await this.workOrders.findById(id);
+    if (!workOrder) throw new NotFoundException('Work order not found');
+    if (
+      actor.role !== Role.ADMIN &&
+      (actor.sub !== workOrder.customer.userId ||
+        workOrder.complaint.customerId !== workOrder.customer.id)
+    ) {
+      throw new ForbiddenException('Work order access denied');
+    }
+    return new WorkOrderReadResponseDto(workOrder);
+  }
 
   acceptWorkOrder(id: string, notes: string | undefined, actor: AuthUser) {
     return this.transition(

@@ -41,6 +41,15 @@ export class ComplaintsController {
     return this.complaints.getComplaintById(id, actor);
   }
 
+  @Get(':id/technician')
+  @Roles(Role.ADMIN, Role.CUSTOMER)
+  getTechnician(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.complaints.getComplaintTechnician(id, actor);
+  }
+
   @Patch(':id/status')
   @Roles(Role.ADMIN)
   updateStatus(

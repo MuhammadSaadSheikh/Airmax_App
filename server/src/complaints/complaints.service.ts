@@ -9,6 +9,7 @@ import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { ComplaintsRepository } from './complaints.repository';
 import {
   AssignTechnicianDto,
+  ComplaintTechnicianResponseDto,
   ComplaintResponseDto,
   CreateComplaintDto,
   UpdateComplaintStatusDto,
@@ -33,6 +34,7 @@ export class ComplaintsService {
     const complaint = await this.complaints.create({
       customer: { connect: { id: customer.id } },
       category: input.category,
+      title: input.title,
       priority: input.priority,
       description: input.description,
       attachmentUrl: input.attachmentUrl,
@@ -61,6 +63,18 @@ export class ComplaintsService {
     return (await this.complaints.findByCustomerId(customerId)).map(
       complaint => new ComplaintResponseDto(complaint),
     );
+  }
+
+  async getComplaintTechnician(id: string, actor: AuthUser) {
+    const complaint = await this.complaints.findTechnicianByComplaintId(id);
+    if (!complaint) throw new NotFoundException('Complaint not found');
+    this.assertCanAccess(complaint.customer.userId, actor);
+    const assignment = complaint.assignments[0];
+    if (!assignment)
+      throw new NotFoundException('Complaint has no assigned technician');
+    if (!assignment.technician)
+      throw new NotFoundException('Assigned technician not found');
+    return new ComplaintTechnicianResponseDto(assignment.technician);
   }
 
   async updateComplaintStatus(

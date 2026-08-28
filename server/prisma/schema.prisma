@@ -332,6 +332,8 @@ model Complaint {
   ticketNumber  Int                    @unique @default(autoincrement())
   customerId    String                 @db.Uuid
   category      String
+  /// Nullable only for reconciled legacy rows; all new API writes require a title.
+  title         String?
   priority      ComplaintPriority      @default(MEDIUM)
   status        ComplaintStatus        @default(PENDING)
   description   String

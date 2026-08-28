@@ -7,6 +7,7 @@ const { test } = require('node:test');
 const {
   ConflictException,
   ForbiddenException,
+  NotFoundException,
   ValidationPipe,
 } = require('@nestjs/common');
 const { GUARDS_METADATA } = require('@nestjs/common/constants');
@@ -15,6 +16,7 @@ const {
   ComplaintPriority,
   ComplaintStatus,
   Role,
+  TechnicianAssignmentStatus,
   TechnicianStatus,
   WorkOrderStatus,
 } = require('@prisma/client');
@@ -29,6 +31,7 @@ const {
 } = require('../dist/complaints/complaints.service.js');
 const {
   CreateComplaintDto,
+  ComplaintResponseDto,
   UpdateComplaintStatusDto,
 } = require('../dist/complaints/dto/complaint.dto.js');
 const {
@@ -68,6 +71,7 @@ function complaint(overrides = {}) {
     ticketNumber: 1,
     customerId,
     category: 'Connectivity',
+    title: 'No connectivity',
     priority: ComplaintPriority.MEDIUM,
     description: 'No signal',
     attachmentUrl: null,
@@ -99,10 +103,22 @@ class FakeComplaintsRepository {
   async findByCustomerId(id) {
     return this.complaints.filter(item => item.customerId === id);
   }
+  async findTechnicianByComplaintId(id) {
+    const record = await this.findById(id);
+    if (!record) return null;
+    return {
+      customer: { userId: record.customer.userId },
+      assignments: record.assignments
+        .filter(item => item.status !== TechnicianAssignmentStatus.CANCELLED)
+        .slice(-1)
+        .map(item => ({ technician: item.technician })),
+    };
+  }
   async create(data) {
     const created = complaint({
       customerId: data.customer.connect.id,
       category: data.category,
+      title: data.title,
       priority: data.priority ?? ComplaintPriority.MEDIUM,
       description: data.description,
       attachmentUrl: data.attachmentUrl ?? null,
@@ -213,7 +229,11 @@ function workOrder(status = WorkOrderStatus.ASSIGNED) {
     completedAt: null,
     cancelledAt: null,
     notes: null,
-    complaint: { id: complaintId, status: ComplaintStatus.ASSIGNED },
+    complaint: {
+      id: complaintId,
+      customerId,
+      status: ComplaintStatus.ASSIGNED,
+    },
     customer: { id: customerId, userId, name: 'Customer One' },
     technician: technician(),
     assignment: { id: 'assignment-1', assignedById: adminId },
@@ -262,14 +282,64 @@ test('complaint DTOs reject invalid ownership and legacy statuses', async () => 
   );
 });
 
+test('complaint title is required for new writes and legacy null is returned safely', async () => {
+  const pipe = new ValidationPipe({ transform: true, whitelist: true });
+  const valid = await pipe.transform(
+    {
+      customerId,
+      category: 'Connectivity',
+      title: 'Intermittent fiber signal',
+      description: 'Signal drops every few minutes',
+    },
+    { type: 'body', metatype: CreateComplaintDto },
+  );
+  assert.equal(valid.title, 'Intermittent fiber signal');
+  await assert.rejects(() =>
+    pipe.transform(
+      { customerId, category: 'Connectivity', description: 'No signal' },
+      { type: 'body', metatype: CreateComplaintDto },
+    ),
+  );
+  await assert.rejects(() =>
+    pipe.transform(
+      {
+        customerId,
+        category: 'Connectivity',
+        title: 'No',
+        description: 'No signal',
+      },
+      { type: 'body', metatype: CreateComplaintDto },
+    ),
+  );
+  await assert.rejects(() =>
+    pipe.transform(
+      {
+        customerId,
+        category: 'Connectivity',
+        title: 'x'.repeat(151),
+        description: 'No signal',
+      },
+      { type: 'body', metatype: CreateComplaintDto },
+    ),
+  );
+  const legacy = complaint({ title: null });
+  assert.equal(new ComplaintResponseDto(legacy).title, null);
+});
+
 test('complaint creation is Customer-owned and appends created history', async () => {
   const repository = new FakeComplaintsRepository();
   const service = new ComplaintsService(repository);
   const created = await service.createComplaint(
-    { customerId, category: 'Connectivity', description: 'No signal' },
+    {
+      customerId,
+      category: 'Connectivity',
+      title: 'No connectivity',
+      description: 'No signal',
+    },
     actor(),
   );
   assert.equal(created.customerId, customerId);
+  assert.equal(created.title, 'No connectivity');
   assert.equal(created.history[0].type, ComplaintHistoryType.CREATED);
   assert.equal(created.history[0].actorId, userId);
 });
@@ -285,6 +355,65 @@ test('customer complaint access rejects cross-customer reads', async () => {
   assert.equal(
     (await service.getComplaintById(complaintId, actor())).id,
     complaintId,
+  );
+});
+
+test('assigned technician lookup is complaint-scoped and customer-safe', async () => {
+  const repository = new FakeComplaintsRepository();
+  repository.complaints.push(
+    complaint({
+      assignments: [
+        {
+          status: TechnicianAssignmentStatus.ASSIGNED,
+          technician: technician(),
+        },
+      ],
+    }),
+  );
+  const service = new ComplaintsService(repository);
+  const visible = await service.getComplaintTechnician(complaintId, actor());
+  assert.deepEqual(Object.keys(visible), [
+    'id',
+    'name',
+    'status',
+    'skills',
+    'serviceArea',
+  ]);
+  assert.deepEqual(visible.skills, ['Fiber']);
+  assert.deepEqual(visible.serviceArea, {
+    city: 'Karachi',
+    name: 'Central',
+  });
+  assert.equal(
+    (await service.getComplaintTechnician(complaintId, admin)).id,
+    technicianId,
+  );
+  await assert.rejects(
+    () =>
+      service.getComplaintTechnician(complaintId, actor({ sub: otherUserId })),
+    ForbiddenException,
+  );
+});
+
+test('assigned technician lookup rejects missing complaints and assignments', async () => {
+  const repository = new FakeComplaintsRepository();
+  const service = new ComplaintsService(repository);
+  await assert.rejects(
+    () => service.getComplaintTechnician(complaintId, actor()),
+    NotFoundException,
+  );
+  repository.complaints.push(complaint());
+  await assert.rejects(
+    () => service.getComplaintTechnician(complaintId, actor()),
+    NotFoundException,
+  );
+  repository.complaints[0].assignments.push({
+    status: TechnicianAssignmentStatus.ASSIGNED,
+    technician: null,
+  });
+  await assert.rejects(
+    () => service.getComplaintTechnician(complaintId, actor()),
+    NotFoundException,
   );
 });
 
@@ -391,6 +520,48 @@ test('work order follows accept, start, complete sequence with history', async (
   );
 });
 
+test('work order read permits admin and owner with a customer-safe projection', async () => {
+  const repository = new FakeWorkOrdersRepository();
+  const service = new WorkOrdersService(repository);
+  const visible = await service.getWorkOrderById(workOrderId, actor());
+  assert.deepEqual(Object.keys(visible), [
+    'id',
+    'complaintId',
+    'status',
+    'technician',
+    'assignedAt',
+    'acceptedAt',
+    'startedAt',
+    'completedAt',
+  ]);
+  assert.deepEqual(Object.keys(visible.technician), ['id', 'name', 'status']);
+  assert.equal(
+    (await service.getWorkOrderById(workOrderId, admin)).id,
+    workOrderId,
+  );
+  await assert.rejects(
+    () => service.getWorkOrderById(workOrderId, actor({ sub: otherUserId })),
+    ForbiddenException,
+  );
+  repository.record.complaint.customerId =
+    '20000000-0000-4000-8000-000000000099';
+  await assert.rejects(
+    () => service.getWorkOrderById(workOrderId, actor()),
+    ForbiddenException,
+  );
+});
+
+test('work order read rejects missing records', async () => {
+  const service = new WorkOrdersService(
+    new FakeWorkOrdersRepository(workOrder()),
+  );
+  await assert.rejects(
+    () =>
+      service.getWorkOrderById('50000000-0000-4000-8000-000000000099', actor()),
+    NotFoundException,
+  );
+});
+
 test('work order cancel allows active states and terminal records are immutable', async () => {
   const repository = new FakeWorkOrdersRepository(
     workOrder(WorkOrderStatus.IN_PROGRESS),
@@ -432,6 +603,17 @@ test('controllers retain JWT/RBAC guards and admin mutation contracts', () => {
   assert.deepEqual(Reflect.getMetadata(ROLES_KEY, WorkOrdersController), [
     Role.ADMIN,
   ]);
+  assert.deepEqual(
+    Reflect.getMetadata(
+      ROLES_KEY,
+      ComplaintsController.prototype.getTechnician,
+    ),
+    [Role.ADMIN, Role.CUSTOMER],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(ROLES_KEY, WorkOrdersController.prototype.getById),
+    [Role.ADMIN, Role.CUSTOMER],
+  );
   assert.deepEqual(
     Reflect.getMetadata(
       ROLES_KEY,

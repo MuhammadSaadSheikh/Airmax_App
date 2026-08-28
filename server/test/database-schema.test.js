@@ -19,6 +19,13 @@ const fieldServiceAmendment = readFileSync(
   ),
   'utf8',
 );
+const mobileReadinessAmendment = readFileSync(
+  join(
+    root,
+    'prisma/migrations/20260827000000_phase_43d2_mobile_readiness/migration.sql',
+  ),
+  'utf8',
+);
 
 function block(kind, name) {
   const match = schema.match(
@@ -141,6 +148,16 @@ test('field-service amendment preserves legacy status and nullable actor history
   assert.match(fieldServiceAmendment, /ADD COLUMN "assignedById" UUID/);
   assert.match(fieldServiceAmendment, /ON DELETE SET NULL/);
   assert.doesNotMatch(fieldServiceAmendment, /UPDATE\s+"Technician"/);
+});
+
+test('mobile-readiness amendment preserves legacy complaints without inventing titles', () => {
+  const complaint = block('model', 'Complaint');
+  assert.match(complaint, /title\s+String\?/);
+  assert.match(mobileReadinessAmendment, /ADD COLUMN "title" TEXT/);
+  assert.doesNotMatch(
+    mobileReadinessAmendment,
+    /NOT NULL|UPDATE\s+"Complaint"/,
+  );
 });
 
 test('migration is clean-install-only and creates database foreign keys', () => {

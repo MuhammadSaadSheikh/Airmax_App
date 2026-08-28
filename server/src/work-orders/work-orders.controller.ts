@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -22,6 +23,15 @@ import { WorkOrdersService } from './work-orders.service';
 @Roles(Role.ADMIN)
 export class WorkOrdersController {
   constructor(private readonly workOrders: WorkOrdersService) {}
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.CUSTOMER)
+  getById(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.workOrders.getWorkOrderById(id, actor);
+  }
 
   @Patch(':id/accept')
   accept(
