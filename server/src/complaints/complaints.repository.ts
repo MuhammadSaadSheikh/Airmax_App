@@ -31,6 +31,13 @@ export class ComplaintsRepository {
     });
   }
 
+  findCustomerByUserId(userId: string) {
+    return this.prisma.customer.findUnique({
+      where: { userId },
+      select: { id: true, userId: true },
+    });
+  }
+
   findById(id: string) {
     return this.prisma.complaint.findUnique({
       where: { id },

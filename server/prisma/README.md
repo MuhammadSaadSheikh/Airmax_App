@@ -68,6 +68,15 @@ technician catalogue. Work-order reads are scoped through the related customer
 owner. Technician capacity, contact details, assignment actors, internal notes,
 and work-order history remain outside these customer contracts.
 
+## Phase 4.3D.3 complaint ownership boundary
+
+Authenticated customers create complaints without supplying `customerId`.
+Complaint creation resolves `JWT subject -> User -> Customer` and persists the
+resolved `Customer.id`; customer payloads that attempt to supply ownership are
+rejected. Admin creation remains compatible through an explicit, validated
+`customerId`. This changes no schema or authentication behavior and never adds
+`Complaint.userId`.
+
 ## Seed and verification
 
 `seed.js` is repeatable and foundation-only: one catalogue fixture, one service area, and two skills. It creates no users, credentials, payments, or demo business history.

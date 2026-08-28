@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -28,9 +29,7 @@ export class ComplaintsService {
   constructor(private readonly complaints: ComplaintsRepository) {}
 
   async createComplaint(input: CreateComplaintDto, actor: AuthUser) {
-    const customer = await this.complaints.findCustomerById(input.customerId);
-    if (!customer) throw new NotFoundException('Customer not found');
-    this.assertCanAccess(customer.userId, actor);
+    const customer = await this.resolveCreationCustomer(input, actor);
     const complaint = await this.complaints.create({
       customer: { connect: { id: customer.id } },
       category: input.category,
@@ -48,6 +47,31 @@ export class ComplaintsService {
       },
     });
     return new ComplaintResponseDto(complaint);
+  }
+
+  private async resolveCreationCustomer(
+    input: CreateComplaintDto,
+    actor: AuthUser,
+  ) {
+    if (actor.role === Role.ADMIN) {
+      if (!input.customerId) {
+        throw new BadRequestException(
+          'customerId is required for admin complaint creation',
+        );
+      }
+      const customer = await this.complaints.findCustomerById(input.customerId);
+      if (!customer) throw new NotFoundException('Customer not found');
+      return customer;
+    }
+
+    if (input.customerId) {
+      throw new ForbiddenException(
+        'Customer complaint ownership cannot be supplied',
+      );
+    }
+    const customer = await this.complaints.findCustomerByUserId(actor.sub);
+    if (!customer) throw new NotFoundException('Customer profile not found');
+    return customer;
   }
 
   async getComplaintById(id: string, actor: AuthUser) {

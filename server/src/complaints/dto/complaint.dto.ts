@@ -12,11 +12,13 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateComplaintDto {
+  @IsOptional()
   @IsUUID('4')
-  customerId!: string;
+  customerId?: string;
 
   @IsString()
   @MinLength(1)
@@ -28,7 +30,7 @@ export class CreateComplaintDto {
   @MaxLength(150)
   title!: string;
 
-  @IsOptional()
+  @ValidateIf(input => !input.customerId || input.priority !== undefined)
   @IsEnum(ComplaintPriority)
   priority?: ComplaintPriority;
 

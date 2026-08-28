@@ -5,6 +5,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { test } = require('node:test');
 const {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -96,6 +97,9 @@ class FakeComplaintsRepository {
   }
   async findCustomerById(id) {
     return this.customers.find(item => item.id === id) ?? null;
+  }
+  async findCustomerByUserId(id) {
+    return this.customers.find(item => item.userId === id) ?? null;
   }
   async findById(id) {
     return this.complaints.find(item => item.id === id) ?? null;
@@ -286,17 +290,41 @@ test('complaint title is required for new writes and legacy null is returned saf
   const pipe = new ValidationPipe({ transform: true, whitelist: true });
   const valid = await pipe.transform(
     {
-      customerId,
       category: 'Connectivity',
       title: 'Intermittent fiber signal',
+      priority: ComplaintPriority.MEDIUM,
       description: 'Signal drops every few minutes',
     },
     { type: 'body', metatype: CreateComplaintDto },
   );
   assert.equal(valid.title, 'Intermittent fiber signal');
+  const legacyAdmin = await pipe.transform(
+    {
+      customerId,
+      category: 'Connectivity',
+      title: 'Customer reported outage',
+      description: 'No signal',
+    },
+    { type: 'body', metatype: CreateComplaintDto },
+  );
+  assert.equal(legacyAdmin.priority, undefined);
   await assert.rejects(() =>
     pipe.transform(
-      { customerId, category: 'Connectivity', description: 'No signal' },
+      {
+        category: 'Connectivity',
+        title: 'Intermittent fiber signal',
+        description: 'No signal',
+      },
+      { type: 'body', metatype: CreateComplaintDto },
+    ),
+  );
+  await assert.rejects(() =>
+    pipe.transform(
+      {
+        category: 'Connectivity',
+        priority: ComplaintPriority.MEDIUM,
+        description: 'No signal',
+      },
       { type: 'body', metatype: CreateComplaintDto },
     ),
   );
@@ -306,6 +334,7 @@ test('complaint title is required for new writes and legacy null is returned saf
         customerId,
         category: 'Connectivity',
         title: 'No',
+        priority: ComplaintPriority.MEDIUM,
         description: 'No signal',
       },
       { type: 'body', metatype: CreateComplaintDto },
@@ -317,6 +346,7 @@ test('complaint title is required for new writes and legacy null is returned saf
         customerId,
         category: 'Connectivity',
         title: 'x'.repeat(151),
+        priority: ComplaintPriority.MEDIUM,
         description: 'No signal',
       },
       { type: 'body', metatype: CreateComplaintDto },
@@ -331,9 +361,9 @@ test('complaint creation is Customer-owned and appends created history', async (
   const service = new ComplaintsService(repository);
   const created = await service.createComplaint(
     {
-      customerId,
       category: 'Connectivity',
       title: 'No connectivity',
+      priority: ComplaintPriority.MEDIUM,
       description: 'No signal',
     },
     actor(),
@@ -342,6 +372,70 @@ test('complaint creation is Customer-owned and appends created history', async (
   assert.equal(created.title, 'No connectivity');
   assert.equal(created.history[0].type, ComplaintHistoryType.CREATED);
   assert.equal(created.history[0].actorId, userId);
+});
+
+test('customer complaint creation derives ownership and rejects payload ownership', async () => {
+  const repository = new FakeComplaintsRepository();
+  const service = new ComplaintsService(repository);
+  const input = {
+    category: 'Connectivity',
+    title: 'No connectivity',
+    priority: ComplaintPriority.HIGH,
+    description: 'No signal',
+  };
+  const created = await service.createComplaint(input, actor());
+  assert.equal(created.customerId, customerId);
+
+  await assert.rejects(
+    () =>
+      service.createComplaint(
+        {
+          ...input,
+          customerId: '20000000-0000-4000-8000-000000000099',
+        },
+        actor(),
+      ),
+    ForbiddenException,
+  );
+
+  repository.customers = [];
+  await assert.rejects(
+    () => service.createComplaint(input, actor()),
+    NotFoundException,
+  );
+});
+
+test('admin complaint creation retains validated explicit customer ownership', async () => {
+  const repository = new FakeComplaintsRepository();
+  const service = new ComplaintsService(repository);
+  const input = {
+    category: 'Connectivity',
+    title: 'Customer reported outage',
+    priority: ComplaintPriority.HIGH,
+    description: 'No signal',
+  };
+  const created = await service.createComplaint(
+    { ...input, customerId },
+    admin,
+  );
+  assert.equal(created.customerId, customerId);
+  assert.equal(created.history[0].actorId, adminId);
+
+  await assert.rejects(
+    () => service.createComplaint(input, admin),
+    BadRequestException,
+  );
+  await assert.rejects(
+    () =>
+      service.createComplaint(
+        {
+          ...input,
+          customerId: '20000000-0000-4000-8000-000000000099',
+        },
+        admin,
+      ),
+    NotFoundException,
+  );
 });
 
 test('customer complaint access rejects cross-customer reads', async () => {
@@ -355,6 +449,11 @@ test('customer complaint access rejects cross-customer reads', async () => {
   assert.equal(
     (await service.getComplaintById(complaintId, actor())).id,
     complaintId,
+  );
+  await assert.rejects(
+    () =>
+      service.getCustomerComplaints(customerId, actor({ sub: otherUserId })),
+    ForbiddenException,
   );
 });
 
