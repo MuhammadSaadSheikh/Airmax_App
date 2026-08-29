@@ -89,4 +89,9 @@ npm run prisma:generate
 npm run test:database
 ```
 
-For a disposable PostgreSQL database only, run `prisma migrate deploy`, `prisma db seed`, and the database integration suite once one is provisioned. No real PostgreSQL database was assumed by the static tests.
+For a disposable PostgreSQL database only, use the deployment safety wrapper,
+then run `prisma db seed` and the database integration suite once one is
+provisioned. Production operators must follow the repository
+[`database-deployment-runbook.md`](../../docs/database-deployment-runbook.md);
+direct migration deploy, automatic rollback, and automatic `migrate resolve`
+are not supported. No real PostgreSQL database was assumed by the static tests.

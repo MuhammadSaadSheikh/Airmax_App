@@ -37,15 +37,20 @@ debug logging, incomplete MikroTik configuration, and repository-local `.env`
 loading are rejected in production. The authoritative variable checklist and
 safe placeholders are documented in `.env.example`.
 
-After producing the API build, use only deployment-safe Prisma commands:
+After producing the API build, use only the fail-closed database deployment
+wrapper:
 
 ```bash
-npm run prisma:migrate:status
-npm run prisma:migrate:deploy
+npm run db:deploy:preflight
+npm run db:deploy:safe
+npm run db:deploy:verify
 npm run start:prod
 ```
 
 `prisma:migrate` remains the local development command and must not be used as a
-production deployment step.
+production deployment step. Direct `prisma migrate deploy` is deliberately not
+exposed as a package script. See
+[`../docs/database-deployment-runbook.md`](../docs/database-deployment-runbook.md)
+for approvals, backup requirements, failure recovery, and sanitized reports.
 
 Payment callbacks must be verified by the provider before calling the idempotent verification service. MikroTik credentials remain server-side; the adapter returns a queued response until configured.

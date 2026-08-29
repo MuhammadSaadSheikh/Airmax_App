@@ -73,8 +73,9 @@ See `server/.env.example` for the complete production requirements.
 npm --prefix server ci
 npm --prefix server run prisma:generate
 npm --prefix server run build
-npm --prefix server run prisma:migrate:status
-npm --prefix server run prisma:migrate:deploy
+npm --prefix server run db:deploy:preflight
+npm --prefix server run db:deploy:safe
+npm --prefix server run db:deploy:verify
 npm --prefix server run start:prod
 
 AIRMAX_API_URL=https://api.example.com/api/v1 npm --prefix admin run build
@@ -86,3 +87,6 @@ npm run android:production:bundle
 
 Native release commands require the existing platform signing configuration.
 They do not provision keys, certificates, providers, or deployment services.
+Database release approvals, backup evidence, target pinning, verification, and
+manual recovery are defined in
+[`docs/database-deployment-runbook.md`](docs/database-deployment-runbook.md).
