@@ -76,6 +76,8 @@ describe('Phase 3 admin cache invalidation policy', () => {
         queryKeys.adminComplaints,
         queryKeys.supportComplaintsRoot,
         queryKeys.supportComplaintDetailsRoot,
+        queryKeys.supportComplaintTechniciansRoot,
+        queryKeys.customerWorkOrderDetails,
         queryKeys.adminDashboard,
         queryKeys.adminReports,
       ],
@@ -104,6 +106,8 @@ describe('Phase 3 admin cache invalidation policy', () => {
       queryKeys.adminComplaints,
       queryKeys.supportComplaintsRoot,
       queryKeys.supportComplaintDetailsRoot,
+      queryKeys.supportComplaintTechniciansRoot,
+      queryKeys.customerWorkOrderDetails,
       queryKeys.adminTechnicians,
       queryKeys.adminDashboard,
       queryKeys.adminReports,
@@ -122,6 +126,7 @@ describe('Phase 3 admin cache invalidation policy', () => {
       queryKeys.adminTechnicianWorkload('tech-ali'),
       queryKeys.adminTechnicianHistory('tech-ali'),
       queryKeys.adminComplaintTechnicians,
+      queryKeys.supportComplaintTechniciansRoot,
       queryKeys.adminReports,
     ]);
   });
@@ -144,6 +149,8 @@ describe('Phase 3 admin cache invalidation policy', () => {
       queryKeys.adminComplaintList,
       queryKeys.supportComplaintsRoot,
       queryKeys.supportComplaintDetailsRoot,
+      queryKeys.supportComplaintTechniciansRoot,
+      queryKeys.customerWorkOrderDetails,
       queryKeys.adminDashboard,
       queryKeys.adminReports,
     ]);

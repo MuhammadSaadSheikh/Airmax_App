@@ -15,7 +15,7 @@ export default function Install() {
   const [pkg, setPkg] = useState('plus');
   const [date, setDate] = useState('15 August 2026');
   const packagesQuery = useQuery({
-    queryKey: queryKeys.packageMarketplace,
+    queryKey: queryKeys.installationPackageCatalogue,
     queryFn: packageService.getPackages,
   });
   const m = useMutation({
@@ -83,10 +83,22 @@ export default function Install() {
         value={date}
         onChangeText={setDate}
       />
+      {!installationsService.supportsSubmission ? (
+        <Text style={styles.unavailable}>
+          Online installation requests are temporarily unavailable. Please
+          contact AIRMAX support until secure public submission is available.
+        </Text>
+      ) : null}
       <Button
         title="Submit installation request"
         loading={m.isPending}
-        disabled={!name || !phone || !address || packagesQuery.isPending}
+        disabled={
+          !installationsService.supportsSubmission ||
+          !name ||
+          !phone ||
+          !address ||
+          packagesQuery.isPending
+        }
         onPress={() => m.mutate()}
       />
     </Screen>
@@ -104,4 +116,8 @@ const styles = StyleSheet.create({
   },
   selected: { borderColor: colors.primary },
   pkgName: { color: colors.text, fontWeight: '800', marginBottom: 4 },
+  unavailable: {
+    color: colors.warning,
+    marginBottom: 16,
+  },
 });

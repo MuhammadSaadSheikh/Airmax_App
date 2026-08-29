@@ -1,5 +1,5 @@
 import { environment } from '@/config/environment';
-import { apiRequest, mockDelay } from './client';
+import { mockDelay } from './client';
 
 export type InstallationRequest = {
   name: string;
@@ -15,12 +15,14 @@ export type InstallationResult = {
 };
 
 export const installationsService = {
+  supportsSubmission: environment.useMockApi,
+
   async create(payload: InstallationRequest): Promise<InstallationResult> {
-    if (!environment.useMockApi)
-      return apiRequest<InstallationResult>('/subscriptions/installations', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+    if (!environment.useMockApi) {
+      throw new Error(
+        'Installation requests are unavailable until a public backend contract exists.',
+      );
+    }
     await mockDelay(500);
     return { id: `INS-${Date.now()}`, payload, status: 'pending' };
   },

@@ -1,3 +1,5 @@
+import { environment } from '@/config/environment';
+
 export type ConnectionStatus = 'online' | 'offline';
 export type EquipmentConnectionStatus = 'connected' | 'disconnected';
 export type FiberStatus = 'active' | 'degraded' | 'inactive';
@@ -106,6 +108,9 @@ export const mockNetworkService = {
   async getCustomerDashboard(
     connectionId: string,
   ): Promise<CustomerDashboardSnapshot> {
+    if (!environment.useMockApi) {
+      throw new Error('Network dashboard data is unavailable in live mode.');
+    }
     // Mirrors an API boundary so NestJS/MikroTik data can replace the mock.
     void connectionId;
     await new Promise<void>(resolve => setTimeout(resolve, 350));

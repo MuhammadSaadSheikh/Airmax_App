@@ -21,11 +21,17 @@ import {
   UsageSummaryCard,
   type QuickAction,
 } from '@/features/customer/components';
+import { environment } from '@/config/environment';
 import { useCustomerNavigation } from '@/navigation';
+import { useCustomerInvoices } from '@/services/billing';
+import { useCustomerProfile } from '@/services/customer';
+import { dashboardAlerts, dashboardPlan } from '@/services/dashboard';
 import { mockNetworkService } from '@/services/network';
 import { notificationService } from '@/services/notifications/notificationService';
-import { useCustomerProfile } from '@/services/customer';
+import { mapCurrentPackage } from '@/services/package';
 import { queryKeys } from '@/services/query/queryKeys';
+import { useCustomerSubscriptions } from '@/services/subscription';
+import { useCustomerComplaints } from '@/services/support';
 import { useAuthStore } from '@/store/auth.store';
 import { animation, colors, radius, spacing, typography } from '@/theme';
 
@@ -36,20 +42,44 @@ export default function CustomerHomeScreen() {
   const connectionId =
     customerQuery.data?.connectionId ?? user?.connectionId ?? 'unknown';
   const customerName = customerQuery.data?.name ?? user?.name;
+  const customerId = customerQuery.data?.id;
+  const subscriptionsQuery = useCustomerSubscriptions(customerId);
+  const invoicesQuery = useCustomerInvoices(customerId);
+  const complaintsQuery = useCustomerComplaints(customerId);
 
-  const dashboardQuery = useQuery({
+  const networkQuery = useQuery({
     queryKey: queryKeys.customerDashboard(connectionId),
     queryFn: () => mockNetworkService.getCustomerDashboard(connectionId),
+    enabled: environment.useMockApi && Boolean(customerQuery.data),
     staleTime: 30_000,
   });
   const notificationsQuery = useQuery({
-    queryKey: queryKeys.notifications(connectionId),
+    queryKey: queryKeys.notifications(user?.id ?? connectionId),
     queryFn: () => notificationService.getNotifications(connectionId),
     staleTime: 30_000,
   });
   const unread =
     notificationsQuery.data?.filter(notification => !notification.isRead)
       .length ?? 0;
+  const currentPackage = useMemo(
+    () => mapCurrentPackage(subscriptionsQuery.data ?? []),
+    [subscriptionsQuery.data],
+  );
+  const plan = useMemo(() => dashboardPlan(currentPackage), [currentPackage]);
+  const alerts = useMemo(
+    () => dashboardAlerts(invoicesQuery.data ?? [], complaintsQuery.data ?? []),
+    [complaintsQuery.data, invoicesQuery.data],
+  );
+  const businessPending =
+    customerQuery.isPending ||
+    subscriptionsQuery.isPending ||
+    invoicesQuery.isPending ||
+    complaintsQuery.isPending;
+  const businessError =
+    customerQuery.isError ||
+    subscriptionsQuery.isError ||
+    invoicesQuery.isError ||
+    complaintsQuery.isError;
 
   const runSpeedTest = useCallback(
     () => navigation.navigate('SpeedTest'),
@@ -128,69 +158,86 @@ export default function CustomerHomeScreen() {
         }
       />
 
-      {dashboardQuery.isPending ? (
+      {customerQuery.isPending ? (
         <DashboardSkeleton />
-      ) : dashboardQuery.isError ? (
+      ) : customerQuery.isError || !customerQuery.data ? (
         <ErrorState
-          title="Internet health unavailable"
-          message="We couldn’t load your live connection snapshot."
-          retry={() => void dashboardQuery.refetch()}
+          title="Customer profile unavailable"
+          message="We couldn’t verify your customer account."
+          retry={() => void customerQuery.refetch()}
         />
       ) : (
         <Animated.View
           entering={FadeIn.duration(animation.duration.normal)}
           style={styles.dashboard}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open Internet Health Center"
-            onPress={() => navigation.navigate('InternetHealth')}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <InternetHealthCard network={dashboardQuery.data.network} />
-          </Pressable>
-
-          <SectionTitle
-            title="Network insights"
-            subtitle="Your connected equipment"
-          />
-          <NetworkStatusCard network={dashboardQuery.data.network} />
-
-          <SectionTitle
-            title="Speed information"
-            subtitle="Latest network snapshot"
-          />
-          <View style={styles.speedGrid}>
-            <SpeedMetricCard
-              label="Download"
-              value={dashboardQuery.data.speed.download}
-              unit="Mbps"
-              icon="arrow-down-outline"
+          {environment.useMockApi ? (
+            networkQuery.isPending ? (
+              <DashboardSkeleton />
+            ) : networkQuery.isError || !networkQuery.data ? (
+              <ErrorState
+                title="Internet health unavailable"
+                message="We couldn’t load the mock connection snapshot."
+                retry={() => void networkQuery.refetch()}
+              />
+            ) : (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Internet Health Center"
+                  onPress={() => navigation.navigate('InternetHealth')}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <InternetHealthCard network={networkQuery.data.network} />
+                </Pressable>
+                <SectionTitle
+                  title="Network insights"
+                  subtitle="Mock connected equipment snapshot"
+                />
+                <NetworkStatusCard network={networkQuery.data.network} />
+                <SectionTitle
+                  title="Speed information"
+                  subtitle="Mock network snapshot"
+                />
+                <View style={styles.speedGrid}>
+                  <SpeedMetricCard
+                    label="Download"
+                    value={networkQuery.data.speed.download}
+                    unit="Mbps"
+                    icon="arrow-down-outline"
+                  />
+                  <SpeedMetricCard
+                    label="Upload"
+                    value={networkQuery.data.speed.upload}
+                    unit="Mbps"
+                    icon="arrow-up-outline"
+                    delay={animation.duration.instant}
+                  />
+                  <SpeedMetricCard
+                    label="Ping"
+                    value={networkQuery.data.speed.ping}
+                    unit="ms"
+                    icon="pulse-outline"
+                    delay={animation.duration.fast}
+                  />
+                  <SpeedMetricCard
+                    label="Jitter"
+                    value={networkQuery.data.speed.jitter}
+                    unit="ms"
+                    icon="analytics-outline"
+                    delay={animation.duration.normal}
+                  />
+                </View>
+                <UsageSummaryCard usage={networkQuery.data.usage} />
+              </>
+            )
+          ) : (
+            <EmptyState
+              title="Network telemetry unavailable"
+              message="Live network health, usage, speed and diagnostics will appear after a secure backend monitoring contract is available."
+              icon="cloud-offline-outline"
             />
-            <SpeedMetricCard
-              label="Upload"
-              value={dashboardQuery.data.speed.upload}
-              unit="Mbps"
-              icon="arrow-up-outline"
-              delay={animation.duration.instant}
-            />
-            <SpeedMetricCard
-              label="Ping"
-              value={dashboardQuery.data.speed.ping}
-              unit="ms"
-              icon="pulse-outline"
-              delay={animation.duration.fast}
-            />
-            <SpeedMetricCard
-              label="Jitter"
-              value={dashboardQuery.data.speed.jitter}
-              unit="ms"
-              icon="analytics-outline"
-              delay={animation.duration.normal}
-            />
-          </View>
-
-          <UsageSummaryCard usage={dashboardQuery.data.usage} />
+          )}
 
           <SectionTitle
             title="Quick actions"
@@ -198,32 +245,58 @@ export default function CustomerHomeScreen() {
           />
           <QuickActionGrid actions={quickActions} />
 
-          <SectionTitle
-            title="Current package"
-            subtitle="Your active internet plan"
-          />
-          <CurrentPlanCard
-            plan={dashboardQuery.data.plan}
-            onUpgrade={goToPackages}
-            onRenew={goToPayment}
-          />
-
-          <SectionTitle
-            title="Service alerts"
-            subtitle="Updates for your connection"
-          />
-          {dashboardQuery.data.alerts.length > 0 ? (
-            <View style={styles.alerts}>
-              {dashboardQuery.data.alerts.map(serviceAlert => (
-                <ServiceAlertCard key={serviceAlert.id} alert={serviceAlert} />
-              ))}
-            </View>
-          ) : (
-            <EmptyState
-              title="All clear"
-              message="There are no service alerts for your connection."
-              icon="shield-checkmark-outline"
+          {businessPending ? (
+            <DashboardSkeleton />
+          ) : businessError ? (
+            <ErrorState
+              title="Account summary unavailable"
+              message="We couldn’t load your package, billing or complaint summary."
+              retry={() => {
+                void subscriptionsQuery.refetch();
+                void invoicesQuery.refetch();
+                void complaintsQuery.refetch();
+              }}
             />
+          ) : (
+            <>
+              <SectionTitle
+                title="Current package"
+                subtitle="Your production subscription"
+              />
+              {plan ? (
+                <CurrentPlanCard
+                  plan={plan}
+                  onUpgrade={goToPackages}
+                  onRenew={goToPayment}
+                />
+              ) : (
+                <EmptyState
+                  title="No current package"
+                  message="No active or pending subscription is available."
+                  icon="cube-outline"
+                />
+              )}
+              <SectionTitle
+                title="Account alerts"
+                subtitle="Production billing and complaint updates"
+              />
+              {alerts.length > 0 ? (
+                <View style={styles.alerts}>
+                  {alerts.map(serviceAlert => (
+                    <ServiceAlertCard
+                      key={serviceAlert.id}
+                      alert={serviceAlert}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <EmptyState
+                  title="All clear"
+                  message="There are no payable bills or open complaints."
+                  icon="shield-checkmark-outline"
+                />
+              )}
+            </>
           )}
         </Animated.View>
       )}

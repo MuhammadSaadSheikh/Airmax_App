@@ -1,3 +1,4 @@
+import { environment } from '@/config/environment';
 import type { EquipmentStatus, NetworkHealth, SpeedMetrics } from './models';
 
 export interface NetworkHealthSnapshot {
@@ -38,6 +39,9 @@ const snapshot: NetworkHealthSnapshot = {
 
 export const networkHealthService: NetworkHealthService = {
   async getHealth(connectionId) {
+    if (!environment.useMockApi) {
+      throw new Error('Network health is unavailable in live mode.');
+    }
     // This boundary can be backed by NestJS/network monitoring without UI changes.
     void connectionId;
     await new Promise<void>(resolve => setTimeout(resolve, 300));

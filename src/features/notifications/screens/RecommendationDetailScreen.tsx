@@ -13,6 +13,7 @@ import {
   SkeletonCard,
   Surface,
 } from '@/components';
+import { environment } from '@/config/environment';
 import { useNotificationAction } from '@/features/notifications/hooks/useNotificationAction';
 import type { CustomerStackParamList } from '@/navigation/types';
 import { personalizationService } from '@/services/notifications/personalizationService';
@@ -36,8 +37,21 @@ export default function RecommendationDetailScreen({ route }: Props) {
   const query = useQuery({
     queryKey: queryKeys.recommendationDetail(route.params.id),
     queryFn: () => personalizationService.getRecommendation(route.params.id),
+    enabled: environment.useMockApi,
     staleTime: 60_000,
   });
+
+  if (!environment.useMockApi) {
+    return (
+      <AppScreen>
+        <AppHeader title="Recommendation" showBack />
+        <ErrorState
+          title="Recommendations not available"
+          message="Personalized recommendations will be available after a production backend contract is introduced."
+        />
+      </AppScreen>
+    );
+  }
 
   if (query.isPending) {
     return (

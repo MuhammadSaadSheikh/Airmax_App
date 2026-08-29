@@ -30,9 +30,9 @@ type Props = NativeStackScreenProps<
 export default function NotificationDetailScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient();
   const performAction = useNotificationAction();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const user = useAuthStore(state => state.user);
+  const connectionId = user?.connectionId ?? 'unknown';
+  const viewerId = user?.id ?? connectionId;
   const query = useQuery({
     queryKey: queryKeys.notificationDetail(route.params.id),
     queryFn: () => notificationService.getNotification(route.params.id),
@@ -44,7 +44,7 @@ export default function NotificationDetailScreen({ navigation, route }: Props) {
       if (!item) return;
       queryClient.setQueryData(queryKeys.notificationDetail(item.id), item);
       queryClient.setQueryData<Notification[]>(
-        queryKeys.notifications(connectionId),
+        queryKeys.notifications(viewerId),
         current =>
           current?.map(existing => (existing.id === item.id ? item : existing)),
       );

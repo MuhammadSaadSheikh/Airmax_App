@@ -1,4 +1,5 @@
-export type NotificationType = 'billing' | 'network' | 'support' | 'offers';
+export type NotificationType =
+  'general' | 'billing' | 'network' | 'support' | 'offers';
 export type NotificationPriority = 'normal' | 'high' | 'critical';
 export type NotificationActionType =
   | 'pay_bill'

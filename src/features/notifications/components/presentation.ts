@@ -9,6 +9,11 @@ export const notificationPresentation: Record<
   NotificationType,
   { icon: AppIconName; color: string; label: string }
 > = {
+  general: {
+    icon: 'notifications-outline',
+    color: colors.primary,
+    label: 'Update',
+  },
   billing: { icon: 'receipt-outline', color: colors.warning, label: 'Billing' },
   network: { icon: 'wifi-outline', color: colors.primary, label: 'Network' },
   support: { icon: 'headset-outline', color: colors.success, label: 'Support' },

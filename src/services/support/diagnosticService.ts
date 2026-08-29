@@ -1,3 +1,4 @@
+import { environment } from '@/config/environment';
 import type { DiagnosticResult } from './models';
 
 export interface SupportDiagnosticService {
@@ -9,6 +10,9 @@ export interface SupportDiagnosticService {
 
 export const supportDiagnosticService: SupportDiagnosticService = {
   async runDiagnostics(connectionId, issue) {
+    if (!environment.useMockApi) {
+      throw new Error('Diagnostics are unavailable in live mode.');
+    }
     // The NestJS endpoint can later forward this context to the AI support engine.
     void connectionId;
     void issue;

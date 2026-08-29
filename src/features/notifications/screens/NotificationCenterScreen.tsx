@@ -15,6 +15,7 @@ import {
   ErrorState,
   NotificationSkeleton,
 } from '@/components';
+import { environment } from '@/config/environment';
 import {
   NotificationBadge,
   NotificationCard,
@@ -37,23 +38,25 @@ export default function NotificationCenterScreen() {
   const navigation = useCustomerNavigation();
   const performAction = useNotificationAction();
   const queryClient = useQueryClient();
-  const connectionId = useAuthStore(
-    state => state.user?.connectionId ?? 'unknown',
-  );
+  const user = useAuthStore(state => state.user);
+  const connectionId = user?.connectionId ?? 'unknown';
+  const viewerId = user?.id ?? connectionId;
   const [filter, setFilter] = useState<NotificationFilterValue>('all');
   const notificationsQuery = useQuery({
-    queryKey: queryKeys.notifications(connectionId),
+    queryKey: queryKeys.notifications(viewerId),
     queryFn: () => notificationService.getNotifications(connectionId),
     staleTime: 30_000,
   });
   const recommendationsQuery = useQuery({
     queryKey: queryKeys.recommendations(connectionId),
     queryFn: () => personalizationService.getRecommendations(connectionId),
+    enabled: environment.useMockApi,
     staleTime: 60_000,
   });
   const insightQuery = useQuery({
     queryKey: [...queryKeys.recommendations(connectionId), 'insight'],
     queryFn: () => personalizationService.getCustomerInsight(connectionId),
+    enabled: environment.useMockApi,
     staleTime: 60_000,
   });
   const readMutation = useMutation({
@@ -62,7 +65,7 @@ export default function NotificationCenterScreen() {
     onSuccess: item => {
       if (!item) return;
       queryClient.setQueryData<Notification[]>(
-        queryKeys.notifications(connectionId),
+        queryKeys.notifications(viewerId),
         current =>
           current?.map(existing => (existing.id === item.id ? item : existing)),
       );
@@ -73,7 +76,7 @@ export default function NotificationCenterScreen() {
     mutationFn: () => notificationService.markAllAsRead(connectionId),
     onSuccess: () => {
       queryClient.setQueryData<Notification[]>(
-        queryKeys.notifications(connectionId),
+        queryKeys.notifications(viewerId),
         current => current?.map(item => ({ ...item, isRead: true })),
       );
     },
@@ -157,7 +160,7 @@ export default function NotificationCenterScreen() {
     <AppScreen scroll={false} contentContainerStyle={styles.screen}>
       <AppHeader
         title="Notifications"
-        subtitle={`${unread} unread · Personalized for your connection`}
+        subtitle={`${unread} unread · AIRMAX updates`}
         showBack
         action={
           <Pressable
@@ -187,7 +190,7 @@ export default function NotificationCenterScreen() {
         ListHeaderComponent={
           filter === 'all' ? (
             <View style={styles.headerContent}>
-              {recommendationsQuery.data?.length ? (
+              {environment.useMockApi && recommendationsQuery.data?.length ? (
                 <>
                   <AppText style={styles.sectionTitle}>
                     Recommended actions
@@ -212,12 +215,12 @@ export default function NotificationCenterScreen() {
                   </ScrollView>
                 </>
               ) : null}
-              {insightQuery.data ? (
+              {environment.useMockApi && insightQuery.data ? (
                 <SmartSuggestionCard insight={insightQuery.data} />
               ) : null}
               <View style={styles.listHeader}>
                 <AppText style={styles.sectionTitle}>Latest updates</AppText>
-                {unread > 0 ? (
+                {unread > 0 && notificationService.supportsMarkAllAsRead ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Mark all notifications as read"

@@ -71,6 +71,7 @@ export const queryKeys = {
   networkHealth: (connectionId: string) =>
     ['network-health', connectionId] as const,
   packageMarketplace: ['package-marketplace'] as const,
+  installationPackageCatalogue: ['installation-package-catalogue'] as const,
   currentPackages: ['current-package'] as const,
   currentPackage: (connectionId: string) =>
     ['current-package', connectionId] as const,

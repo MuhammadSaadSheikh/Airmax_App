@@ -17,11 +17,18 @@ describe('Phase 2C package service', () => {
   });
 
   it('returns the current subscription independently of UI models', async () => {
-    const current = await packageService.getCurrentPackage('AMX-1042');
+    const clock = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-08-15T00:00:00.000Z').getTime());
+    try {
+      const current = await packageService.getCurrentPackage('AMX-1042');
 
-    expect(current.subscription.packageId).toBe(current.package.id);
-    expect(current.subscription.status).toBe('active');
-    expect(current.subscription.remainingDays).toBeGreaterThan(0);
+      expect(current.subscription.packageId).toBe(current.package.id);
+      expect(current.subscription.status).toBe('active');
+      expect(current.subscription.remainingDays).toBeGreaterThan(0);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it('builds comparison rows for every selected package', async () => {

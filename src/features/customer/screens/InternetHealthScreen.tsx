@@ -11,6 +11,7 @@ import {
   SkeletonCard,
   Surface,
 } from '@/components';
+import { environment } from '@/config/environment';
 import {
   ConnectionTimeline,
   EquipmentStatusCard,
@@ -33,6 +34,7 @@ export default function InternetHealthScreen() {
   const query = useQuery({
     queryKey: queryKeys.networkHealth(connectionId),
     queryFn: () => networkHealthService.getHealth(connectionId),
+    enabled: environment.useMockApi,
     staleTime: 30_000,
   });
   const goToSpeedTest = useCallback(
@@ -43,6 +45,18 @@ export default function InternetHealthScreen() {
     () => navigation.navigate('Diagnostics'),
     [navigation],
   );
+
+  if (!environment.useMockApi) {
+    return (
+      <AppScreen contentContainerStyle={styles.content}>
+        <AppHeader title="Internet health" showBack />
+        <ErrorState
+          title="Network telemetry unavailable"
+          message="Live network health requires a secure backend monitoring contract. No mock connection data is shown in live mode."
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen contentContainerStyle={styles.content}>

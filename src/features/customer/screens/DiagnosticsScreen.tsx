@@ -12,6 +12,7 @@ import {
   SkeletonCard,
   Surface,
 } from '@/components';
+import { environment } from '@/config/environment';
 import {
   DiagnosticCheckItem,
   NetworkRecommendationCard,
@@ -73,6 +74,18 @@ export default function DiagnosticsScreen({ navigation, route }: Props) {
         },
       ]
     : [];
+
+  if (!environment.useMockApi) {
+    return (
+      <AppScreen contentContainerStyle={styles.content}>
+        <AppHeader title="Diagnostics" showBack />
+        <ErrorState
+          title="Diagnostics unavailable"
+          message="Live diagnostics require a secure backend monitoring contract. No mock diagnostic result is shown in live mode."
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen contentContainerStyle={styles.content}>

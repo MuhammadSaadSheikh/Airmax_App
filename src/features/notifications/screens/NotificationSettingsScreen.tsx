@@ -45,6 +45,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
   const query = useQuery({
     queryKey: queryKeys.notificationPreferences(connectionId),
     queryFn: () => notificationService.getPreferences(connectionId),
+    enabled: notificationService.supportsPreferences,
   });
   const preferences = { ...(query.data ?? initialPreferences), ...overrides };
   const mutation = useMutation({
@@ -67,6 +68,18 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
 
   const update = (key: keyof NotificationPreference, value: boolean) =>
     setOverrides(current => ({ ...current, [key]: value }));
+
+  if (!notificationService.supportsPreferences) {
+    return (
+      <AppScreen>
+        <AppHeader title="Notification settings" showBack />
+        <ErrorState
+          title="Settings not available"
+          message="Notification preferences will be available after a production backend contract is introduced."
+        />
+      </AppScreen>
+    );
+  }
 
   if (query.isPending) {
     return (
