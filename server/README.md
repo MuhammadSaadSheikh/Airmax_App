@@ -25,6 +25,27 @@ Future list endpoints should use the shared opaque cursor helpers in
 `src/common/pagination/cursor-pagination.ts`; Phase 4.1 does not migrate existing
 business lists to cursor pagination.
 
-Start PostgreSQL and Redis with `docker compose up -d`, copy `.env.example` to `.env`, then run `npm install`, `npm run prisma:generate`, `npm run prisma:migrate`, and `npm run dev` in this directory.
+For local development, start PostgreSQL and Redis with `docker compose up -d`,
+copy `.env.example` to `.env`, then run `npm ci`, `npm run prisma:generate`,
+`npm run prisma:migrate`, and `npm run dev` in this directory.
+
+Production must inject configuration through the deployment environment with an
+explicit `NODE_ENV=production`. Required values include PostgreSQL with TLS,
+Redis with `rediss://`, HTTPS `ADMIN_ORIGIN`, distinct JWT access/refresh
+secrets, issuer, audience, and OTP pepper. Local hosts, example credentials,
+debug logging, incomplete MikroTik configuration, and repository-local `.env`
+loading are rejected in production. The authoritative variable checklist and
+safe placeholders are documented in `.env.example`.
+
+After producing the API build, use only deployment-safe Prisma commands:
+
+```bash
+npm run prisma:migrate:status
+npm run prisma:migrate:deploy
+npm run start:prod
+```
+
+`prisma:migrate` remains the local development command and must not be used as a
+production deployment step.
 
 Payment callbacks must be verified by the provider before calling the idempotent verification service. MikroTik credentials remain server-side; the adapter returns a queued response until configured.

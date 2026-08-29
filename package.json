@@ -10,6 +10,8 @@
     "android:live": "react-native run-android --mode developmentLiveDebug --appIdSuffix dev --active-arch-only",
     "android:staging": "react-native run-android --mode stagingDebug --appIdSuffix staging --active-arch-only",
     "android:production": "react-native run-android --mode productionDebug --active-arch-only",
+    "android:production:assemble": "cd android && ./gradlew assembleProductionRelease",
+    "android:production:bundle": "cd android && ./gradlew bundleProductionRelease",
     "ios": "react-native run-ios",
     "lint": "eslint App.tsx src __tests__",
     "typecheck": "tsc --noEmit",

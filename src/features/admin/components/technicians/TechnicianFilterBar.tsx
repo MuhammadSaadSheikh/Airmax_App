@@ -136,5 +136,5 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: animation.opacity.pressed },
   chipLabel: { ...typography.label, color: colors.muted },
-  selectedLabel: { color: colors.textOnAccent },
+  selectedLabel: { color: colors.primary },
 });

@@ -27,6 +27,9 @@ import { RedisModule } from './redis/redis.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      // Production configuration must come from the deployment environment or
+      // its managed secret injector, never from a repository-local .env file.
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
       validate: validateInfrastructureConfig,
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),

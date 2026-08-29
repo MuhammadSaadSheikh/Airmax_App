@@ -86,5 +86,5 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: animation.opacity.pressed },
   label: { ...typography.label, color: colors.muted },
-  selectedLabel: { color: colors.textOnAccent },
+  selectedLabel: { color: colors.primary },
 });

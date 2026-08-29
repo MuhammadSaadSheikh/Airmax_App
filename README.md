@@ -7,13 +7,13 @@ Production-oriented ISP system composed of a React Native CLI mobile client, Nes
 Requirements: Node 22+, npm, Android Studio or Xcode, and Docker.
 
 ```bash
-npm install
+npm ci
 docker compose up -d
 cp server/.env.example server/.env
-npm --prefix server install
+npm --prefix server ci
 npm --prefix server run prisma:generate
 npm --prefix server run prisma:migrate
-npm --prefix admin install
+npm --prefix admin ci
 npm start
 ```
 
@@ -44,7 +44,8 @@ The UI uses bundled Manrope typography with Space Grotesk display headings, resp
 1. Start PostgreSQL and Redis with `docker compose up -d`.
 2. Copy `server/.env.example` to `server/.env`, then replace development secrets.
 3. Run `npm --prefix server run prisma:migrate` and `npm --prefix server run dev`.
-4. Point `src/config/environment.ts` at the deployed HTTPS API for release builds.
+4. Select the existing native environment flavor for mobile builds; production
+   endpoints remain owned by the native Android/iOS build configuration.
 5. Configure provider webhooks, push credentials, object storage, and MikroTik credentials on the server only.
 
 Passwords are hashed by the API, refresh-token hashes live in PostgreSQL, and transient OTP challenges live in Redis. The mobile and web clients never receive infrastructure credentials.
@@ -60,3 +61,28 @@ npm --prefix admin run build
 ```
 
 For production builds, configure native signing, APNs/FCM credentials, payment providers, error reporting, deep links, privacy copy, HTTPS API origins, and secret management.
+
+## Production foundation commands
+
+Production configuration is injected by the deployment environment. The API
+does not load `server/.env` when `NODE_ENV=production`, and it refuses local or
+unencrypted database, Redis, CORS, and optional MikroTik dependency endpoints.
+See `server/.env.example` for the complete production requirements.
+
+```bash
+npm --prefix server ci
+npm --prefix server run prisma:generate
+npm --prefix server run build
+npm --prefix server run prisma:migrate:status
+npm --prefix server run prisma:migrate:deploy
+npm --prefix server run start:prod
+
+AIRMAX_API_URL=https://api.example.com/api/v1 npm --prefix admin run build
+npm --prefix admin run start
+
+npm run android:production:assemble
+npm run android:production:bundle
+```
+
+Native release commands require the existing platform signing configuration.
+They do not provision keys, certificates, providers, or deployment services.

@@ -49,8 +49,23 @@ const { HealthService } = require('../dist/health/health.service.js');
 const { LoginDto, RegisterDto } = require('../dist/auth/dto/auth.dto.js');
 
 const validEnvironment = {
+  NODE_ENV: 'test',
   DATABASE_URL: 'postgresql://airmax:secret@localhost:5432/airmax',
   REDIS_URL: 'redis://localhost:6379',
+};
+
+const validProductionEnvironment = {
+  NODE_ENV: 'production',
+  DATABASE_URL:
+    'postgresql://airmax:production-password@db.airmax.example:5432/airmax?sslmode=verify-full',
+  REDIS_URL: 'rediss://cache.airmax.example:6380',
+  JWT_ACCESS_SECRET: 'a'.repeat(32),
+  JWT_REFRESH_SECRET: 'r'.repeat(32),
+  JWT_ISSUER: 'airmax-api',
+  JWT_AUDIENCE: 'airmax-clients',
+  OTP_PEPPER: 'o'.repeat(32),
+  ADMIN_ORIGIN: 'https://admin.airmax.example',
+  LOG_LEVEL: 'log',
 };
 
 function responseDouble(statusCode = 200) {
@@ -312,7 +327,10 @@ test('configuration normalizes valid values and fails closed for missing or inva
   assert.equal(config.PORT, 4000);
   assert.equal(config.PAGINATION_DEFAULT_LIMIT, 25);
   assert.throws(() =>
-    validateInfrastructureConfig({ REDIS_URL: 'redis://localhost' }),
+    validateInfrastructureConfig({
+      DATABASE_URL: validEnvironment.DATABASE_URL,
+      REDIS_URL: validEnvironment.REDIS_URL,
+    }),
   );
   assert.throws(() =>
     validateInfrastructureConfig({
@@ -333,6 +351,64 @@ test('configuration normalizes valid values and fails closed for missing or inva
       PAGINATION_MAX_LIMIT: 100,
     }),
   );
+});
+
+test('production configuration requires remote encrypted dependencies and deployment secrets', () => {
+  const config = validateInfrastructureConfig(validProductionEnvironment);
+  assert.equal(config.NODE_ENV, 'production');
+  assert.equal(config.ADMIN_ORIGIN, 'https://admin.airmax.example');
+
+  const invalidOverrides = [
+    { DATABASE_URL: 'postgresql://airmax:secret@localhost:5432/airmax' },
+    {
+      DATABASE_URL: 'postgresql://airmax:secret@db.airmax.example:5432/airmax',
+    },
+    { REDIS_URL: 'redis://cache.airmax.example:6379' },
+    { REDIS_URL: 'rediss://localhost:6380' },
+    { REDIS_URL: 'rediss://192.168.1.10:6380' },
+    { ADMIN_ORIGIN: 'http://admin.airmax.example' },
+    { ADMIN_ORIGIN: 'https://admin.airmax.example/dashboard' },
+    { JWT_ACCESS_SECRET: 'short' },
+    { JWT_REFRESH_SECRET: validProductionEnvironment.JWT_ACCESS_SECRET },
+    { OTP_PEPPER: 'replace-with-at-least-32-character-otp-pepper' },
+    { LOG_LEVEL: 'debug' },
+  ];
+  for (const override of invalidOverrides) {
+    assert.throws(() =>
+      validateInfrastructureConfig({
+        ...validProductionEnvironment,
+        ...override,
+      }),
+    );
+  }
+
+  const missingAdminOrigin = { ...validProductionEnvironment };
+  delete missingAdminOrigin.ADMIN_ORIGIN;
+  assert.throws(() => validateInfrastructureConfig(missingAdminOrigin));
+});
+
+test('MikroTik dependency configuration is all-or-nothing and HTTPS in production', () => {
+  assert.throws(() =>
+    validateInfrastructureConfig({
+      ...validEnvironment,
+      MIKROTIK_BASE_URL: 'http://router.local',
+    }),
+  );
+  assert.throws(() =>
+    validateInfrastructureConfig({
+      ...validProductionEnvironment,
+      MIKROTIK_BASE_URL: 'http://router.airmax.example',
+      MIKROTIK_USERNAME: 'api-user',
+      MIKROTIK_PASSWORD: 'router-password',
+    }),
+  );
+  const config = validateInfrastructureConfig({
+    ...validProductionEnvironment,
+    MIKROTIK_BASE_URL: 'https://router.airmax.example',
+    MIKROTIK_USERNAME: 'api-user',
+    MIKROTIK_PASSWORD: 'router-password',
+  });
+  assert.equal(config.MIKROTIK_BASE_URL, 'https://router.airmax.example');
 });
 
 test('health service provides liveness and dependency-aware readiness', async () => {

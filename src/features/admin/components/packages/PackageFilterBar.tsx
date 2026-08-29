@@ -77,5 +77,5 @@ const styles = StyleSheet.create({
   selected: { borderColor: colors.primary, backgroundColor: colors.primary },
   pressed: { opacity: animation.opacity.pressed },
   label: { ...typography.label, color: colors.muted },
-  selectedLabel: { color: colors.textOnAccent },
+  selectedLabel: { color: colors.primary },
 });
