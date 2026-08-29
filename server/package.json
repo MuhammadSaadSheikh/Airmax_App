@@ -6,7 +6,7 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "lint": "../node_modules/.bin/eslint src",
-    "format:check": "../node_modules/.bin/prettier --check src/app.module.ts src/main.ts src/common/http src/common/pagination src/config/infrastructure.config.ts src/health scripts/database test/backend-foundation.test.js test/database-deployment-safety.test.js README.md prisma/README.md package.json eslint.config.js",
+    "format:check": "../node_modules/.bin/prettier --check src/app.module.ts src/main.ts src/common/http src/common/pagination src/config/infrastructure.config.ts src/health scripts/database test/backend-foundation.test.js test/database-backup-evidence.test.js test/database-deployment-safety.test.js README.md prisma/README.md package.json eslint.config.js",
     "start": "node dist/main.js",
     "start:prod": "NODE_ENV=production node dist/main.js",
     "typecheck": "tsc --noEmit",
@@ -18,6 +18,7 @@
     "db:deploy:preflight": "node scripts/database/preflight.js",
     "db:deploy:safe": "node scripts/database/safe-deploy.js",
     "db:deploy:verify": "node scripts/database/verify.js",
+    "db:backup:evidence:validate": "node scripts/database/validate-backup-evidence.js",
     "test:database": "node --test test/database-schema.test.js",
     "test": "npm run build && node --test test/*.test.js"
   },

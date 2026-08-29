@@ -52,5 +52,8 @@ production deployment step. Direct `prisma migrate deploy` is deliberately not
 exposed as a package script. See
 [`../docs/database-deployment-runbook.md`](../docs/database-deployment-runbook.md)
 for approvals, backup requirements, failure recovery, and sanitized reports.
+The provider-neutral backup policy, evidence manifest contract, and isolated
+restore rehearsal process are documented in
+[`../docs/database-backup-policy.md`](../docs/database-backup-policy.md).
 
 Payment callbacks must be verified by the provider before calling the idempotent verification service. MikroTik credentials remain server-side; the adapter returns a queued response until configured.

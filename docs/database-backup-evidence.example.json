@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "evidence-change-12345",
+  "backupId": "provider-backup-reference-12345",
+  "backupType": "snapshot",
+  "status": "COMPLETED",
+  "environment": "production",
+  "target": {
+    "host": "db.example.invalid",
+    "port": 5432,
+    "databaseName": "airmax"
+  },
+  "startedAt": "2026-08-30T00:00:00.000Z",
+  "recoveryPointAt": "2026-08-30T00:03:00.000Z",
+  "completedAt": "2026-08-30T00:05:00.000Z",
+  "expiresAt": "2026-09-30T00:00:00.000Z",
+  "security": {
+    "encryptedAtRest": true,
+    "encryptedInTransit": true,
+    "accessControlled": true,
+    "immutableUntil": "2026-09-30T00:00:00.000Z"
+  },
+  "integrity": {
+    "method": "provider_status",
+    "verifiedAt": "2026-08-30T00:06:00.000Z",
+    "verifiedBy": "approved-database-operator"
+  },
+  "restoreTest": {
+    "evidenceId": "restore-rehearsal-change-12000",
+    "status": "PASSED",
+    "completedAt": "2026-08-01T12:00:00.000Z",
+    "verifiedBy": "approved-recovery-owner"
+  }
+}

@@ -3,6 +3,12 @@
 This is a decision runbook, not an executable rollback. AIRMAX intentionally has
 no automatic rollback and no automatic `prisma migrate resolve` path.
 
+Use the detailed
+[`database-recovery-checklist.md`](database-recovery-checklist.md) during an
+incident and the
+[`database-restore-rehearsal-runbook.md`](database-restore-rehearsal-runbook.md)
+for non-production recovery exercises.
+
 ## On any migration or verification failure
 
 1. Stop the deployment and keep traffic in the approved maintenance state.
@@ -47,6 +53,10 @@ restored target before cutover:
 - row-count and business reconciliation controls approved for the incident;
 - API startup, live/ready health, authentication, and critical customer flows;
 - DNS/connection target and runtime role permissions.
+
+The complete database, financial, application, security, and cleanup controls
+are defined in
+[`database-restore-validation-checklist.md`](database-restore-validation-checklist.md).
 
 Record recovery evidence and the final incident decision. Only an explicitly
 reviewed repair may use `prisma migrate resolve`; this tool never performs it.

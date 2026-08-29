@@ -23,7 +23,13 @@ production values or secrets to the repository.
 ## Safety evidence
 
 - Backup/snapshot reference:
+- Sanitized backup evidence manifest reference:
+- Backup evidence validator outcome:
+- Provider control-plane verification reference:
 - Backup completion time:
+- Actual recovery-point time:
+- Remaining retention/immutability expiry:
+- Last passing restore-rehearsal evidence ID/date:
 - Restore process and recovery objective verified:
 - Maintenance window:
 - DDL lock/capacity review reference:

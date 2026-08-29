@@ -90,3 +90,6 @@ They do not provision keys, certificates, providers, or deployment services.
 Database release approvals, backup evidence, target pinning, verification, and
 manual recovery are defined in
 [`docs/database-deployment-runbook.md`](docs/database-deployment-runbook.md).
+Provider-neutral backup requirements, evidence validation, and isolated restore
+rehearsals are defined in
+[`docs/database-backup-policy.md`](docs/database-backup-policy.md).

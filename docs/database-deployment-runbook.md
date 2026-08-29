@@ -23,20 +23,24 @@ approvals and evidence remain mandatory.
 Inject values through the deployment platform or a managed secret store. Do not
 write a production `.env` file into the release checkout.
 
-| Variable                         | Requirement                                                                                  |
-| -------------------------------- | -------------------------------------------------------------------------------------------- |
-| `NODE_ENV`                       | Exactly `production`                                                                         |
-| `DATABASE_URL`                   | PostgreSQL URL for the migration role, with `sslmode=require`, `verify-ca`, or `verify-full` |
-| `AIRMAX_DB_EXPECTED_HOST`        | Exact approved database host                                                                 |
-| `AIRMAX_DB_EXPECTED_PORT`        | Exact approved port; defaults to `5432`                                                      |
-| `AIRMAX_DB_EXPECTED_NAME`        | Exact approved database name                                                                 |
-| `AIRMAX_DB_DEPLOY_MODE`          | `greenfield` for an empty target or `tracked` for a Prisma-managed target                    |
-| `AIRMAX_RELEASE_SHA`             | 7–64 hexadecimal characters; use the deployed Git SHA                                        |
-| `AIRMAX_DB_DEPLOY_APPROVAL`      | Exactly `APPROVED`                                                                           |
-| `AIRMAX_DB_MAINTENANCE_APPROVAL` | Exactly `APPROVED`                                                                           |
-| `AIRMAX_DB_BACKUP_REFERENCE`     | Provider snapshot/backup identifier recorded by the database owner                           |
-| `AIRMAX_HEALTH_BASE_URL`         | Optional HTTPS API origin for live/ready postflight hooks                                    |
-| `AIRMAX_DB_REPORT_DIR`           | Optional protected report directory; defaults to `server/artifacts/database-deployment`      |
+| Variable                            | Requirement                                                                                  |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                          | Exactly `production`                                                                         |
+| `DATABASE_URL`                      | PostgreSQL URL for the migration role, with `sslmode=require`, `verify-ca`, or `verify-full` |
+| `AIRMAX_DB_EXPECTED_HOST`           | Exact approved database host                                                                 |
+| `AIRMAX_DB_EXPECTED_PORT`           | Exact approved port; defaults to `5432`                                                      |
+| `AIRMAX_DB_EXPECTED_NAME`           | Exact approved database name                                                                 |
+| `AIRMAX_DB_DEPLOY_MODE`             | `greenfield` for an empty target or `tracked` for a Prisma-managed target                    |
+| `AIRMAX_RELEASE_SHA`                | 7–64 hexadecimal characters; use the deployed Git SHA                                        |
+| `AIRMAX_DB_DEPLOY_APPROVAL`         | Exactly `APPROVED`                                                                           |
+| `AIRMAX_DB_MAINTENANCE_APPROVAL`    | Exactly `APPROVED`                                                                           |
+| `AIRMAX_DB_BACKUP_REFERENCE`        | Provider snapshot/backup identifier recorded by the database owner                           |
+| `AIRMAX_BACKUP_EVIDENCE_FILE`       | Path to a sanitized local evidence manifest; never a backup or credential file               |
+| `AIRMAX_BACKUP_MAX_AGE_MINUTES`     | Owner-approved maximum recovery-point age                                                    |
+| `AIRMAX_BACKUP_MIN_RETENTION_HOURS` | Owner-approved minimum remaining retention                                                   |
+| `AIRMAX_RESTORE_TEST_MAX_AGE_DAYS`  | Owner-approved maximum age of passing restore-rehearsal evidence                             |
+| `AIRMAX_HEALTH_BASE_URL`            | Optional HTTPS API origin for live/ready postflight hooks                                    |
+| `AIRMAX_DB_REPORT_DIR`              | Optional protected report directory; defaults to `server/artifacts/database-deployment`      |
 
 `AIRMAX_MIGRATIONS_DIR` exists only for controlled packaging layouts. The
 default release path is preferred. A local/private database target, missing TLS,
@@ -53,6 +57,8 @@ Record this checklist in the change ticket before invoking the safe wrapper.
 - [ ] Deployment mode confirmed from the target: empty `greenfield` or existing
       Prisma-managed `tracked`.
 - [ ] Managed backup/snapshot completed and its identifier recorded.
+- [ ] Provider object independently verified and sanitized evidence manifest
+      passes the read-only validator.
 - [ ] Restore procedure and required restore time confirmed by the database
       owner.
 - [ ] Maintenance window and user impact approved.
@@ -78,6 +84,7 @@ npm run build
 Then execute:
 
 ```bash
+npm run db:backup:evidence:validate -- /secure/path/evidence.json
 npm run db:deploy:preflight
 npm run db:deploy:safe
 npm run db:deploy:verify
@@ -87,6 +94,13 @@ npm run db:deploy:verify
 target identity and permissions, PostgreSQL/TLS requirements, migration
 directory/order/checksums, failed or unknown migration records, pending
 migrations, and the release state.
+
+`db:backup:evidence:validate` reads only the supplied JSON manifest. It checks
+target binding, freshness, retention/immutability, security assertions,
+integrity evidence, and restore-rehearsal evidence. It does not contact or prove
+the existence of a provider backup. Follow the
+[`database-backup-policy.md`](database-backup-policy.md) and attach independent
+provider evidence to the change record.
 
 `db:deploy:safe` repeats preflight, invokes `prisma migrate deploy` once, and
 then runs postflight. It never retries, resolves, or rolls back automatically.
